@@ -44,7 +44,10 @@ snapshot_kind: text
     "schemas": {
       "i8": {
         "description": "8-bit signed integer",
-        "type": "integer"
+        "type": "integer",
+        "format": "int8",
+        "minimum": -128,
+        "maximum": 127
       },
       "reflectapi_demo.tests.basic.TestStructWithVecTwo": {
         "type": "object",
@@ -72,7 +75,10 @@ snapshot_kind: text
       },
       "u8": {
         "description": "8-bit unsigned integer",
-        "type": "integer"
+        "type": "integer",
+        "format": "uint8",
+        "minimum": 0,
+        "maximum": 255
       }
     }
   }

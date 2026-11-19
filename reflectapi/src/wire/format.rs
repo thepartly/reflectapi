@@ -39,6 +39,37 @@ pub(crate) fn string_format(primitive: &Primitive) -> Option<&str> {
     }
 }
 
+/// How a Rust integer type is written: its OpenAPI format, and the bounds a
+/// JSON number must keep within, where they fit in an `i64`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct IntegerWidth {
+    /// The OpenAPI format registry's name: `int8` … `int64`, `uint8` … `uint64`.
+    pub format: &'static str,
+    pub minimum: Option<i64>,
+    pub maximum: Option<i64>,
+}
+
+/// The width of a primitive integer type, by name. `i128` and `u128` have no
+/// registered format, and `isize`/`usize` are written as their 64-bit types.
+pub(crate) fn integer_width(name: &str) -> Option<IntegerWidth> {
+    let (format, minimum, maximum) = match name {
+        "i8" => ("int8", Some(i8::MIN.into()), Some(i8::MAX.into())),
+        "i16" => ("int16", Some(i16::MIN.into()), Some(i16::MAX.into())),
+        "i32" => ("int32", Some(i32::MIN.into()), Some(i32::MAX.into())),
+        "i64" | "isize" => ("int64", None, None),
+        "u8" => ("uint8", Some(0), Some(u8::MAX.into())),
+        "u16" => ("uint16", Some(0), Some(u16::MAX.into())),
+        "u32" => ("uint32", Some(0), Some(u32::MAX.into())),
+        "u64" | "usize" => ("uint64", Some(0), None),
+        _ => return None,
+    };
+    Some(IntegerWidth {
+        format,
+        minimum,
+        maximum,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -67,6 +98,22 @@ mod tests {
         let count = primitive("my::Count", Some("u64")).with_format("int64");
         assert_eq!(wire_format(&count), Some("int64"));
         assert_eq!(string_format(&count), None);
+    }
+
+    #[test]
+    fn integers_carry_their_registered_format_and_bounds() {
+        let u8 = integer_width("u8").unwrap();
+        assert_eq!(
+            (u8.format, u8.minimum, u8.maximum),
+            ("uint8", Some(0), Some(255))
+        );
+        let u64 = integer_width("u64").unwrap();
+        assert_eq!(
+            (u64.format, u64.minimum, u64.maximum),
+            ("uint64", Some(0), None)
+        );
+        assert_eq!(integer_width("i64").unwrap().minimum, None);
+        assert_eq!(integer_width("u128"), None);
     }
 
     /// The table above stands in for the impls' formats on older schemas,

@@ -29,6 +29,6 @@ pub(crate) use self::semantic::{
     SemanticTypeParameter, SemanticVariant, SymbolInfo, SymbolTable,
 };
 pub(crate) use self::symbol::{SymbolId, SymbolKind};
-pub(crate) use crate::wire::format::string_format;
+pub(crate) use crate::wire::format::{integer_width, string_format};
 pub(crate) use crate::wire::layout::{FlattenedGroup, Layout, Member, Opaque};
 pub(crate) use crate::wire::shape::{wrapped_field, Shape};

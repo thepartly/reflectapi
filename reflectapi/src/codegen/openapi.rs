@@ -247,7 +247,15 @@ impl StringFormat {
 #[serde(rename_all = "camelCase")]
 pub enum Type {
     Boolean,
-    Integer,
+    Integer {
+        /// The integer's width, as the OpenAPI format registry names it.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        format: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        minimum: Option<i64>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        maximum: Option<i64>,
+    },
     Number,
     String {
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -950,7 +958,14 @@ impl Converter<'_> {
                     },
                     "f32" | "f64" => Type::Number,
                     "i8" | "i16" | "i32" | "i64" | "i128" | "isize" | "u8" | "u16" | "u32"
-                    | "u64" | "u128" | "usize" => Type::Integer,
+                    | "u64" | "u128" | "usize" => {
+                        let width = schema_codegen::integer_width(prim.name());
+                        Type::Integer {
+                            format: width.map(|w| w.format.to_owned()),
+                            minimum: width.and_then(|w| w.minimum),
+                            maximum: width.and_then(|w| w.maximum),
+                        }
+                    }
                     "bool" => Type::Boolean,
                     "serde_json::Value" => Type::Object {
                         // Not sure if there is a better way to represent this
@@ -1397,7 +1412,7 @@ impl Converter<'_> {
             }
             Schema::Flat(schema) => match &schema.ty {
                 Type::Boolean
-                | Type::Integer
+                | Type::Integer { .. }
                 | Type::Number
                 | Type::String { .. }
                 | Type::Array { .. }
