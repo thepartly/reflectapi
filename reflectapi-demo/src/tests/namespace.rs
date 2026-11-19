@@ -961,7 +961,7 @@ fn test_python_split_modules_defer_peer_namespace_imports() {
     .unwrap();
     let basket_builder_file = files.get("basket_builder/__init__.py").unwrap();
     let basket_builder_import = basket_builder_file
-        .find("from .. import basket_builder_basket")
+        .find("\nfrom .. import basket_builder_basket\n")
         .unwrap();
     let sort_alias = basket_builder_file
         .find("Sort = BasketBuilderSort")
@@ -970,7 +970,9 @@ fn test_python_split_modules_defer_peer_namespace_imports() {
     assert!(basket_builder_file.contains("criterion: basket_builder_basket.Criterion"));
 
     let basket_file = files.get("basket_builder_basket/__init__.py").unwrap();
-    let parent_import = basket_file.find("from .. import basket_builder").unwrap();
+    let parent_import = basket_file
+        .find("\nfrom .. import basket_builder\n")
+        .unwrap();
     let metric_alias = basket_file
         .find("Metric = BasketBuilderBasketMetric")
         .unwrap();
