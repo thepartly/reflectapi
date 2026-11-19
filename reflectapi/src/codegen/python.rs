@@ -2385,6 +2385,8 @@ fn build_python_generation(
         group.functions.push(function);
     }
 
+    root.call_routes_named_as_subgroups();
+
     // The paths of the grouping the Python client used before, which split a
     // name at its first `_`, remain as deprecated aliases where no new name
     // takes them.
@@ -2410,10 +2412,10 @@ fn build_python_generation(
         }
     }
     imports.has_warnings |= root.has_aliases();
-    root.assign_class_names(&mut HashSet::from([
-        "Client".to_string(),
-        "AsyncClient".to_string(),
-    ]));
+    // A group's class shares the module with the models in single-file output.
+    let mut taken_class_names = emitted_class_names.clone();
+    taken_class_names.extend(["Client".to_string(), "AsyncClient".to_string()]);
+    root.assign_class_names(&mut taken_class_names);
 
     let client_template = templates::ClientClass {
         class_name: "Client".to_string(),
@@ -7731,10 +7733,13 @@ pub mod templates {
                 writeln!(s).unwrap();
                 writeln!(s, "        Args:").unwrap();
                 if function.has_body {
+                    let operation = match function.name.as_str() {
+                        "__call__" => function.original_name.as_deref().unwrap_or("__call__"),
+                        name => name,
+                    };
                     writeln!(
                         s,
-                        "            data: Request data for the {} operation.",
-                        function.name
+                        "            data: Request data for the {operation} operation."
                     )
                     .unwrap();
                 }
@@ -8037,6 +8042,27 @@ pub mod templates {
                 || self.subgroups.contains_key(name)
                 || self.functions.iter().any(|f| f.name == name)
                 || self.aliases.iter().any(|a| a.name == name)
+        }
+
+        /// Makes a route that shares its name with a subgroup the subgroup's
+        /// `__call__`, so routes `admin.users` and `admin.users.get` are
+        /// `client.admin.users()` and `client.admin.users.get()`.
+        pub fn call_routes_named_as_subgroups(&mut self) {
+            for mut function in std::mem::take(&mut self.functions) {
+                match self.subgroups.get_mut(&function.name) {
+                    Some(subgroup) => {
+                        function
+                            .original_name
+                            .get_or_insert_with(|| function.name.clone());
+                        function.name = "__call__".to_string();
+                        subgroup.functions.push(function);
+                    }
+                    None => self.functions.push(function),
+                }
+            }
+            for subgroup in self.subgroups.values_mut() {
+                subgroup.call_routes_named_as_subgroups();
+            }
         }
 
         pub fn has_aliases(&self) -> bool {
@@ -9490,6 +9516,57 @@ mod tests {
         for body in class_bodies(&client, "AdminUsersKeysClient:") {
             assert!(body.contains("def rotate(\n"));
         }
+    }
+
+    #[test]
+    fn function_grouping_calls_a_route_named_as_a_group() {
+        let client = client_for_routes(&["pets", "pets.list", "admin.users", "admin.users.get"]);
+
+        for body in class_bodies(&client, "Client(") {
+            assert!(body.contains("self.pets: "));
+            assert!(!body.contains("def pets("));
+        }
+        for body in class_bodies(&client, "PetsClient:") {
+            assert!(body.contains("def __call__(\n"));
+            assert!(body.contains("def list(\n"));
+        }
+        for body in class_bodies(&client, "AdminClient:") {
+            assert!(body.contains("self.users: "));
+            assert!(!body.contains("def users("));
+        }
+        let [async_users, users] = class_bodies(&client, "AdminUsersClient:");
+        assert!(async_users.contains("async def __call__(\n"));
+        assert!(users.contains("    def __call__(\n"));
+        for body in [async_users, users] {
+            assert!(body.contains("def get(\n"));
+        }
+    }
+
+    #[test]
+    fn function_group_classes_avoid_model_names() {
+        use reflectapi_schema::{Field, Fields, Struct, Type, TypeReference};
+
+        let mut schema = crate::Schema::new();
+        let mut model = Struct::new("AdminUsersClient");
+        model.fields = Fields::Named(vec![Field::new(
+            "id".into(),
+            TypeReference::new("u32", vec![]),
+        )]);
+        schema.input_types.insert_type(Type::Struct(model));
+        let mut function = reflectapi_schema::Function::new("admin.users.get".into());
+        function.path = "/api".into();
+        function.input_type = Some(TypeReference::new("AdminUsersClient", vec![]));
+        schema.functions.push(function);
+        let config = Config {
+            format: false,
+            ..Config::default()
+        };
+
+        let code = super::generate(schema, &config).unwrap();
+        assert_eq!(code.matches("\nclass AdminUsersClient(").count(), 1);
+        assert!(code.contains("\nclass AdminUsersClient2:"));
+        assert!(code.contains("\nclass AsyncAdminUsersClient2:"));
+        assert!(code.contains("self.users: AdminUsersClient2 = AdminUsersClient2(client)"));
     }
 
     #[test]
