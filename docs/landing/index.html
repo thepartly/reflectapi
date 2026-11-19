@@ -36,6 +36,9 @@
   }
 
   * { box-sizing: border-box; }
+  /* Oxanium leaves space before a capital R, about 0.07em at heading sizes:
+     headings starting with it are pulled back to line up with the text. */
+  .optical-r { margin-left: -0.07em; }
   [hidden] { display: none !important; }
   html { scroll-behavior: smooth; }
   @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
@@ -238,10 +241,19 @@
 
   /* The talk: the one dark band */
   section.talk { background: var(--night); color: var(--mist); padding: 88px 0; }
-  section.talk .talk-body { display: flex; gap: 40px; align-items: flex-start; }
+  section.talk .talk-body { display: flex; gap: 56px; align-items: flex-start; }
+  section.talk .talk-text p { max-width: 38em; }
+  section.talk .conf-logo { margin-top: 4px; }
   section.talk .conf-logo { flex: none; }
-  section.talk .conf-logo img { height: 80px; display: block; }
-  @media (max-width: 860px) { section.talk .talk-body { flex-direction: column; gap: 24px; } }
+  section.talk .conf-logo:hover img { opacity: .8; }
+  section.talk .conf-logo img { height: 56px; display: block; }
+  section.talk .talk-body p { margin: 0 0 32px; }
+  @media (max-width: 860px) {
+    /* The logo first, left-aligned like the text, then the paragraph and the button */
+    section.talk .talk-body { flex-direction: column; align-items: flex-start; gap: 24px; }
+    section.talk .conf-logo { order: -1; margin-top: 0; }
+    section.talk .conf-logo img { height: 44px; }
+  }
   section.talk .label { color: var(--steel); }
   section.talk .label a { color: inherit; text-decoration: underline; text-decoration-color: var(--claw); text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
   section.talk .label a:hover { color: var(--paper); }
@@ -286,7 +298,7 @@
 <main>
   <div class="wrap hero">
     <div class="label badge"><span class="dim">Open source ·</span> Built and used in <strong>production</strong> at<a class="label-logo" href="https://partly.com"><img src="partly-lockup.svg" alt="Partly"></a></div>
-    <h1>Reflect your Rust API into the world</h1>
+    <h1 class="optical-r">Reflect your Rust API into the world</h1>
     <p class="lead">Define your web API in Rust, generate typed TypeScript, Python and Rust clients, typed streams included. Serve it with Axum, Cloudflare Workers or any HTTP server.</p>
     <div class="actions">
       <a class="button primary" href="#how">From Rust to typed clients</a>
@@ -711,13 +723,13 @@ api = <span class="fn">AsyncClient</span>(<span class="st">"https://api.example.
   <section class="talk" id="talk">
     <div class="wrap">
       <div class="label">Conference talk · <a href="https://rustforgeconf.com">Rust Forge 2025</a> · Wellington</div>
-      <h2>Reflect your Rust API into the world</h2>
+      <h2 class="optical-r">Reflect your Rust API into the world</h2>
       <div class="talk-body">
-        <a class="conf-logo" href="https://rustforgeconf.com"><img src="rust-forge-logo.svg" alt="Rust Forge"></a>
-        <div>
+        <div class="talk-text">
           <p>Why reflectapi exists, why client generation through OpenAPI kept failing, and a live demo of a server change turning into a compile error in its client.</p>
           <a class="button" href="https://www.youtube.com/watch?v=6Scgq9fBZQM&amp;t=21675s">Watch the talk</a>
         </div>
+        <a class="conf-logo" href="https://rustforgeconf.com"><img src="rust-forge-logo.svg" alt="Rust Forge"></a>
       </div>
     </div>
   </section>
