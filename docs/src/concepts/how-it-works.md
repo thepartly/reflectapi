@@ -17,21 +17,18 @@ headers)`, returning the output or the error.
 
 ## The flow
 
-```text
-  types: #[derive(Input, Output)]      handlers: async fn(state, input, headers)
-                 \                                  /
-                  '------ Builder::route(...) -----'
-                                  |
-                              .build()
-                         /                \
-                    Schema                 Vec<Router<S>>
-             (reflectapi.json)                  |
-                    |                  reflectapi::axum::into_router,
-     reflectapi codegen (CLI),         reflectapi::dispatch::Dispatcher
-     or reflectapi::codegen                     |
-                    |                      HTTP server
-   TypeScript, Rust and Python clients,
-          an OpenAPI document
+```mermaid
+flowchart TD
+  types["Types<br/>#35;[derive(Input, Output)]"] --> route["Builder::route"]
+  handlers["Handlers<br/>async fn(state, input, headers)"] --> route
+  route --> build[".build()"]
+  build --> schema["Schema<br/>reflectapi.json"]
+  build --> routers["Routers<br/>Vec#lt;Router#lt;S#gt;#gt;"]
+  schema --> codegen["reflectapi codegen CLI<br/>or reflectapi::codegen"]
+  codegen --> clients["TypeScript, Rust and Python clients<br/>OpenAPI document"]
+  routers --> adapter["reflectapi::axum::into_router<br/>or reflectapi::dispatch::Dispatcher"]
+  adapter --> server["HTTP server"]
+  clients -. "call over HTTP" .-> server
 ```
 
 One definition produces both sides: the schema, from which the clients are
