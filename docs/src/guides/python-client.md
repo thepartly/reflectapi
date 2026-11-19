@@ -6,7 +6,7 @@ methods generated from the Rust code, so the Python side does not hand-write
 request payloads and parse untyped JSON.
 
 `reflectapi` does this. You declare the API in Rust with serde types, async
-handler functions and a `reflectapi::Builder`. The builder produces a schema,
+handler functions and a [`reflectapi::Builder`](https://docs.rs/reflectapi/latest/reflectapi/struct.Builder.html). The builder produces a schema,
 and the `reflectapi` CLI generates a Python package from it: Pydantic models
 for the request and response types, and an async client (optionally a sync
 one too) built on `httpx`.
@@ -57,7 +57,7 @@ fn api() -> Builder<()> {
 }
 ```
 
-`build()` returns the schema and the routes. Write the schema to a file for
+[`build()`](https://docs.rs/reflectapi/latest/reflectapi/struct.Builder.html#method.build) returns the schema and the routes. Write the schema to a file for
 client generation:
 
 ```rust,ignore

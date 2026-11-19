@@ -79,11 +79,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-- A type the server returns derives `Serialize` and `Output`; a type it
-  accepts derives `Deserialize` and `Input`. A type used both ways derives
+- A type the server returns derives `Serialize` and [`Output`](https://docs.rs/reflectapi/latest/reflectapi/trait.Output.html); a type it
+  accepts derives `Deserialize` and [`Input`](https://docs.rs/reflectapi/latest/reflectapi/trait.Input.html). A type used both ways derives
   all four.
 - A handler takes the application state, the request input and the request
-  headers. `reflectapi::Empty` means the route reads no headers.
+  headers. [`reflectapi::Empty`](https://docs.rs/reflectapi/latest/reflectapi/struct.Empty.html) means the route reads no headers.
 - Doc comments on types and fields, and each route's `description`, are
   carried into the generated clients.
 

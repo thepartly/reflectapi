@@ -6,8 +6,8 @@ the functions that call each endpoint, generated from the Rust code instead of
 written and kept in sync by hand.
 
 `reflectapi` does this. You declare the API in Rust: serde types, async handler
-functions, and a `reflectapi::Builder` that names the routes. The builder
-produces a schema and the routes. `reflectapi::axum::into_router` turns the
+functions, and a [`reflectapi::Builder`](https://docs.rs/reflectapi/latest/reflectapi/struct.Builder.html) that names the routes. The builder
+produces a schema and the routes. [`reflectapi::axum::into_router`](https://docs.rs/reflectapi/latest/reflectapi/axum/fn.into_router.html) turns the
 routes into an axum `Router`, and the `reflectapi` CLI turns the schema into a
 typed TypeScript client.
 
@@ -68,10 +68,10 @@ async fn get_user(_state: (), id: u32, _headers: reflectapi::Empty) -> Option<Us
 }
 ```
 
-- Types the server returns derive `Serialize` and `Output`. Types it accepts
-  derive `Deserialize` and `Input`. A type used both ways derives all four.
+- Types the server returns derive `Serialize` and [`Output`](https://docs.rs/reflectapi/latest/reflectapi/trait.Output.html). Types it accepts
+  derive `Deserialize` and [`Input`](https://docs.rs/reflectapi/latest/reflectapi/trait.Input.html). A type used both ways derives all four.
 - A handler takes the application state, the request body, and a struct of
-  request headers. `reflectapi::Empty` means the route reads no headers.
+  request headers. [`reflectapi::Empty`](https://docs.rs/reflectapi/latest/reflectapi/struct.Empty.html) means the route reads no headers.
 - A handler can return `Result<T, E>` to give the route a typed error; see
   [Errors](../concepts/errors.md).
 - Serde attributes (`rename`, `tag`, `flatten`, `default` and so on) are

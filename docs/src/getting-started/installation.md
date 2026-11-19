@@ -10,15 +10,15 @@ cargo add reflectapi --features builder,axum
 
 Add features for the third-party types your API uses, for example
 `--features builder,axum,chrono,uuid`. Without its feature, a type such as
-`chrono::DateTime` can't be part of an `Input` or `Output` type.
+`chrono::DateTime` can't be part of an [`Input`](https://docs.rs/reflectapi/latest/reflectapi/trait.Input.html) or [`Output`](https://docs.rs/reflectapi/latest/reflectapi/trait.Output.html) type.
 
 | Feature | Enables |
 |---------|---------|
-| `builder` | `Builder` and the routers: defining an API |
-| `axum` | `reflectapi::axum`: serving the routes with axum (implies `builder`) |
+| `builder` | [`Builder`](https://docs.rs/reflectapi/latest/reflectapi/struct.Builder.html) and the routers: defining an API |
+| `axum` | [`reflectapi::axum`](https://docs.rs/reflectapi/latest/reflectapi/axum/index.html): serving the routes with axum (implies `builder`) |
 | `msgpack` | MessagePack request and response bodies beside JSON (implies `builder`) |
-| `codegen` | `reflectapi::codegen`: generating clients or OpenAPI from Rust code instead of the CLI |
-| `glob` (default) | `Builder::glob_rename_types` |
+| `codegen` | [`reflectapi::codegen`](https://docs.rs/reflectapi/latest/reflectapi/codegen/index.html): generating clients or OpenAPI from Rust code instead of the CLI |
+| `glob` (default) | [`Builder::glob_rename_types`](https://docs.rs/reflectapi/latest/reflectapi/struct.Builder.html#method.glob_rename_types) |
 | `chrono`, `chrono-tz` | `chrono` dates and times, `chrono_tz::Tz` |
 | `uuid` | `uuid::Uuid` |
 | `url` | `url::Url` |

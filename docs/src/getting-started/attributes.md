@@ -55,8 +55,8 @@ enum PetKind {
 }
 ```
 
-This response-only type needs `Serialize` to send values and `Output` to
-describe them in the schema. Request-only types use `Deserialize` and `Input`.
+This response-only type needs `Serialize` to send values and [`Output`](https://docs.rs/reflectapi/latest/reflectapi/trait.Output.html) to
+describe them in the schema. Request-only types use `Deserialize` and [`Input`](https://docs.rs/reflectapi/latest/reflectapi/trait.Input.html).
 Add all four derives only when the same type is used in both directions; an
 `open` enum's generated request type still stays closed.
 
@@ -141,7 +141,7 @@ a custom serializer alone does not change input presence.
 A `#[serde(flatten)]` field has no key of its own, so neither attribute applies
 to it: its fields are optional as a group exactly when its type is an `Option`.
 
-For `reflectapi::Option<T>`, a missing input becomes `None` without a default;
+For [`reflectapi::Option<T>`](https://docs.rs/reflectapi/latest/reflectapi/enum.Option.html), a missing input becomes `None` without a default;
 `#[serde(default)]` instead supplies `Undefined`. A custom default function
 supplies whatever that function returns. To preserve all three states on the
 server, use `#[serde(default, skip_serializing_if = "reflectapi::Option::is_undefined")]`.
@@ -287,7 +287,7 @@ The release in Rust's `#[deprecated(since = "..")]` is kept as well. See [Deprec
 
 ### A route's error
 
-A route's error implements `reflectapi::StatusCode`: the status its response
+A route's error implements [`reflectapi::StatusCode`](https://docs.rs/reflectapi/latest/reflectapi/trait.StatusCode.html): the status its response
 has, and, with `response_headers`, the headers the response adds, none by
 default. For an enum, derive it, giving each variant its status, or taking the
 status and headers of its one field:
