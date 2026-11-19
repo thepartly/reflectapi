@@ -174,6 +174,59 @@ code, pre, .hljs { font-family: var(--font-mono); }
     padding: 0.1em 0.35em;
 }
 
+/* Syntax colours, as on the landing page: keywords in reflectapi's orange,
+   strings green, types slate blue, comments and attributes grey. */
+
+.light .hljs, .rust .hljs { color: var(--night); }
+.light .hljs-keyword, .rust .hljs-keyword,
+.light .hljs-selector-tag, .rust .hljs-selector-tag,
+.light .hljs-literal, .rust .hljs-literal { color: #A8501A; font-weight: 500; }
+.light .hljs-number, .rust .hljs-number { color: #A8501A; }
+.light .hljs-string, .rust .hljs-string,
+.light .hljs-regexp, .rust .hljs-regexp,
+.light .hljs-addition, .rust .hljs-addition { color: #1E7B3A; }
+.light .hljs-type, .rust .hljs-type,
+.light .hljs-built_in, .rust .hljs-built_in,
+.light .hljs-class .hljs-title, .rust .hljs-class .hljs-title,
+.light .hljs-title.class_, .rust .hljs-title.class_ { color: #3E5C8A; }
+.light .hljs-title, .rust .hljs-title,
+.light .hljs-section, .rust .hljs-section,
+.light .hljs-function .hljs-title, .rust .hljs-function .hljs-title { color: var(--night); font-weight: 500; }
+.light .hljs-attr, .rust .hljs-attr,
+.light .hljs-attribute, .rust .hljs-attribute,
+.light .hljs-variable, .rust .hljs-variable,
+.light .hljs-symbol, .rust .hljs-symbol,
+.light .hljs-property, .rust .hljs-property { color: var(--ink); }
+.light .hljs-meta, .rust .hljs-meta { color: var(--muted); }
+.light .hljs-comment, .rust .hljs-comment,
+.light .hljs-quote, .rust .hljs-quote { color: #8B8D8E; font-style: italic; }
+.light .hljs-deletion, .rust .hljs-deletion { color: #A8501A; }
+
+.coal .hljs, .navy .hljs, .ayu .hljs { color: var(--paper); }
+.coal .hljs-keyword, .navy .hljs-keyword, .ayu .hljs-keyword,
+.coal .hljs-selector-tag, .navy .hljs-selector-tag, .ayu .hljs-selector-tag,
+.coal .hljs-literal, .navy .hljs-literal, .ayu .hljs-literal { color: var(--claw); font-weight: 500; }
+.coal .hljs-number, .navy .hljs-number, .ayu .hljs-number { color: var(--claw); }
+.coal .hljs-string, .navy .hljs-string, .ayu .hljs-string,
+.coal .hljs-regexp, .navy .hljs-regexp, .ayu .hljs-regexp,
+.coal .hljs-addition, .navy .hljs-addition, .ayu .hljs-addition { color: #8FCB9B; }
+.coal .hljs-type, .navy .hljs-type, .ayu .hljs-type,
+.coal .hljs-built_in, .navy .hljs-built_in, .ayu .hljs-built_in,
+.coal .hljs-class .hljs-title, .navy .hljs-class .hljs-title, .ayu .hljs-class .hljs-title,
+.coal .hljs-title.class_, .navy .hljs-title.class_, .ayu .hljs-title.class_ { color: #9DB4D8; }
+.coal .hljs-title, .navy .hljs-title, .ayu .hljs-title,
+.coal .hljs-section, .navy .hljs-section, .ayu .hljs-section,
+.coal .hljs-function .hljs-title, .navy .hljs-function .hljs-title, .ayu .hljs-function .hljs-title { color: var(--paper); font-weight: 500; }
+.coal .hljs-attr, .navy .hljs-attr, .ayu .hljs-attr,
+.coal .hljs-attribute, .navy .hljs-attribute, .ayu .hljs-attribute,
+.coal .hljs-variable, .navy .hljs-variable, .ayu .hljs-variable,
+.coal .hljs-symbol, .navy .hljs-symbol, .ayu .hljs-symbol,
+.coal .hljs-property, .navy .hljs-property, .ayu .hljs-property { color: var(--mist); }
+.coal .hljs-meta, .navy .hljs-meta, .ayu .hljs-meta { color: var(--steel); }
+.coal .hljs-comment, .navy .hljs-comment, .ayu .hljs-comment,
+.coal .hljs-quote, .navy .hljs-quote, .ayu .hljs-quote { color: #8B8D8E; font-style: italic; }
+.coal .hljs-deletion, .navy .hljs-deletion, .ayu .hljs-deletion { color: var(--claw); }
+
 /* Tables */
 
 .content table {
