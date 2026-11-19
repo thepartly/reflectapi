@@ -3,7 +3,8 @@
 `cargo test -p reflectapi-demo --test codegen_coverage` writes the client and
 `wire_samples.json`. Each sample must reach the transport unchanged, and the
 same bytes served back by the transport must parse and re-serialize unchanged,
-and the model's JSON schemas must describe it.
+and the model's JSON schemas must describe it. A route with an underscore
+in its name is reached at its dotted name and, deprecated, at its old one.
 """
 
 import asyncio
@@ -33,10 +34,12 @@ class ServeSample:
 
     def __init__(self, sample: object) -> None:
         self.body = json.dumps(sample).encode()
+        self.path: str | None = None
         self.sent: object = None
 
     def _respond(self, request: Request) -> Response:
-        self.sent = json.loads(request.body)
+        self.path = request.path
+        self.sent = json.loads(request.body) if request.body else None
         return Response(
             status=200, headers={"content-type": "application/json"}, body=self.body
         )
@@ -83,3 +86,45 @@ def test_json_schema_describes_serde_wire_shape(
 ) -> None:
     schema = WireRequest.model_json_schema(mode=mode)
     jsonschema.validate(sample, schema, cls=jsonschema.Draft202012Validator)
+
+
+COMMERCE_GROUP = {"rule": {"id": "r1"}}
+
+
+def test_route_with_underscore_is_at_its_dotted_name() -> None:
+    transport = ServeSample(COMMERCE_GROUP)
+    client = Client("http://test", client=transport)
+
+    response = client.coverage.commerce_group()
+
+    assert transport.path == "/coverage.commerce_group"
+    assert response.data.model_dump() == COMMERCE_GROUP
+
+
+def test_legacy_route_name_is_a_deprecated_alias() -> None:
+    transport = ServeSample(COMMERCE_GROUP)
+    client = Client("http://test", client=transport)
+
+    with pytest.warns(
+        DeprecationWarning,
+        match="coverage_commerce.group is deprecated: use coverage.commerce_group",
+    ) as warned:
+        response = client.coverage_commerce.group()
+
+    assert warned[0].filename == __file__
+    assert transport.path == "/coverage.commerce_group"
+    assert response.data.model_dump() == COMMERCE_GROUP
+
+
+def test_async_legacy_route_name_is_a_deprecated_alias() -> None:
+    transport = AsyncServeSample(COMMERCE_GROUP)
+    client = AsyncClient("http://test", client=transport)
+
+    with pytest.warns(
+        DeprecationWarning,
+        match="coverage_commerce.group is deprecated: use coverage.commerce_group",
+    ):
+        response = asyncio.run(client.coverage_commerce.group())
+
+    assert transport.path == "/coverage.commerce_group"
+    assert response.data.model_dump() == COMMERCE_GROUP

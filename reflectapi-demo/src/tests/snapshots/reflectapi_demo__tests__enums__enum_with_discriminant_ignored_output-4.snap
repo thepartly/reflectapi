@@ -13,11 +13,13 @@ from __future__ import annotations
 
 
 # Standard library imports
+import warnings
 from enum import Enum
 from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 # Third-party imports
 from pydantic import BaseModel, ConfigDict, Field
+import typing_extensions
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
@@ -46,27 +48,22 @@ class reflectapi_demo:
 
 
 class AsyncOutputClient:
-    """Async client for output operations."""
+    """Deprecated names for output operations."""
 
-    def __init__(self, client: AsyncClientBase) -> None:
+    def __init__(self, client: AsyncClient) -> None:
         self._client = client
 
-    async def test(
-        self,
-    ) -> ApiResponse[reflectapi_demo.tests.enums.TestEnumWithDiscriminantIgnored]:
-        """
-
-        Returns:
-            ApiResponse[reflectapi_demo.tests.enums.TestEnumWithDiscriminantIgnored]: Response containing reflectapi_demo.tests.enums.TestEnumWithDiscriminantIgnored data
-        """
-        path = "/output_test"
-
-        params: dict[str, Any] = {}
-        return await self._client._make_request(
-            path,
-            params=params if params else None,
-            response_model=reflectapi_demo.tests.enums.TestEnumWithDiscriminantIgnored,
+    @property
+    @typing_extensions.deprecated(
+        "output.test is deprecated: use output_test", category=None
+    )
+    def test(self):
+        warnings.warn(
+            "output.test is deprecated: use output_test",
+            DeprecationWarning,
+            stacklevel=2,
         )
+        return self._client.output_test
 
 
 class AsyncClient(AsyncClientBase):
@@ -81,14 +78,7 @@ class AsyncClient(AsyncClientBase):
 
         self.output: AsyncOutputClient = AsyncOutputClient(self)
 
-
-class OutputClient:
-    """Synchronous client for output operations."""
-
-    def __init__(self, client: ClientBase) -> None:
-        self._client = client
-
-    def test(
+    async def output_test(
         self,
     ) -> ApiResponse[reflectapi_demo.tests.enums.TestEnumWithDiscriminantIgnored]:
         """
@@ -99,11 +89,30 @@ class OutputClient:
         path = "/output_test"
 
         params: dict[str, Any] = {}
-        return self._client._make_request(
+        return await self._make_request(
             path,
             params=params if params else None,
             response_model=reflectapi_demo.tests.enums.TestEnumWithDiscriminantIgnored,
         )
+
+
+class OutputClient:
+    """Deprecated names for output operations."""
+
+    def __init__(self, client: Client) -> None:
+        self._client = client
+
+    @property
+    @typing_extensions.deprecated(
+        "output.test is deprecated: use output_test", category=None
+    )
+    def test(self):
+        warnings.warn(
+            "output.test is deprecated: use output_test",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self._client.output_test
 
 
 class Client(ClientBase):
@@ -117,6 +126,23 @@ class Client(ClientBase):
         super().__init__(base_url, **kwargs)
 
         self.output: OutputClient = OutputClient(self)
+
+    def output_test(
+        self,
+    ) -> ApiResponse[reflectapi_demo.tests.enums.TestEnumWithDiscriminantIgnored]:
+        """
+
+        Returns:
+            ApiResponse[reflectapi_demo.tests.enums.TestEnumWithDiscriminantIgnored]: Response containing reflectapi_demo.tests.enums.TestEnumWithDiscriminantIgnored data
+        """
+        path = "/output_test"
+
+        params: dict[str, Any] = {}
+        return self._make_request(
+            path,
+            params=params if params else None,
+            response_model=reflectapi_demo.tests.enums.TestEnumWithDiscriminantIgnored,
+        )
 
 
 # External type definitions
