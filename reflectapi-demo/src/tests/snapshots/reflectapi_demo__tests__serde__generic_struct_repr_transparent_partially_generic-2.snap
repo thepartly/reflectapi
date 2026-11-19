@@ -14,10 +14,10 @@ export function client(base: string | Client): __definition.Interface {
 export namespace __definition {
   export interface Interface {
     inout_test: (
-      input: Record<string, number /* u8 */>,
+      input: { [key in string]: number /* u8 */ },
       headers: {},
       options?: RequestOptions,
-    ) => AsyncResult<Record<string, number /* u8 */>, {}>;
+    ) => AsyncResult<{ [key in string]: number /* u8 */ }, {}>;
   }
 }
 export namespace reflectapi {
@@ -36,14 +36,14 @@ namespace __implementation {
 
   function inout_test(client: Client) {
     return (
-      input: Record<string, number /* u8 */>,
+      input: { [key in string]: number /* u8 */ },
       headers: {},
       options?: RequestOptions,
     ) =>
       __request<
-        Record<string, number /* u8 */>,
+        { [key in string]: number /* u8 */ },
         {},
-        Record<string, number /* u8 */>,
+        { [key in string]: number /* u8 */ },
         {}
       >(client, "/inout_test", input, headers, options);
   }

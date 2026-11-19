@@ -4349,13 +4349,9 @@ fn render_struct(
         );
     }
 
-    // Check if this is a single-field tuple struct that should be unwrapped
-    if matches!(
-        schema_codegen::Shape::of(&struct_def.fields),
-        schema_codegen::Shape::Newtype(_)
-    ) {
-        // Skip generation for single-field tuple structs
-        // They should be unwrapped and used directly
+    // A newtype or one-field transparent struct is written as its field, so
+    // references use the field's type and the struct gets no class.
+    if schema_codegen::wrapped_field(struct_def).is_some() {
         return Ok(String::new());
     }
 
@@ -6578,14 +6574,17 @@ fn type_ref_to_python_type(
 
     // 3. THIRD: Only after checking fallbacks, check if it's a user-defined type in the schema
     if let Some(type_def) = schema.get_type(&type_ref.name) {
-        // Check if this is a single-field tuple struct that should be unwrapped
+        // A newtype or one-field transparent struct is written as its field.
         if let reflectapi_schema::Type::Struct(struct_def) = type_def {
-            if let schema_codegen::Shape::Newtype(inner_field) =
-                schema_codegen::Shape::of(&struct_def.fields)
-            {
-                // Return the inner type instead of the wrapper
+            if let Some(inner_field) = schema_codegen::wrapped_field(struct_def) {
+                let substitutions = struct_def
+                    .parameters
+                    .iter()
+                    .zip(&type_ref.arguments)
+                    .map(|(parameter, argument)| (parameter.name.clone(), argument.clone()))
+                    .collect();
                 return type_ref_to_python_type(
-                    &inner_field.type_ref,
+                    &substitute_type_params(&inner_field.type_ref, &substitutions),
                     schema,
                     implemented_types,
                     class_names,

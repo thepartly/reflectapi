@@ -104,15 +104,9 @@ snapshot_kind: text
             "type": "object",
             "title": "unit",
             "required": [
-              "c",
               "t"
             ],
             "properties": {
-              "c": {
-                "type": "object",
-                "title": "unit",
-                "properties": {}
-              },
               "t": {
                 "const": "unit"
               }

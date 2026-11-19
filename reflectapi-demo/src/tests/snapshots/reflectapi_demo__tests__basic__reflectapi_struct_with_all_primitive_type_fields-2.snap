@@ -60,7 +60,7 @@ export namespace reflectapi_demo {
           _f_unit: null;
           _f_option?: number /* u8 */ | null;
           _f_vec: Array<number /* u8 */>;
-          _f_hashmap: Record<number /* u8 */, string>;
+          _f_hashmap: { [key in number /* u8 */]: string };
           _f_hashset: Array<number /* u8 */>;
           _f_tuple: [number /* u8 */, string];
           _f_tuple3: [number /* u8 */, string, number /* u8 */];
@@ -184,7 +184,7 @@ export namespace reflectapi_demo {
           _f_unit: null;
           _f_option: number /* u8 */ | null;
           _f_vec: Array<number /* u8 */>;
-          _f_hashmap: Record<number /* u8 */, string>;
+          _f_hashmap: { [key in number /* u8 */]: string };
           _f_hashset: Array<number /* u8 */>;
           _f_tuple: [number /* u8 */, string];
           _f_tuple3: [number /* u8 */, string, number /* u8 */];
