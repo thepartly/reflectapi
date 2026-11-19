@@ -365,6 +365,7 @@ conformance_cases! {
             id: "67e55044-10b1-426f-9247-bb680e5fe0c8".parse().unwrap(),
         },
         // `Utc::now()` has nanoseconds on most platforms, and serde writes them.
+        // Python's `time` field is a `str`, so only its datetimes lose them.
         Stamped {
             at: "2026-11-19T10:20:30.123456789Z".parse().unwrap(),
             local: "2026-11-19T10:20:30.123456789".parse().unwrap(),
@@ -394,14 +395,14 @@ const DIVERGENCES: &[Divergence] = &[
         sample: Some(1),
         target: "python",
         check: "request",
-        reason: "`datetime` and `time` hold microseconds, so nanoseconds are dropped (#243)",
+        reason: "`datetime` holds microseconds, so `DateTime` and `NaiveDateTime` drop nanoseconds (#243)",
     },
     Divergence {
         case: "stamped",
         sample: Some(1),
         target: "python",
         check: "response",
-        reason: "`datetime` and `time` hold microseconds, so nanoseconds are dropped (#243)",
+        reason: "`datetime` holds microseconds, so `DateTime` and `NaiveDateTime` drop nanoseconds (#243)",
     },
     Divergence {
         case: "numbers",
