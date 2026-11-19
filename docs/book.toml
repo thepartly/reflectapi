@@ -8,6 +8,8 @@ description = "Define your web API in Rust, generate typed TypeScript, Python an
 [preprocessor.links]
 
 [output.html]
+default-theme = "light"
+preferred-dark-theme = "coal"
 additional-css = ["theme/custom.css"]
 git-repository-url = "https://github.com/thepartly/reflectapi"
 edit-url-template = "https://github.com/thepartly/reflectapi/edit/main/docs/{path}"
