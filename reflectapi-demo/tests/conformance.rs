@@ -210,7 +210,9 @@ pub mod cases {
     #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
     pub struct Stamped {
         pub at: chrono::DateTime<chrono::Utc>,
+        pub local: chrono::NaiveDateTime,
         pub day: chrono::NaiveDate,
+        pub time: chrono::NaiveTime,
         pub id: uuid::Uuid,
     }
 }
@@ -354,11 +356,24 @@ conformance_cases! {
         Numbers { big: 1, negative: -1, small: -128, float: 0.5 },
         Numbers { big: u64::MAX, negative: i64::MIN, small: 127, float: 1e300 },
     ];
-    stamped: Stamped = [Stamped {
-        at: "2026-11-19T10:20:30Z".parse().unwrap(),
-        day: "2026-11-19".parse().unwrap(),
-        id: "67e55044-10b1-426f-9247-bb680e5fe0c8".parse().unwrap(),
-    }];
+    stamped: Stamped = [
+        Stamped {
+            at: "2026-11-19T10:20:30Z".parse().unwrap(),
+            local: "2026-11-19T10:20:30".parse().unwrap(),
+            day: "2026-11-19".parse().unwrap(),
+            time: "10:20:30".parse().unwrap(),
+            id: "67e55044-10b1-426f-9247-bb680e5fe0c8".parse().unwrap(),
+        },
+        // `Utc::now()` has nanoseconds on most platforms, and serde writes them.
+        // Python's `time` field is a `str`, so only its datetimes lose them.
+        Stamped {
+            at: "2026-11-19T10:20:30.123456789Z".parse().unwrap(),
+            local: "2026-11-19T10:20:30.123456789".parse().unwrap(),
+            day: "2026-11-19".parse().unwrap(),
+            time: "10:20:30.123456789".parse().unwrap(),
+            id: "67e55044-10b1-426f-9247-bb680e5fe0c8".parse().unwrap(),
+        },
+    ];
 }
 
 /// A known disagreement with serde, expected to fail until it's fixed.
@@ -375,6 +390,20 @@ struct Divergence {
 }
 
 const DIVERGENCES: &[Divergence] = &[
+    Divergence {
+        case: "stamped",
+        sample: Some(1),
+        target: "python",
+        check: "request",
+        reason: "`datetime` holds microseconds, so `DateTime` and `NaiveDateTime` drop nanoseconds (#243)",
+    },
+    Divergence {
+        case: "stamped",
+        sample: Some(1),
+        target: "python",
+        check: "response",
+        reason: "`datetime` holds microseconds, so `DateTime` and `NaiveDateTime` drop nanoseconds (#243)",
+    },
     Divergence {
         case: "numbers",
         sample: Some(1),
