@@ -38,14 +38,14 @@ export namespace chrono {
   /**
    * Date time without timezone (%Y-%m-%dT%H:%M:%S%.f)
    *
-   * A string, format `date-time`.
+   * A string, format `date-time-local`.
    */
   export type NaiveDateTime = string;
 
   /**
    * Time without timezone (%H:%M:%S%.f)
    *
-   * A string, format `time`.
+   * A string, format `time-local`.
    */
   export type NaiveTime = string;
 }

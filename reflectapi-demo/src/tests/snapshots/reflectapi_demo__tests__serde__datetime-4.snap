@@ -50,12 +50,12 @@ snapshot_kind: text
       "chrono.NaiveDateTime": {
         "description": "Date time without timezone (%Y-%m-%dT%H:%M:%S%.f)",
         "type": "string",
-        "format": "date-time"
+        "format": "date-time-local"
       },
       "chrono.NaiveTime": {
         "description": "Time without timezone (%H:%M:%S%.f)",
         "type": "string",
-        "format": "time"
+        "format": "time-local"
       },
       "reflectapi_demo.tests.serde.TestStruct": {
         "type": "object",

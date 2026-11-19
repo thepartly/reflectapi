@@ -15,9 +15,12 @@ pub(crate) fn wire_format(primitive: &Primitive) -> Option<&str> {
 fn builtin_format(name: &str) -> Option<&'static str> {
     Some(match name {
         "uuid::Uuid" => "uuid",
-        "chrono::DateTime" | "chrono::NaiveDateTime" => "date-time",
+        "chrono::DateTime" => "date-time",
+        // RFC 3339's `date-time` and `time` require an offset; serde writes
+        // chrono's naive types without one.
+        "chrono::NaiveDateTime" => "date-time-local",
         "chrono::NaiveDate" => "date",
-        "chrono::NaiveTime" => "time",
+        "chrono::NaiveTime" => "time-local",
         "url::Url" => "uri",
         "rust_decimal::Decimal" => "decimal",
         _ => return None,

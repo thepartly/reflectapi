@@ -4,13 +4,13 @@
 
 ### Added
 
-- **A schema primitive says what its string is**: `Primitive::format`, a JSON Schema `format` such as `uuid`, `date-time`, `date`, `time` or `uri`, or a type's own, such as `decimal`. reflectapi's `uuid`, `chrono`, `url` and `rust_decimal` types set it, and your own primitive can, with `Primitive::with_format`. Generators read it in one place, falling back to the built-in types' formats for a schema written before it existed. ([#240](https://github.com/thepartly/reflectapi/issues/240))
+- **A schema primitive says what its string is**: `Primitive::format`, a JSON Schema or OpenAPI format such as `uuid`, `date-time`, `date-time-local`, `date`, `time-local` or `uri`, or a type's own, such as `decimal`. reflectapi's `uuid`, `chrono`, `url` and `rust_decimal` types set it, and your own primitive can, with `Primitive::with_format`. Generators read it in one place, falling back to the built-in types' formats for a schema written before it existed. ([#240](https://github.com/thepartly/reflectapi/issues/240))
 
 ### Changed
 
 - **The client runtime doesn't require `Send` on wasm32**, so a generated Rust client builds for the browser or a Worker, with `reqwest` or a transport over `fetch`. `rt::Response::body` is an `rt::BoxStream`, which is `Send` everywhere but wasm32, and a generated stream method requires `C::Error: rt::MaybeSend` rather than `Send`. Native types are unchanged. ([#237](https://github.com/thepartly/reflectapi/issues/237))
 - **TypeScript names the type of a string with a format**: a `uuid::Uuid` is `uuid.Uuid`, a `chrono::DateTime` `chrono.DateTime` and a `url::Url` `url.Url`, each an exported alias of `string` documented with its format, where all were `string`. The types are the same, so no code changes. ([#240](https://github.com/thepartly/reflectapi/issues/240))
-- **OpenAPI gives `url::Url`, `chrono::NaiveTime`, `rust_decimal::Decimal` and your own formatted primitives their `format`** (`uri`, `time`, `decimal`), as it did for UUIDs and dates; they were plain strings. ([#240](https://github.com/thepartly/reflectapi/issues/240))
+- **OpenAPI gives `url::Url`, `chrono::NaiveTime`, `rust_decimal::Decimal` and your own formatted primitives their `format`** (`uri`, `time-local`, `decimal`), as it did for UUIDs and dates; they were plain strings. `chrono::NaiveDateTime` is `date-time-local` rather than `date-time`, which requires a UTC offset that serde doesn't write for it. ([#240](https://github.com/thepartly/reflectapi/issues/240))
 
 ### Fixed
 

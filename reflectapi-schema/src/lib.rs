@@ -831,10 +831,11 @@ pub struct Primitive {
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub fallback: Option<TypeReference>,
 
-    /// What a value is on the wire, beyond its JSON type: a JSON Schema
-    /// `format` such as `uuid`, `date-time`, `date` or `uri`, or another name
-    /// a type chooses, such as `decimal`. Clients keep the meaning it gives
-    /// (OpenAPI's `format`, a named type) without each knowing the Rust type.
+    /// What a value is on the wire, beyond its JSON type: a format from the
+    /// OpenAPI format registry, such as `uuid`, `date-time`, `date`,
+    /// `date-time-local` (no offset) or `uri`, or another name a type
+    /// chooses. Clients keep the meaning it gives (OpenAPI's `format`, a
+    /// named type) without each knowing the Rust type.
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub format: Option<String>,
 

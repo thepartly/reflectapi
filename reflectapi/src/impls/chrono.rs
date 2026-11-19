@@ -58,7 +58,7 @@ fn reflectapi_naive_datetime(schema: &mut crate::Typespace) -> String {
             vec![],
             Some("std::string::String".into()),
         )
-        .with_format("date-time");
+        .with_format("date-time-local");
         schema.insert_type(type_def.into());
     }
     type_name.into()
@@ -111,7 +111,7 @@ fn reflectapi_naive_time(schema: &mut crate::Typespace) -> String {
             vec![],
             Some("std::string::String".into()),
         )
-        .with_format("time");
+        .with_format("time-local");
         schema.insert_type(type_def.into());
     }
     type_name.into()
