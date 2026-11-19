@@ -43,12 +43,31 @@ pub struct Request {
 }
 
 /// Transport response returned by user-provided [`Client`] implementations.
-#[allow(clippy::type_complexity)]
 pub struct Response<E> {
     pub status: http::StatusCode,
     pub headers: http::HeaderMap,
-    pub body: Pin<Box<dyn Stream<Item = Result<bytes::Bytes, E>> + Send + 'static>>,
+    pub body: BoxStream<Result<bytes::Bytes, E>>,
 }
+
+/// `Send`, except on wasm32.
+///
+/// A wasm32 program runs on one thread, and the values a transport gets from
+/// JavaScript, such as a `fetch` response's body, aren't `Send`. So on wasm32
+/// the client runtime asks nothing of them; everywhere else it needs `Send`.
+#[cfg(not(target_arch = "wasm32"))]
+pub trait MaybeSend: Send {}
+#[cfg(not(target_arch = "wasm32"))]
+impl<T: Send + ?Sized> MaybeSend for T {}
+
+/// `Send`, except on wasm32.
+///
+/// A wasm32 program runs on one thread, and the values a transport gets from
+/// JavaScript, such as a `fetch` response's body, aren't `Send`. So on wasm32
+/// the client runtime asks nothing of them; everywhere else it needs `Send`.
+#[cfg(target_arch = "wasm32")]
+pub trait MaybeSend {}
+#[cfg(target_arch = "wasm32")]
+impl<T: ?Sized> MaybeSend for T {}
 
 pub enum Error<AE, NE> {
     Application(AE),
@@ -103,7 +122,12 @@ impl<AE: std::error::Error + 'static, NE: std::error::Error + 'static> std::erro
     }
 }
 
+/// A boxed stream, `Send` except on wasm32 (see [`MaybeSend`]).
+#[cfg(not(target_arch = "wasm32"))]
 pub type BoxStream<T> = Pin<Box<dyn Stream<Item = T> + Send + 'static>>;
+/// A boxed stream, `Send` except on wasm32 (see [`MaybeSend`]).
+#[cfg(target_arch = "wasm32")]
+pub type BoxStream<T> = Pin<Box<dyn Stream<Item = T> + 'static>>;
 
 /// Error type for individual stream items.
 ///
@@ -311,11 +335,11 @@ pub async fn __stream_request_impl<C, I, H, O, E>(
 ) -> Result<BoxStream<Result<O, StreamItemError<C::Error>>>, Error<E, C::Error>>
 where
     C: Client,
-    C::Error: Send + 'static,
+    C::Error: MaybeSend + 'static,
     I: serde::Serialize,
     H: serde::Serialize,
-    O: serde::de::DeserializeOwned + Send + 'static,
-    E: serde::de::DeserializeOwned + Send + 'static,
+    O: serde::de::DeserializeOwned + MaybeSend + 'static,
+    E: serde::de::DeserializeOwned + MaybeSend + 'static,
 {
     use futures_util::StreamExt;
     use sseer::event_stream::EventStream;
@@ -376,7 +400,7 @@ where
 }
 
 async fn __collect_byte_stream<E>(
-    stream: Pin<Box<dyn Stream<Item = Result<bytes::Bytes, E>> + Send>>,
+    stream: BoxStream<Result<bytes::Bytes, E>>,
 ) -> Result<bytes::Bytes, E> {
     use futures_util::StreamExt;
     let mut chunks = Vec::new();

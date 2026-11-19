@@ -5,10 +5,14 @@ use std::{
 
 /// Format the given source code using the first of the given commands that exists.
 /// Input will be piped to the command's stdin and the output will be collected from stdout.
+///
+/// When none can be started, because none is installed or because the target
+/// (such as wasm) can't start processes, the error is `NotFound`.
 pub fn format_with<'a>(
     cmds: impl IntoIterator<Item = &'a mut Command>,
     src: String,
 ) -> io::Result<String> {
+    let mut unsupported = false;
     for cmd in cmds {
         let mut child = match cmd
             .stdin(Stdio::piped())
@@ -18,6 +22,10 @@ pub fn format_with<'a>(
         {
             Ok(child) => child,
             Err(err) if err.kind() == io::ErrorKind::NotFound => continue,
+            Err(err) if err.kind() == io::ErrorKind::Unsupported => {
+                unsupported = true;
+                continue;
+            }
             Err(err) => return Err(err),
         };
 
@@ -46,6 +54,11 @@ pub fn format_with<'a>(
 
     Err(io::Error::new(
         io::ErrorKind::NotFound,
-        "no formatters found",
+        if unsupported {
+            "no formatter can run: this target can't start processes; \
+             generate without formatting and format the files in the host"
+        } else {
+            "no formatters found"
+        },
     ))
 }

@@ -8,15 +8,16 @@
 
 ### Changed
 
+- **The client runtime doesn't require `Send` on wasm32**, so a generated Rust client builds for the browser or a Worker, with `reqwest` or a transport over `fetch`. `rt::Response::body` is an `rt::BoxStream`, which is `Send` everywhere but wasm32, and a generated stream method requires `C::Error: rt::MaybeSend` rather than `Send`. Native types are unchanged. ([#237](https://github.com/thepartly/reflectapi/issues/237))
 - **TypeScript names the type of a string with a format**: a `uuid::Uuid` is `uuid.Uuid`, a `chrono::DateTime` `chrono.DateTime` and a `url::Url` `url.Url`, each an exported alias of `string` documented with its format, where all were `string`. The types are the same, so no code changes. ([#240](https://github.com/thepartly/reflectapi/issues/240))
 - **OpenAPI gives `url::Url`, `chrono::NaiveTime`, `rust_decimal::Decimal` and your own formatted primitives their `format`** (`uri`, `time`, `decimal`), as it did for UUIDs and dates; they were plain strings. ([#240](https://github.com/thepartly/reflectapi/issues/240))
 
 ### Fixed
 
+- **Codegen in wasm returns an error instead of trapping** when asked to format or type-check, which need processes the host must run. With `typecheck`, TypeScript and Rust codegen panicked in `std::env::temp_dir()`. With `format`, every generator failed, Python by default; Python now falls back to its basic formatting, as it does when `ruff` isn't installed. Without them, codegen in wasm gives the same files as natively. ([#237](https://github.com/thepartly/reflectapi/issues/237))
 - **Python writes a `#[serde(transparent)]` struct with a named field as the value it wraps**, as serde does. `#[serde(transparent)] struct Name { inner: String }` was a model expecting `{"inner": "..."}`, so a response holding `"..."` failed validation and a request sent the object. A newtype struct was already written this way, but a generic one, such as `Newtype<Point>`, was typed `Any`; it is now `Point`.
 - **TypeScript compiles when the schema has a type named `Record`.** A map is now `{ [key in K]: V }` rather than `Record<K, V>`, which a `Record` type in the same namespace shadowed, failing with "Type 'Record' is not generic". The two types are the same.
 - **OpenAPI lets an adjacently tagged unit variant leave out its content key**, as serde does: `#[serde(tag = "t", content = "c")]` writes `Unit` as `{"t": "Unit"}`, which the spec rejected by requiring `c`.
-
 - **OpenAPI describes a request-headers type with a `#[serde(flatten)]` field**, such as the docs' `PetsUpdateHeaders`: each header it reads, its own and the flattened type's, is a header parameter, required when every request has it. OpenAPI generation panicked with "header type is a struct" for any route whose headers flattened a field. The builder, which forwards the headers to the handler, and OpenAPI now find them the same way.
 - **A flattened request-headers field that holds something other than a struct is a build error** in both build modes, naming the field. Before, an enum or a type missing from the schema gave no headers, so the handler never had them. A struct, possibly in an `Option` or a `Box`, and `()` are accepted as before.
 - **Python models flatten a `Box<T>` as the `T` it holds**, as serde writes it, and a generic type's arguments are filled in when its fields are flattened. Python codegen failed with "cannot flatten primitive type 'std::boxed::Box'".

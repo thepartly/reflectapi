@@ -168,4 +168,12 @@ schemas. A disagreement with serde we accept for now is listed in
 current. Add a case there when a generator change touches how a type is
 written on the wire.
 
+`reflectapi-demo/tests/wasm` holds codegen to a bytes-in, bytes-out contract:
+a JSON request (target, schema, options) in, the files as JSON out. Built for
+`wasm32-unknown-unknown`, the module imports nothing, so codegen can't reach a
+filesystem, a process, the environment or a clock, and `check.mjs` checks
+that, run under Node, it gives the native build's files. Formatting and
+type-checking run external tools, so they belong to the host; in wasm they're
+an error that says so.
+
 This architecture chapter is intended to describe the code paths that exist in the repository, not an aspirational future design.
