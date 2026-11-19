@@ -167,6 +167,7 @@ schemas. A disagreement with serde we accept for now is listed in
 `DIVERGENCES`, and fails its harness once it starts passing, so the list stays
 current. Add a case there when a generator change touches how a type is
 written on the wire.
+
 `reflectapi-demo/tests/wasm` holds codegen to a bytes-in, bytes-out contract:
 a JSON request (target, schema, options) in, the files as JSON out. Built for
 `wasm32-unknown-unknown`, the module imports nothing, so codegen can't reach a
