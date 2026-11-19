@@ -13,6 +13,7 @@
     --mist: #E0E2E2;    /* Light Silver */
     --paper: #F7F7F7;   /* White Silver */
     --claw: #E88542;    /* reflectapi orange */
+    --claw-deep: #A8501A; /* the same orange, dark enough for text on light */
 
     --font-display: "Oxanium", "Helvetica Neue", Arial, sans-serif;
     --font-body: "Geist", "Helvetica Neue", Arial, sans-serif;
@@ -38,7 +39,7 @@
     --icons: var(--muted);
     --icons-hover: var(--night);
     --links: var(--night);
-    --inline-code-color: var(--night);
+    --inline-code-color: var(--claw-deep);
     --theme-popup-bg: #FFFFFF;
     --theme-popup-border: var(--mist);
     --theme-hover: var(--paper);
@@ -75,7 +76,7 @@
     --icons: var(--steel);
     --icons-hover: var(--paper);
     --links: var(--paper);
-    --inline-code-color: var(--paper);
+    --inline-code-color: var(--claw);
     --theme-popup-bg: var(--night);
     --theme-popup-border: var(--ink);
     --theme-hover: var(--ink);
