@@ -248,9 +248,10 @@ let undefined = PetPatch { age: reflectapi::Option::Undefined };
 assert_eq!(serde_json::to_string(&undefined).unwrap(), "{}");
 ```
 
-Both attributes are needed: without `#[serde(default)]` a missing field
-reads as `None`, and without `skip_serializing_if` `Undefined` is written as
-`null`. The clients keep the three states: the field is
+Reading needs `#[serde(default)]`: without it a missing field reads as
+`None`. Writing needs `skip_serializing_if`: without it `Undefined` is written
+as `null`. A request type the server only reads needs just
+`#[serde(default)]`; this example, read and written, needs both. The clients keep the three states: the field is
 `age?: number | null | undefined` in TypeScript, a `reflectapi::Option<u8>` in
 Rust, and a Python model sends only the fields that were set. See
 [Missing fields and explicit null](../clients/index.md#missing-fields-and-explicit-null).
