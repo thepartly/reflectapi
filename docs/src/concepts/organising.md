@@ -1,6 +1,6 @@
 # Organising a Larger API
 
-A small API fits in one `Builder`. A larger one is easier to keep as a builder
+A small API fits in one [`Builder`](https://docs.rs/reflectapi/latest/reflectapi/struct.Builder.html). A larger one is easier to keep as a builder
 per module, combined into one API. This page covers how names in your Rust code
 become names in the generated clients, and the builder methods that shape them.
 
@@ -231,7 +231,7 @@ let errors = Builder::<()>::new()
 assert_eq!(errors.to_string(), "health.check: add a description\n");
 ```
 
-Validators run only where the schema is built: a `DispatchOnly` build skips
+Validators run only where the schema is built: a [`DispatchOnly`](https://docs.rs/reflectapi/latest/reflectapi/struct.DispatchOnly.html) build skips
 them. See [build modes](../serving/other-servers.md#build-modes).
 
 ## Tags and partial clients

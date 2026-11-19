@@ -1,6 +1,6 @@
 # Serving with axum
 
-`reflectapi::axum::into_router` turns the routers of a built API into an
+[`reflectapi::axum::into_router`](https://docs.rs/reflectapi/latest/reflectapi/axum/fn.into_router.html) turns the routers of a built API into an
 [axum](https://docs.rs/axum) `Router`. Use it for a native server on tokio.
 
 ## Dependencies
@@ -42,7 +42,7 @@ axum::serve(listener, app).await?;
 - `app_state` is cloned into every handler call. Use cheap clones, such as an
   `Arc`.
 - Stream routes respond with Server-Sent Events, one `data:` event per item,
-  with an `id:` for items the route wraps in `reflectapi::Event`. An error
+  with an `id:` for items the route wraps in [`reflectapi::Event`](https://docs.rs/reflectapi/latest/reflectapi/struct.Event.html). An error
   returned before the stream opens is a normal HTTP error response.
 
 ## Keep idle streams open
@@ -75,7 +75,7 @@ let app = reflectapi::axum::into_router(app_state, routers, settings, |_name, ro
   front already sends heartbeats.
 
 A stream route that needs a different interval, or none, sets its own in the
-`Builder`. It overrides the server's default, and `Duration::ZERO` turns
+[`Builder`](https://docs.rs/reflectapi/latest/reflectapi/struct.Builder.html). It overrides the server's default, and `Duration::ZERO` turns
 keep-alive off for that route:
 
 ```rust,ignore
@@ -95,7 +95,7 @@ builder.stream_route(watch_jobs, |b| {
 
 ## The schema
 
-`build()` returns the schema next to the routes. Write it out for client
+[`build()`](https://docs.rs/reflectapi/latest/reflectapi/struct.Builder.html#method.build) returns the schema next to the routes. Write it out for client
 generation, or serve it, for example as OpenAPI:
 
 ```rust,ignore

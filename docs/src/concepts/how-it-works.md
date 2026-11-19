@@ -58,7 +58,7 @@ reference lists what reflectapi adds on top of serde.
 
 Primitives, `String`, `Option`, `Vec`, maps, tuples and many library types
 (`chrono`, `uuid`, `url` and others, behind crate features) already implement
-both traits. `reflectapi::Empty` stands for "nothing": no input, no headers or
+both traits. [`reflectapi::Empty`](https://docs.rs/reflectapi/latest/reflectapi/struct.Empty.html) stands for "nothing": no input, no headers or
 no output. [Types](./types.md) covers what can cross the API and how to bring
 in a type reflectapi doesn't know.
 
@@ -94,7 +94,7 @@ comes in through `state`.
 
 A stream route's handler has the same arguments and returns
 `Result<impl Stream<Item = T>, Error>`. It is registered with
-`Builder::stream_route` and served as Server-Sent Events
+[`Builder::stream_route`](https://docs.rs/reflectapi/latest/reflectapi/struct.Builder.html#method.stream_route) and served as Server-Sent Events
 ([Streaming Endpoints](../clients/index.md#streaming-endpoints)).
 
 ## The builder
@@ -178,7 +178,7 @@ assert!(health.input_type().is_none());
 assert_eq!(routers.len(), 1);
 ```
 
-`build()` checks the definition and returns the schema and the routers, or
+[`build()`](https://docs.rs/reflectapi/latest/reflectapi/struct.Builder.html#method.build) checks the definition and returns the schema and the routers, or
 every problem it found as
 [`BuildErrors`](https://docs.rs/reflectapi/latest/reflectapi/struct.BuildErrors.html).
 A server that doesn't need the schema at runtime can build the routers alone;
@@ -187,8 +187,8 @@ see [build modes](../serving/other-servers.md#build-modes).
 A readonly route is served on `GET` as well as `POST`. The schema records the
 flag, but the generated clients call every route with `POST`.
 
-A larger API is split across several builders, combined with `Builder::nest`
-and `Builder::extend`, and can sit under a base path set with `Builder::path`.
+A larger API is split across several builders, combined with [`Builder::nest`](https://docs.rs/reflectapi/latest/reflectapi/struct.Builder.html#method.nest)
+and [`Builder::extend`](https://docs.rs/reflectapi/latest/reflectapi/struct.Builder.html#method.extend), and can sit under a base path set with [`Builder::path`](https://docs.rs/reflectapi/latest/reflectapi/struct.Builder.html#method.path).
 See [Organising a Larger API](./organising.md).
 
 ## Names become namespaces
@@ -218,7 +218,7 @@ The `reflectapi` CLI generates clients from that file:
 reflectapi codegen --language typescript --schema reflectapi.json --output clients/typescript/
 ```
 
-The same generators are available in Rust as `reflectapi::codegen`, behind
+The same generators are available in Rust as [`reflectapi::codegen`](https://docs.rs/reflectapi/latest/reflectapi/codegen/index.html), behind
 the `codegen` feature, for generating clients from a build step or a test
 without the CLI
 ([example](../serving/workers.md#generate-the-schema-and-clients-at-build-time)).
@@ -230,12 +230,12 @@ how to check the generated files in CI.
 
 The routers are framework-independent. An adapter puts them on an HTTP server:
 
-- [axum](../serving/axum.md): `reflectapi::axum::into_router` turns them into
+- [axum](../serving/axum.md): [`reflectapi::axum::into_router`](https://docs.rs/reflectapi/latest/reflectapi/axum/fn.into_router.html) turns them into
   an `axum::Router`.
 - [Cloudflare Workers and celld](../serving/workers.md): a small adapter
   over the dispatcher.
 - [Any other server](../serving/other-servers.md):
-  `reflectapi::dispatch::Dispatcher` routes a request to its handler and
+  [`reflectapi::dispatch::Dispatcher`](https://docs.rs/reflectapi/latest/reflectapi/dispatch/struct.Dispatcher.html) routes a request to its handler and
   returns the response to send.
 
 All of them serve the same [wire format](./wire.md).

@@ -36,7 +36,7 @@ builder.route(draw_v1, |b| {
 })
 ```
 
-The release is free-form: a crate version, an API version or anything else, kept verbatim. Dates are `YYYY-MM-DD`, and the sunset can't be before the deprecation date. The derive macros reject a bad date, or a date on an item without `#[deprecated]`, at compile time; `Builder::build` rejects bad route dates.
+The release is free-form: a crate version, an API version or anything else, kept verbatim. Dates are `YYYY-MM-DD`, and the sunset can't be before the deprecation date. The derive macros reject a bad date, or a date on an item without `#[deprecated]`, at compile time; [`Builder::build`](https://docs.rs/reflectapi/latest/reflectapi/struct.Builder.html#method.build) rejects bad route dates.
 
 `#[deprecated(since = "..")]` is always the release, even when it looks like a date. Calendar dates come only from `#[reflectapi(deprecated_since = "..", sunset = "..")]` and the builder. Clippy's `deprecated_semver` lint, deny by default, rejects a `since` that isn't a semver version, so a release named another way needs `#[allow(clippy::deprecated_semver)]`.
 

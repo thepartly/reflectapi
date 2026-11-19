@@ -6,7 +6,7 @@ or debug what a generated client sends. The examples are captured from the
 demo server in `reflectapi-demo`, with the `date` and `content-length`
 headers left out.
 
-The axum adapter and `reflectapi::dispatch::Dispatcher` answer the same way.
+The axum adapter and [`reflectapi::dispatch::Dispatcher`](https://docs.rs/reflectapi/latest/reflectapi/dispatch/struct.Dispatcher.html) answer the same way.
 To serve the API from another HTTP server, see
 [the contract](../serving/other-servers.md#the-contract) an integration
 implements.
@@ -16,8 +16,8 @@ implements.
 ### URL
 
 A route is at `{path}/{name}`. The name is the route's full name, dots
-included. The path is empty unless one is set: with `Builder::path` for every
-route of a builder, which `Builder::nest` prepends to the routes of the
+included. The path is empty unless one is set: with [`Builder::path`](https://docs.rs/reflectapi/latest/reflectapi/struct.Builder.html#method.path) for every
+route of a builder, which [`Builder::nest`](https://docs.rs/reflectapi/latest/reflectapi/struct.Builder.html#method.nest) prepends to the routes of the
 builders nested in it, or with `RouteBuilder::path` for one route. So
 `pets.create` is at `/pets.create`, and under `Builder::path("/api")` at
 `/api/pets.create`.
@@ -50,7 +50,7 @@ a readonly route. See [the contract](../serving/other-servers.md#the-contract).
 
 The body is the route's input, serialized by serde. An empty body is read as
 an empty object, `{}`, so a `GET` without a body works for a route whose input
-is `reflectapi::Empty` or a struct whose fields all have defaults. A `GET` with
+is [`reflectapi::Empty`](https://docs.rs/reflectapi/latest/reflectapi/struct.Empty.html) or a struct whose fields all have defaults. A `GET` with
 a body is read like a `POST`.
 
 ### Content type
@@ -230,7 +230,7 @@ data: {"name":"Max","kind":{"type":"cat","lives":9},"age":3,"updated_at":"2024-0
 
 - Each item is one event: a `data:` line with the item as JSON, then a blank
   line. There is no `event:` or `retry:` field.
-- An item the handler wraps in `reflectapi::Event` has an `id:` line before
+- An item the handler wraps in [`reflectapi::Event`](https://docs.rs/reflectapi/latest/reflectapi/struct.Event.html) has an `id:` line before
   its data. A route can declare the `last-event-id` request header to resume
   after the last id a client saw
   ([Streaming Endpoints](../clients/index.md#streaming-endpoints)).

@@ -7,7 +7,7 @@ server failures.
 
 ## A route's error
 
-The error type derives `Serialize` and `Output`, like any type the server
+The error type derives `Serialize` and [`Output`](https://docs.rs/reflectapi/latest/reflectapi/trait.Output.html), like any type the server
 returns, and implements [`StatusCode`](https://docs.rs/reflectapi/latest/reflectapi/trait.StatusCode.html),
 which gives the HTTP status of its response. For an enum, derive it and give
 each variant its status:

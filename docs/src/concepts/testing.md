@@ -1,7 +1,7 @@
 # Testing
 
 An API built with reflectapi is plain Rust: async handler functions, serde
-types and a `Builder`. Each part can be tested on its own, most of it without
+types and a [`Builder`](https://docs.rs/reflectapi/latest/reflectapi/struct.Builder.html). Each part can be tested on its own, most of it without
 a server or a network:
 
 - the [handlers](#handlers), as functions;
@@ -219,13 +219,13 @@ async fn get_answers_404_for_an_unknown_user() {
   given only those.
 - A stream route replies with `Reply::Stream`: collect its items, each an
   `Ok` of an `Event` whose `data` is the serialized item.
-- The routers of a `DispatchOnly` build, which a server may use (see
+- The routers of a [`DispatchOnly`](https://docs.rs/reflectapi/latest/reflectapi/struct.DispatchOnly.html) build, which a server may use (see
   [build modes](../serving/other-servers.md#build-modes)), dispatch the same
   way.
 
 ### Through axum
 
-Middleware added in the callback of `reflectapi::axum::into_router`, such as
+Middleware added in the callback of [`reflectapi::axum::into_router`](https://docs.rs/reflectapi/latest/reflectapi/axum/fn.into_router.html), such as
 authentication, runs only in the axum router. To test it too, send requests
 to the router with `tower::ServiceExt::oneshot`. It needs `tower` 0.5 with
 its `util` feature as a dev-dependency:
@@ -790,15 +790,15 @@ Some mistakes are caught before a test runs:
   ([Deprecations](../getting-started/deprecations.md#declaring)), or a status
   a route's error must not give
   ([A route's error](../getting-started/attributes.md#a-routes-error)).
-- **`Builder::route`** requires its handler's input, output, error and
+- **[`Builder::route`](https://docs.rs/reflectapi/latest/reflectapi/struct.Builder.html#method.route)** requires its handler's input, output, error and
   headers types to implement the reflectapi traits, so a type that doesn't
   is a compile error.
-- **`Builder::build`** returns
+- **[`Builder::build`](https://docs.rs/reflectapi/latest/reflectapi/struct.Builder.html#method.build)** returns
   [`BuildErrors`](https://docs.rs/reflectapi/latest/reflectapi/struct.BuildErrors.html)
   for what it checks at run time: an invalid request header name, malformed
   route deprecation dates, invalid response headers, `sse_keep_alive` on a
   route that isn't a stream route, `#[serde(flatten)]` on a
-  `reflectapi::Option` field, a `rename_types` pattern that matches no type,
+  [`reflectapi::Option`](https://docs.rs/reflectapi/latest/reflectapi/enum.Option.html) field, a [`rename_types`](https://docs.rs/reflectapi/latest/reflectapi/struct.Builder.html#method.rename_types) pattern that matches no type,
   and the errors of custom validators.
 
 [`Builder::validate`](https://docs.rs/reflectapi/latest/reflectapi/struct.Builder.html#method.validate)
@@ -872,7 +872,7 @@ fn the_api_builds() {
 Here `the_api_builds` fails with `users.get: the route has no description`.
 
 Validators and the other schema checks run only when the API is built
-`WithSchema`. A server that builds it `DispatchOnly` skips them (see
+[`WithSchema`](https://docs.rs/reflectapi/latest/reflectapi/struct.WithSchema.html). A server that builds it `DispatchOnly` skips them (see
 [build modes](../serving/other-servers.md#build-modes)), so keep a test that
 builds it `WithSchema`, such as `the_api_builds` above or the test that
 generates the clients.

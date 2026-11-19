@@ -5,7 +5,7 @@ A reflectapi API can run in a Cloudflare-compatible Worker, on
 [celld](https://celld.dev), written in Rust with
 [workers-rs](https://github.com/cloudflare/workers-rs) and compiled to
 WebAssembly. The Worker runtime is the HTTP server, so axum is not used: the
-`reflectapi::dispatch::Dispatcher` routes requests, and the adapter on this
+[`reflectapi::dispatch::Dispatcher`](https://docs.rs/reflectapi/latest/reflectapi/dispatch/struct.Dispatcher.html) routes requests, and the adapter on this
 page connects it to workers-rs.
 
 ## Dependencies
@@ -36,8 +36,8 @@ Build with `worker-build --release`, as for any workers-rs Worker.
 ## Define the API
 
 Write the definition once, generic over the [build mode](./other-servers.md#build-modes):
-the Worker builds it with `DispatchOnly`, so no schema is built or linked into
-the wasm, and the build step builds it with `WithSchema`.
+the Worker builds it with [`DispatchOnly`](https://docs.rs/reflectapi/latest/reflectapi/struct.DispatchOnly.html), so no schema is built or linked into
+the wasm, and the build step builds it with [`WithSchema`](https://docs.rs/reflectapi/latest/reflectapi/struct.WithSchema.html).
 
 ```rust,ignore
 pub fn api<M: reflectapi::BuildMode>() -> reflectapi::Builder<Ctx, M> {

@@ -113,7 +113,7 @@ assert!(matches!(reply, Some(Reply::Complete { status, .. }) if status == 200));
 
 Without `#[serde(default)]`, the same request gets `400` for the missing
 `tags`. See [Missing fields and null](../getting-started/attributes.md#missing-fields-and-null)
-for how defaults, `Option` and `reflectapi::Option` map to required and
+for how defaults, `Option` and [`reflectapi::Option`](https://docs.rs/reflectapi/latest/reflectapi/enum.Option.html) map to required and
 nullable fields in each direction.
 
 Generated Rust types don't derive `Default` unless the type asks for it with
