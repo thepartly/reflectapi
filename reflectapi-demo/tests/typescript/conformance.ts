@@ -117,7 +117,15 @@ const wire: string = user;
 const tagged: conformance.cases.Tagged<number> = conformance.cases.Tagged(1);
 // @ts-expect-error a generic distinct type keeps its argument
 const mistagged: conformance.cases.Tagged<string> = tagged;
-void [unmarked, crossed, wire, mistagged];
+// A distinct type around an optional value keeps its null.
+const noNickname: conformance.cases.Nickname = conformance.cases.Nickname(null);
+// Type-checked only, never run: it may be null.
+// @ts-expect-error it may be null
+const mayBeNull = () => noNickname.toUpperCase();
+const nickname = conformance.cases.Nickname("bee");
+// @ts-expect-error a plain string isn't a Nickname
+const unmarkedNickname: conformance.cases.Nickname = "bee";
+void [unmarked, crossed, wire, mistagged, nickname, unmarkedNickname, mayBeNull];
 
 test("a distinct type's constructor returns the value unchanged", () => {
   assert.equal(user, "67e55044-10b1-426f-9247-bb680e5fe0c8");

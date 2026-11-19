@@ -98,12 +98,18 @@ pub mod cases {
     #[reflectapi(distinct)]
     pub struct Tagged<T>(pub T);
 
+    /// A distinct type whose value may be null.
+    #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+    #[reflectapi(distinct)]
+    pub struct Nickname(pub Option<String>);
+
     #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
     pub struct Distinct {
         pub user: UserId,
         pub session: Option<SessionId>,
         pub orders: Vec<OrderNumber>,
         pub tagged: Tagged<String>,
+        pub nickname: Nickname,
     }
 
     #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
@@ -333,12 +339,14 @@ conformance_cases! {
             session: None,
             orders: vec![],
             tagged: Tagged("a".into()),
+            nickname: Nickname(None),
         },
         Distinct {
             user: UserId("67e55044-10b1-426f-9247-bb680e5fe0c8".parse().unwrap()),
             session: Some(SessionId("0b6a1c4e-2f1d-4b3a-9c8e-7d6f5e4a3b2c".parse().unwrap())),
             orders: vec![OrderNumber { value: 1 }, OrderNumber { value: 2 }],
             tagged: Tagged("b".into()),
+            nickname: Nickname(Some("bee".into())),
         },
     ];
     tuple: Pair = [Pair(1, "one".into())];

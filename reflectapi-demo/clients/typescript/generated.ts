@@ -43,9 +43,10 @@ declare const __distinct: unique symbol;
  * its own, so one ID can't be passed where another is expected. Make one with
  * the constructor generated beside it, or take it from a response.
  */
-export type __Distinct<T, Name extends string> = T & {
-  readonly [__distinct]: { readonly base: T; readonly name: Name };
-};
+export type __Distinct<T, Name extends string> = T extends null | undefined
+  ? // Branding `null` would make it `never`, so an optional value keeps it.
+    T
+  : T & { readonly [__distinct]: { readonly base: T; readonly name: Name } };
 /** `T` with each distinct type replaced by the value it wraps: its plain JSON shape. */
 export type __Wire<T> = IsAny<T> extends true
   ? T
