@@ -21,7 +21,7 @@ from .auth import (
 from .batch import BatchClient
 from .client import AsyncClientBase, ClientBase
 from .duration import ReflectapiDuration
-from .wire_datetime import ReflectapiDateTime
+from .wire_datetime import ReflectapiDateTime, WireDateTime
 from .transport import AsyncClient, Client, Request, Response
 from .exceptions import (
     ApiError,
@@ -101,6 +101,7 @@ __all__ = [
     "ReflectapiEmpty",
     "ReflectapiInfallible",
     "ReflectapiPartialModel",
+    "WireDateTime",
     "externally_tagged_json_schema",
     "flattened_enum_json_schema",
     "known_variants_json_schema",

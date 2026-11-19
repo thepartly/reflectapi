@@ -465,7 +465,11 @@ class ClientBase(ABC):
 
         # Add headers from headers_model if provided
         if headers_model is not None:
-            header_dict = headers_model.model_dump(by_alias=True, exclude_unset=True)
+            # JSON mode writes each value as it goes on the wire: a timestamp
+            # as RFC 3339 (or its original text), an enum as its value.
+            header_dict = headers_model.model_dump(
+                mode="json", by_alias=True, exclude_unset=True
+            )
             for key, value in header_dict.items():
                 if value is not None:
                     headers[key] = str(value)
@@ -981,7 +985,11 @@ class AsyncClientBase(ABC):
 
         # Add headers from headers_model if provided
         if headers_model is not None:
-            header_dict = headers_model.model_dump(by_alias=True, exclude_unset=True)
+            # JSON mode writes each value as it goes on the wire: a timestamp
+            # as RFC 3339 (or its original text), an enum as its value.
+            header_dict = headers_model.model_dump(
+                mode="json", by_alias=True, exclude_unset=True
+            )
             for key, value in header_dict.items():
                 if value is not None:
                     headers[key] = str(value)

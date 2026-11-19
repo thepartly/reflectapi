@@ -6,25 +6,26 @@ microseconds, so decoding into a plain ``datetime`` and encoding it again
 sends a different timestamp to the server, which breaks it as a version
 token, a cursor or a key.
 
-``ReflectapiDateTime`` is the type generated clients use for
-``chrono::DateTime`` and ``chrono::NaiveDateTime``:
+``ReflectapiDateTime``, the annotation generated clients use for
+``chrono::DateTime`` and ``chrono::NaiveDateTime``, is a ``datetime``, so
+any ``datetime`` can be assigned to such a field:
 
 - **Reading** (server → client): the text is parsed as pydantic parses a
-  ``datetime``, and kept on the value. It is a ``datetime``, with the
-  microseconds, so ``isinstance(x, datetime)``, comparisons and arithmetic
-  work as before.
-- **Writing** (client → server): a value read from the wire is written as
-  the exact text it was read from. Any other ``datetime``, including the
-  result of arithmetic or ``replace()``, is written as pydantic writes one.
+  ``datetime``, into a ``WireDateTime``: a ``datetime``, with the
+  microseconds, that keeps the text. ``isinstance(x, datetime)``,
+  comparisons and arithmetic work as before.
+- **Writing** (client → server): a ``WireDateTime`` is written as the exact
+  text it was read from. Any other ``datetime``, including the result of
+  arithmetic or ``replace()``, is written as pydantic writes one.
 
 Two values that differ only below a microsecond compare equal, as their
-``datetime`` parts are equal; ``.wire`` tells them apart.
+``datetime`` parts are equal; ``WireDateTime.wire`` tells them apart.
 """
 
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Annotated, Any
 
 from pydantic_core import core_schema
 
@@ -32,14 +33,14 @@ if TYPE_CHECKING:
     from pydantic import GetCoreSchemaHandler
 
 
-class ReflectapiDateTime(datetime):
+class WireDateTime(datetime):
     """A ``datetime`` read from the wire, written back as the text it was read from."""
 
     __slots__ = ("_wire",)
     _wire: str | None
 
     @classmethod
-    def _read(cls, value: datetime, wire: str) -> ReflectapiDateTime:
+    def _read(cls, value: datetime, wire: str) -> WireDateTime:
         out = cls(
             value.year,
             value.month,
@@ -63,18 +64,29 @@ class ReflectapiDateTime(datetime):
         # copy, deepcopy, pickle and `model_copy(deep=True)` keep the text.
         return (_restore, (super().__reduce_ex__(protocol), self.wire))
 
-    @classmethod
+
+def _restore(reduced: Any, wire: str | None) -> WireDateTime:
+    constructor, args = reduced[0], reduced[1]
+    out: WireDateTime = constructor(*args)
+    if wire is not None:
+        out._wire = wire
+    return out
+
+
+class _KeepWireText:
+    """Pydantic schema: read into a ``WireDateTime``, write its text back."""
+
     def __get_pydantic_core_schema__(
-        cls, source: Any, handler: GetCoreSchemaHandler
+        self, source: Any, handler: GetCoreSchemaHandler
     ) -> core_schema.CoreSchema:
         def validate(
             value: Any, parse: core_schema.ValidatorFunctionWrapHandler
         ) -> datetime:
-            if isinstance(value, ReflectapiDateTime):
+            if isinstance(value, WireDateTime):
                 return value
             parsed: datetime = parse(value)
             if isinstance(value, str):
-                return cls._read(parsed, value)
+                return WireDateTime._read(parsed, value)
             return parsed
 
         def serialize(
@@ -96,9 +108,5 @@ class ReflectapiDateTime(datetime):
         )
 
 
-def _restore(reduced: Any, wire: str | None) -> ReflectapiDateTime:
-    constructor, args = reduced[0], reduced[1]
-    out: ReflectapiDateTime = constructor(*args)
-    if wire is not None:
-        out._wire = wire
-    return out
+ReflectapiDateTime = Annotated[datetime, _KeepWireText()]
+"""A ``datetime`` field that writes back the exact text it was read from."""
