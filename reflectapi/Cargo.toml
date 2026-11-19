@@ -4,16 +4,22 @@ version = "0.25.2"
 edition = "2021"
 
 license = "Apache-2.0"
-description = "ReflectAPI is a library for Rust code-first web service API declaration and corresponding clients code generation tools."
-homepage = "https://github.com/thepartly/reflectapi"
+description = "Define your web API in Rust, generate typed TypeScript, Python and Rust clients. Serve it with Axum, Cloudflare Workers or any HTTP server."
+homepage = "https://thepartly.github.io/reflectapi/"
 documentation = "https://docs.rs/reflectapi"
 repository = "https://github.com/thepartly/reflectapi"
 readme = "README.md"
 
-keywords = ["reflectapi", "codegen", "reflection", "restapi", "openapi"]
+keywords = ["typescript", "python", "axum", "codegen", "openapi"]
 categories = ["web-programming", "development-tools", "api-bindings"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+# Build docs.rs with every feature, so the server, client runtime and codegen
+# items are documented, each labelled with the feature it needs.
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [lints]
 workspace = true

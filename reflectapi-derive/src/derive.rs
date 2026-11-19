@@ -52,7 +52,11 @@ pub(crate) fn derive_reflect(input: TokenStream, reflectapi_type: ReflectType) -
     let reflected_type_def = visit_type(&reflected_context, &serde_input);
     let context_encounters = match reflected_context.check() {
         Err(err) => {
-            proc_macro_error::abort!(err.span(), err.to_string());
+            proc_macro_error::abort!(
+                err.span(),
+                err.to_string();
+                help = "see {}", crate::ATTRIBUTES_GUIDE
+            );
         }
         Ok(unresolved_type_refs_to_syn_types) => unresolved_type_refs_to_syn_types,
     };

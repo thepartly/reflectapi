@@ -2,12 +2,14 @@
 authors = ["ReflectAPI Contributors"]
 language = "en"
 src = "src"
-title = "ReflectAPI Documentation"
-description = "Code-first Rust web service API declaration and client generation"
+title = "reflectapi: reflect your Rust API into the world"
+description = "Define your web API in Rust, generate typed TypeScript, Python and Rust clients. Serve it with Axum, Cloudflare Workers or any HTTP server."
 
 [preprocessor.links]
 
 [output.html]
+default-theme = "light"
+preferred-dark-theme = "coal"
 additional-css = ["theme/custom.css"]
 git-repository-url = "https://github.com/thepartly/reflectapi"
 edit-url-template = "https://github.com/thepartly/reflectapi/edit/main/docs/{path}"
@@ -33,17 +35,5 @@ copy-js = true
 
 [rust]
 edition = "2021"
-
-[preprocessor.keeper]
-command = "mdbook-keeper"
-manifest_dir = ".."
-is_workspace = true
-
-[[preprocessor.keeper.rust_manifest]]
-name = "default"
-[preprocessor.keeper.rust_manifest.dependencies]
-reflectapi = { workspace = true, features = ["rt", "reqwest", "url"] }
-reqwest = { version = "0.12", features = ["json"] }
-url = "2.5"
 
 [output.html.redirect]

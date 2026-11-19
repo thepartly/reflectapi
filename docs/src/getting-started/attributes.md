@@ -8,6 +8,9 @@ ReflectAPI provides `#[reflectapi(...)]` attributes that control how Rust types 
 |-----------|-------------|
 | `#[reflectapi(derive(...))]` | Forward additional derive traits to the generated Rust client type. |
 | `#[reflectapi(open)]` | Make a tagged enum open in generated responses: retain unfamiliar tags and raw JSON in an explicit unknown case. Request types stay closed. |
+| `#[reflectapi(discriminant)]` | Reflect a fieldless enum serialized as its numbers (for example with `serde_repr`) by its discriminants, so clients use `1 \| 2` instead of variant names. |
+| `#[reflectapi(type = "T")]` | Reflect the type as `T`, under its own name, in both directions: for a type whose serde implementation is written by hand. A generic `T` needs the turbofish: `"Vec::<String>"`. |
+| `#[reflectapi(input_type = "T")]`, `#[reflectapi(output_type = "T")]` | The same, for one direction only. |
 
 ### Enum evolution
 
@@ -24,8 +27,8 @@ enum PetKind {
 }
 ```
 
-This response-only type needs `Serialize` to send values and `Output` to
-describe them in the schema. Request-only types use `Deserialize` and `Input`.
+This response-only type needs `Serialize` to send values and [`Output`](https://docs.rs/reflectapi/latest/reflectapi/trait.Output.html) to
+describe them in the schema. Request-only types use `Deserialize` and [`Input`](https://docs.rs/reflectapi/latest/reflectapi/trait.Input.html).
 Add all four derives only when the same type is used in both directions; an
 `open` enum's generated request type still stays closed.
 
@@ -39,7 +42,7 @@ already taken). Python clients get an unknown model with `.tag` and `.raw`.
 TypeScript clients get a branded `UnknownEnum`, detected with `isUnknownEnum`;
 its tag and raw value are available under the exported `unknownEnum` symbol.
 The same policy applies to nested models, application errors, and SSE items.
-See [handling unfamiliar enum variants](../clients/README.md#handling-unfamiliar-enum-variants)
+See [handling unfamiliar enum variants](../clients/index.md#handling-unfamiliar-enum-variants)
 for client-side examples.
 Rust retains Serde's surrounding container rules: an optional flattened enum
 can become `None` when its contents fail validation. Use a required flattened
@@ -90,6 +93,8 @@ policy widens generated request types.
 | `#[reflectapi(input_type = "T")]` | Override the reflected type for the input schema only. |
 | `#[reflectapi(output_type = "T")]` | Override the reflected type for the output schema only. |
 
+A generic type in an override needs the turbofish: `type = "Vec::<String>"`, not `"Vec<String>"`.
+
 ### Missing fields and null
 
 Field presence is directional. For a named field `value: Option<String>` without
@@ -108,7 +113,7 @@ a custom serializer alone does not change input presence.
 A `#[serde(flatten)]` field has no key of its own, so neither attribute applies
 to it: its fields are optional as a group exactly when its type is an `Option`.
 
-For `reflectapi::Option<T>`, a missing input becomes `None` without a default;
+For [`reflectapi::Option<T>`](https://docs.rs/reflectapi/latest/reflectapi/enum.Option.html), a missing input becomes `None` without a default;
 `#[serde(default)]` instead supplies `Undefined`. A custom default function
 supplies whatever that function returns. To preserve all three states on the
 server, use `#[serde(default, skip_serializing_if = "reflectapi::Option::is_undefined")]`.
@@ -201,7 +206,7 @@ Both attributes remove a field from generated clients. The key difference:
 
 Neither `skip` nor `hidden` affects serde serialization. For output types, serde will still serialize a hidden field onto the wire — `hidden` only controls what generated code and documentation show. If a field must never appear in responses, use `#[serde(skip_serializing)]` instead.
 
-Please not that neither `skip` nor `hidden` prevent a malicious client from sending the fields in a request. A middleware may overwrite it or reject or validate as needed. It is up to the specific implementation of your server.
+Please note that neither `skip` nor `hidden` prevent a malicious client from sending the fields in a request. A middleware may overwrite it or reject or validate as needed. It is up to the specific implementation of your server.
 
 **Example: hidden header field**
 
@@ -254,7 +259,7 @@ The release in Rust's `#[deprecated(since = "..")]` is kept as well. See [Deprec
 
 ### A route's error
 
-A route's error implements `reflectapi::StatusCode`: the status its response
+A route's error implements [`reflectapi::StatusCode`](https://docs.rs/reflectapi/latest/reflectapi/trait.StatusCode.html): the status its response
 has, and, with `response_headers`, the headers the response adds, none by
 default. For an enum, derive it, giving each variant its status, or taking the
 status and headers of its one field:

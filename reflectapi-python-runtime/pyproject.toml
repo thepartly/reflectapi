@@ -14,7 +14,7 @@ authors = [
 ]
 keywords = ["api", "client", "codegen", "rest", "http"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
@@ -53,9 +53,9 @@ test = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/thepartly/reflectapi"
+Homepage = "https://thepartly.github.io/reflectapi/"
 Repository = "https://github.com/thepartly/reflectapi"
-Documentation = "https://docs.rs/reflectapi/latest/reflectapi/"
+Documentation = "https://thepartly.github.io/reflectapi/clients/"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/reflectapi_runtime"]

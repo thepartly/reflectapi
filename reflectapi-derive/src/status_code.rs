@@ -16,8 +16,28 @@ pub(crate) fn derive_status_code(input: proc_macro::TokenStream) -> proc_macro::
     let input = syn::parse_macro_input!(input as DeriveInput);
     match expand(&input) {
         Ok(tokens) => tokens.into(),
-        Err(error) => error.to_compile_error().into(),
+        Err(error) => with_guide(error).to_compile_error().into(),
     }
+}
+
+/// Ends each error with where the guide explains a route's error, keeping
+/// the span it underlines: `new_spanned` over the error's own tokens spans
+/// from its first token to its last.
+fn with_guide(error: syn::Error) -> syn::Error {
+    error
+        .clone()
+        .into_iter()
+        .map(|error| {
+            syn::Error::new_spanned(
+                error.to_compile_error(),
+                format!("{error}\n\n  = help: see {}", crate::ROUTE_ERROR_GUIDE),
+            )
+        })
+        .reduce(|mut combined, next| {
+            combined.combine(next);
+            combined
+        })
+        .unwrap_or(error)
 }
 
 /// What a variant answers.

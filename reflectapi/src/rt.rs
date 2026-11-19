@@ -1,9 +1,23 @@
+//! The runtime of generated Rust clients (feature `rt`).
+//!
+//! A generated client's methods return [`Error`] when a call fails, and send
+//! their requests through a transport: any type implementing [`Client`]. The
+//! built-in transport is [`ReqwestClient`] (feature `reqwest`); write your own
+//! for other HTTP clients, middleware, or tests. Streaming routes (feature
+//! `rt-sse`) return a [`StreamResponse`].
+//!
+//! See [Generated clients](https://thepartly.github.io/reflectapi/clients/#rust)
+//! and [Errors](https://thepartly.github.io/reflectapi/concepts/errors.html) in
+//! the guide.
+
 use std::{future::Future, pin::Pin};
 
 use futures_util::Stream;
+#[doc(hidden)]
 pub use serde_json;
 pub use url::{ParseError as UrlParseError, Url};
 
+#[doc(hidden)]
 pub fn error_to_string<T: serde::Serialize>(error: &T) -> String {
     serde_json::to_string(error).unwrap_or_else(|e| format!("Failed to serialize error: {e}"))
 }
@@ -17,10 +31,14 @@ pub fn error_to_string<T: serde::Serialize>(error: &T) -> String {
 /// don't carry a base URL, so we ship [`ReqwestClient`] /
 /// [`ReqwestMiddlewareClient`] wrappers instead.
 pub trait Client {
+    /// The transport's error, returned in [`Error::Network`].
     type Error;
 
+    /// The API's base URL, which each request's `path` is joined to.
     fn base_url(&self) -> &Url;
 
+    /// Sends a `POST` request and returns the response with its body as a
+    /// stream.
     fn request(
         &self,
         request: Request,
@@ -37,26 +55,47 @@ pub trait Client {
 /// by design, so transports hardcode it. If that ever changes it's a
 /// wire-protocol break and clients regenerate.
 pub struct Request {
+    /// The route's path, relative to [`Client::base_url`].
     pub path: String,
+    /// The request headers, from the route's headers type.
     pub headers: http::HeaderMap,
+    /// The JSON-encoded input.
     pub body: bytes::Bytes,
 }
 
 /// Transport response returned by user-provided [`Client`] implementations.
 #[allow(clippy::type_complexity)]
 pub struct Response<E> {
+    /// The response status.
     pub status: http::StatusCode,
+    /// The response headers.
     pub headers: http::HeaderMap,
+    /// The response body, as it arrives.
     pub body: Pin<Box<dyn Stream<Item = Result<bytes::Bytes, E>> + Send + 'static>>,
 }
 
+/// Why a call through a generated client failed.
+///
+/// `AE` is the route's error type and `NE` the transport's error,
+/// [`Client::Error`].
 pub enum Error<AE, NE> {
+    /// The route's own error: a response with a status other than `2xx` or
+    /// `5xx` whose body decodes as the route's error type.
     Application(AE),
+    /// The transport failed: the request was not sent, or the response could
+    /// not be read.
     Network(NE),
+    /// The client and the server disagree: the request could not be
+    /// serialized, a `2xx` body did not decode as the route's output, or a
+    /// `4xx` body did not decode as its error.
     Protocol {
+        /// The serialization or deserialization error.
         info: String,
+        /// Where it happened, with the body that failed to decode.
         stage: ProtocolErrorStage,
     },
+    /// A `5xx` response, whatever its body, or another status whose body is
+    /// not the route's error: the status and the raw body.
     Server(http::StatusCode, bytes::Bytes),
 }
 
@@ -103,6 +142,7 @@ impl<AE: std::error::Error + 'static, NE: std::error::Error + 'static> std::erro
     }
 }
 
+/// A boxed, sendable stream, as streaming routes return.
 pub type BoxStream<T> = Pin<Box<dyn Stream<Item = T> + Send + 'static>>;
 
 /// Error type for individual stream items.
@@ -111,9 +151,13 @@ pub type BoxStream<T> = Pin<Box<dyn Stream<Item = T> + Send + 'static>>;
 /// application-level errors can only occur during the initial request/response
 /// cycle (stream creation), not per-item during streaming.
 pub enum StreamItemError<NE> {
+    /// The transport failed while reading the stream.
     Network(NE),
+    /// An item did not decode as the route's item type.
     Protocol {
+        /// The deserialization error.
         info: String,
+        /// Where it happened, with the data that failed to decode.
         stage: ProtocolErrorStage,
     },
 }
@@ -149,13 +193,20 @@ impl<NE: std::error::Error + 'static> std::error::Error for StreamItemError<NE> 
     }
 }
 
+/// What a streaming route's method returns: the stream of items once the
+/// server has accepted the request, or the [`Error`] that prevented it.
 pub type StreamResponse<T, AE, NE> =
     Result<BoxStream<Result<T, StreamItemError<NE>>>, Error<AE, NE>>;
 
+/// Where a [`Error::Protocol`] or [`StreamItemError::Protocol`] happened.
 pub enum ProtocolErrorStage {
+    /// Serializing the request body.
     SerializeRequestBody,
+    /// Turning the request headers into HTTP headers.
     SerializeRequestHeaders,
+    /// Decoding a successful response, or a stream item: the data.
     DeserializeResponseBody(bytes::Bytes),
+    /// Decoding a `4xx` response as the route's error: the status and body.
     DeserializeResponseError(http::StatusCode, bytes::Bytes),
 }
 
@@ -403,7 +454,9 @@ async fn __collect_byte_stream<E>(
 #[cfg(feature = "reqwest")]
 #[derive(Clone, Debug)]
 pub struct ReqwestClient<T = reqwest::Client> {
+    /// The HTTP client that sends the requests.
     pub inner: T,
+    /// The API's base URL.
     pub base_url: Url,
 }
 

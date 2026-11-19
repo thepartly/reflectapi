@@ -36,7 +36,7 @@ builder.route(draw_v1, |b| {
 })
 ```
 
-The release is free-form: a crate version, an API version or anything else, kept verbatim. Dates are `YYYY-MM-DD`, and the sunset can't be before the deprecation date. The derive macros reject a bad date, or a date on an item without `#[deprecated]`, at compile time; `Builder::build` rejects bad route dates.
+The release is free-form: a crate version, an API version or anything else, kept verbatim. Dates are `YYYY-MM-DD`, and the sunset can't be before the deprecation date. The derive macros reject a bad date, or a date on an item without `#[deprecated]`, at compile time; [`Builder::build`](https://docs.rs/reflectapi/latest/reflectapi/struct.Builder.html#method.build) rejects bad route dates.
 
 `#[deprecated(since = "..")]` is always the release, even when it looks like a date. Calendar dates come only from `#[reflectapi(deprecated_since = "..", sunset = "..")]` and the builder. Clippy's `deprecated_semver` lint, deny by default, rejects a `since` that isn't a semver version, so a release named another way needs `#[allow(clippy::deprecated_semver)]`.
 
@@ -57,6 +57,12 @@ A marker doesn't always produce an editor or type-checker warning:
 - **Fields:** only named fields are marked outside Rust. In OpenAPI, TypeScript and Python, a deprecated field of a tuple struct or newtype, or a deprecated `#[serde(flatten)]` field, is not marked (TypeScript's comment on a tuple element is documentation only). Deprecate the inner named fields instead.
 
 The Python decorator uses `category=None`, so it only informs type checkers: pyright (with `reportDeprecated`) and mypy (with `--enable-error-code deprecated`) report call sites, and the method body emits the runtime warning.
+
+A deprecated named field of a type that appears only in responses is also
+optional in clients generated while it is deprecated (`?:` in TypeScript,
+`Option` in Rust, a `None` default in Python), so those clients keep working
+once the field is removed. A type that is also read by the server keeps the
+field required. See [Removing and renaming fields](../concepts/evolving.md#removing-and-renaming-fields).
 
 `x-sunset` follows the convention oasdiff uses for a deprecated item's earliest removal date.
 
