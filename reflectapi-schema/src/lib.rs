@@ -265,7 +265,8 @@ impl Schema {
             .types()
             .filter_map(|t| {
                 t.as_struct()
-                    .filter(|i| i.transparent && i.fields.len() == 1)
+                    // A distinct type stays: folding it would erase it.
+                    .filter(|i| i.transparent && i.fields.len() == 1 && !i.distinct)
                     .cloned()
             })
             .collect::<Vec<_>>();
@@ -280,7 +281,8 @@ impl Schema {
             .types()
             .filter_map(|t| {
                 t.as_struct()
-                    .filter(|i| i.transparent && i.fields.len() == 1)
+                    // A distinct type stays: folding it would erase it.
+                    .filter(|i| i.transparent && i.fields.len() == 1 && !i.distinct)
                     .cloned()
             })
             .collect::<Vec<_>>();
@@ -978,6 +980,12 @@ pub struct Struct {
     #[serde(skip_serializing_if = "is_false", default)]
     pub transparent: bool,
 
+    /// `#[reflectapi(distinct)]`: a newtype, or a one-field transparent
+    /// struct, that clients keep apart from the type it wraps, as Rust does.
+    /// On the wire it's still the wrapped value.
+    #[serde(skip_serializing_if = "is_false", default)]
+    pub distinct: bool,
+
     #[serde(
         skip_serializing_if = "LanguageSpecificTypeCodegenConfig::is_serialization_default",
         default
@@ -995,6 +1003,7 @@ impl Struct {
             parameters: Default::default(),
             fields: Default::default(),
             transparent: Default::default(),
+            distinct: Default::default(),
             codegen_config: Default::default(),
         }
     }

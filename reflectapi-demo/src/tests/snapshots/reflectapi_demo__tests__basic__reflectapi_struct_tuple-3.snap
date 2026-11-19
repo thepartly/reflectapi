@@ -63,7 +63,7 @@ pub mod types {
             pub mod basic {
 
                 #[derive(Debug, serde::Deserialize, serde::Serialize)]
-                pub struct TestStructTuple(u8, std::string::String);
+                pub struct TestStructTuple(pub u8, pub std::string::String);
             }
         }
     }

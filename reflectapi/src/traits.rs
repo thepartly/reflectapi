@@ -730,6 +730,7 @@ fn reflectapi_duration(schema: &mut crate::Typespace) -> crate::TypeReference {
             serde_name: Default::default(),
             parameters: Default::default(),
             transparent: Default::default(),
+            distinct: Default::default(),
             codegen_config: Default::default(),
         };
 

@@ -1493,7 +1493,14 @@ fn render_type(
 
     Ok(match type_def {
         crate::Type::Struct(struct_def) => {
-            if struct_def.is_alias() {
+            if struct_def.distinct && struct_def.is_alias() {
+                let field_type_ref = struct_def.fields.iter().next().unwrap().type_ref.clone();
+                render_distinct(
+                    struct_def,
+                    &type_name,
+                    &type_ref_to_ts_ref(&field_type_ref, schema, implemented_types),
+                )
+            } else if struct_def.is_alias() {
                 let field_type_ref = struct_def.fields.iter().next().unwrap().type_ref.clone();
                 let alias_template = templates::Alias {
                     name: type_name,
@@ -1737,6 +1744,20 @@ fn type_params_to_ts_name(type_params: std::slice::Iter<'_, crate::TypeParameter
     } else {
         format!("<{p}>")
     }
+}
+
+/// `#[reflectapi(distinct)]`: the type, which only the wrapped value converts
+/// to by way of its constructor, and the constructor, a value of the same name.
+fn render_distinct(struct_def: &crate::Struct, type_name: &str, wrapped: &str) -> String {
+    let name = type_name.split('<').next().unwrap_or(type_name);
+    let generics = type_params_to_ts_name(struct_def.parameters());
+    let description = doc_to_ts_comments(&struct_def.description, None, 0);
+    format!(
+        "\n{description}export type {type_name} = __Distinct<{wrapped}, \"{rust_name}\">;\n\
+         /** `{name}`'s constructor: marks the value it wraps as one. */\n\
+         export const {name} = {generics}(value: {wrapped}): {type_name} => value as {type_name};",
+        rust_name = struct_def.name,
+    )
 }
 
 /// A primitive written as a string with a format, such as `uuid::Uuid` or

@@ -8,6 +8,33 @@ ReflectAPI provides `#[reflectapi(...)]` attributes that control how Rust types 
 |-----------|-------------|
 | `#[reflectapi(derive(...))]` | Forward additional derive traits to the generated Rust client type. |
 | `#[reflectapi(open)]` | Make a tagged enum open in generated responses: retain unfamiliar tags and raw JSON in an explicit unknown case. Request types stay closed. |
+| `#[reflectapi(distinct)]` | Keep a newtype, or a one-field `#[serde(transparent)]` struct, a type of its own in generated clients, so one ID can't be passed where another is expected. The wire is unchanged. |
+
+### Distinct types
+
+Rust keeps `struct UserId(Uuid)` and `struct SessionId(Uuid)` apart, but on the
+wire both are the UUID they wrap, and a client generated from them would
+otherwise see two plain strings. `#[reflectapi(distinct)]` keeps them apart in
+clients too:
+
+```rust,ignore
+#[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+#[reflectapi(distinct)]
+pub struct UserId(pub uuid::Uuid);
+```
+
+- **TypeScript:** `UserId` is a branded type, `__Distinct<uuid.Uuid, "myapp::UserId">`.
+  - A plain string isn't a `UserId`, and a `SessionId` isn't either, but a `UserId` is still usable as a string.
+  - Values from responses are `UserId`s already. Make one for a request with the constructor generated beside it, `myapp.UserId("...")`, which returns its argument unchanged.
+  - `__Wire<T>` is `T` with each distinct type replaced by the value it wraps.
+- **Rust:** the client's `UserId` is a newtype, `pub struct UserId(pub uuid::Uuid)`, where an ordinary newtype becomes a type alias.
+- **OpenAPI:** `UserId` is a component of its own, an `allOf` of the type it wraps, so its name survives.
+- **Python:** the field is the wrapped type, as for any newtype, for now.
+
+Only a newtype or a one-field transparent struct can be distinct, and not one
+whose schema comes from a type override. Making a type distinct changes its
+clients' types, so callers that passed plain values need the constructor.
+`Schema::fold_transparent_types` leaves distinct types in place.
 
 ### Enum evolution
 

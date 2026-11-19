@@ -8,7 +8,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
 import { cases } from "./cases";
-import { client } from "./generated";
+import { client, conformance } from "./generated";
 import type { Client, Request, Response } from "./generated.transport";
 
 type Divergence = {
@@ -102,3 +102,24 @@ for (const { name, path, samples, call } of cases) {
       }));
   });
 }
+
+// `#[reflectapi(distinct)]` types: checked by `tsc`, so a regression fails
+// the build rather than a test.
+type UserId = conformance.cases.UserId;
+type SessionId = conformance.cases.SessionId;
+const user: UserId = conformance.cases.UserId("67e55044-10b1-426f-9247-bb680e5fe0c8");
+// @ts-expect-error a plain string isn't a UserId
+const unmarked: UserId = "67e55044-10b1-426f-9247-bb680e5fe0c8";
+// @ts-expect-error one distinct type isn't another with the same wire type
+const crossed: SessionId = user;
+// A UserId is still the string it wraps.
+const wire: string = user;
+const tagged: conformance.cases.Tagged<number> = conformance.cases.Tagged(1);
+// @ts-expect-error a generic distinct type keeps its argument
+const mistagged: conformance.cases.Tagged<string> = tagged;
+void [unmarked, crossed, wire, mistagged];
+
+test("a distinct type's constructor returns the value unchanged", () => {
+  assert.equal(user, "67e55044-10b1-426f-9247-bb680e5fe0c8");
+  assert.deepStrictEqual(JSON.parse(JSON.stringify({ user })), { user });
+});

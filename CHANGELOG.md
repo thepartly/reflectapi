@@ -4,6 +4,14 @@
 
 ### Added
 
+- **`#[reflectapi(distinct)]`** keeps a newtype, such as `struct UserId(Uuid)`, a type of its own in generated clients, as Rust does, so one ID can't be passed where another of the same wire type is expected. The wire is unchanged.
+  - **TypeScript:** a branded type with a constructor of the same name.
+  - **Rust client:** a newtype rather than a type alias.
+  - **OpenAPI:** a named component.
+  - **Python:** the wrapped type, as before.
+
+  See [Distinct types](https://github.com/thepartly/reflectapi/blob/main/docs/src/getting-started/attributes.md#distinct-types). ([#240](https://github.com/thepartly/reflectapi/issues/240))
+
 - **A schema primitive says what its string is**: `Primitive::format`, a JSON Schema or OpenAPI format such as `uuid`, `date-time`, `date-time-local`, `date`, `time-local` or `uri`, or a type's own, such as `decimal`. reflectapi's `uuid`, `chrono`, `url` and `rust_decimal` types set it, and your own primitive can, with `Primitive::with_format`. Generators read it in one place, falling back to the built-in types' formats for a schema written before it existed. ([#240](https://github.com/thepartly/reflectapi/issues/240))
 
 ### Changed
@@ -15,6 +23,7 @@
 
 ### Fixed
 
+- **A generated Rust client's tuple structs have public fields**, so one can be built outside the generated module: `pub struct Pair(pub u8, pub String)`. They were private, so `Pair(1, "one".into())` didn't compile.
 - **Codegen in wasm returns an error instead of trapping** when asked to format or type-check, which need processes the host must run. With `typecheck`, TypeScript and Rust codegen panicked in `std::env::temp_dir()`. With `format`, every generator failed, Python by default; Python now falls back to its basic formatting, as it does when `ruff` isn't installed. Without them, codegen in wasm gives the same files as natively. ([#237](https://github.com/thepartly/reflectapi/issues/237))
 - **Python writes a `#[serde(transparent)]` struct with a named field as the value it wraps**, as serde does. `#[serde(transparent)] struct Name { inner: String }` was a model expecting `{"inner": "..."}`, so a response holding `"..."` failed validation and a request sent the object. A newtype struct was already written this way, but a generic one, such as `Newtype<Point>`, was typed `Any`; it is now `Point`.
 - **TypeScript compiles when the schema has a type named `Record`.** A map is now `{ [key in K]: V }` rather than `Record<K, V>`, which a `Record` type in the same namespace shadowed, failing with "Type 'Record' is not generic". The two types are the same.

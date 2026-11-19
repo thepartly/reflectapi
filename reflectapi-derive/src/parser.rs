@@ -120,6 +120,7 @@ pub(crate) struct ParsedTypeAttributes {
     pub output_type: Option<syn::Type>,
     pub discriminant: bool,
     pub open: bool,
+    pub distinct: bool,
     pub derives: Vec<syn::Meta>,
 }
 
@@ -235,6 +236,10 @@ pub(crate) fn parse_type_attributes(
             } else if meta.path.is_ident("open") {
                 // #[reflectapi(open)] applies only to generated response enums.
                 result.open = true;
+            } else if meta.path.is_ident("distinct") {
+                // #[reflectapi(distinct)]: clients keep the newtype apart from
+                // the type it wraps.
+                result.distinct = true;
             } else if meta.path == DERIVE {
                 // #[reflectapi(derive(...))]
                 let metas;
