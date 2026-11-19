@@ -38,11 +38,20 @@ export namespace reflectapi_demo {
       export interface Test {
         index_map: { [key in number /* u8 */]: number /* u32 */ };
         index_set: Array<string>;
-        url: string;
+        url: url.Url;
         json: any /* serde_json::Value */;
       }
     }
   }
+}
+
+export namespace url {
+  /**
+   * URL value type
+   *
+   * A string, format `uri`.
+   */
+  export type Url = string;
 }
 
 namespace __implementation {

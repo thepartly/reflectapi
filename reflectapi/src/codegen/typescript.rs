@@ -57,10 +57,14 @@ pub fn generate(
         let type_def = schema.get_type(&original_type_name).context(format!(
             "internal error: failed to get consolidated type definition for type: {original_type_name}"
         ))?;
+        if let Some(primitive) = format_alias(type_def) {
+            rendered_types.insert(original_type_name, render_format_alias(primitive));
+            continue;
+        }
         if implemented_types.contains_key(&original_type_name) {
             continue;
         }
-        if type_def.as_primitive().map(|i| &i.fallback).is_some() {
+        if type_def.as_primitive().is_some() {
             continue;
         }
         rendered_types.insert(
@@ -1735,11 +1739,46 @@ fn type_params_to_ts_name(type_params: std::slice::Iter<'_, crate::TypeParameter
     }
 }
 
+/// A primitive written as a string with a format, such as `uuid::Uuid` or
+/// `chrono::DateTime`, gets a named alias of `string`, so the generated types
+/// say what each string is.
+fn format_alias(type_def: &crate::Type) -> Option<&crate::Primitive> {
+    let primitive = type_def.as_primitive()?;
+    super::schema::string_format(primitive).map(|_| primitive)
+}
+
+/// `export type Uuid = string;`, documented with the type's description and
+/// format. It takes no type parameters, since a string's are only Rust's
+/// (`chrono::DateTime`'s time zone), so references leave them out.
+fn render_format_alias(primitive: &crate::Primitive) -> String {
+    let format = super::schema::string_format(primitive).unwrap_or_default();
+    let doc = if primitive.description().is_empty() {
+        format!("A string, format `{format}`.")
+    } else {
+        format!(
+            "{}\n\nA string, format `{format}`.",
+            primitive.description()
+        )
+    };
+    format!(
+        "{}export type {} = string;\n",
+        doc_to_ts_comments(&doc, None, 0),
+        primitive.name().rsplit("::").next().unwrap_or_default()
+    )
+}
+
 fn resolve_type_ref(
     type_ref: &crate::TypeReference,
     schema: &crate::Schema,
     implemented_types: &HashMap<String, String>,
 ) -> Option<String> {
+    if schema
+        .get_type(&type_ref.name)
+        .and_then(format_alias)
+        .is_some()
+    {
+        return Some(type_ref.name.replace("::", "."));
+    }
     let Some(mut implementation) = implemented_types.get(type_ref.name.as_str()).cloned() else {
         let Some(fallback_type_ref) = type_ref.fallback_once(schema.input_types()) else {
             let fallback_type_ref = type_ref.fallback_once(schema.output_types())?;

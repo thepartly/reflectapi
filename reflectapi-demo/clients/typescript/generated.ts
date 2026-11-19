@@ -959,6 +959,15 @@ export namespace __definition {
     >;
   }
 }
+export namespace chrono {
+  /**
+   * DateTime at a given timezone (RFC3339 format)
+   *
+   * A string, format `date-time`.
+   */
+  export type DateTime = string;
+}
+
 export namespace myapi {
   export interface HealthCheckFail {}
 
@@ -1032,7 +1041,7 @@ export namespace myapi {
          * age of the pet
          */
         age?: number /* u8 */ | null;
-        updated_at?: string;
+        updated_at?: chrono.DateTime;
         /**
          * behaviors of the pet
          */
@@ -1055,7 +1064,7 @@ export namespace myapi {
          * age of the pet
          */
         age?: number /* u8 */ | null;
-        updated_at: string;
+        updated_at: chrono.DateTime;
         /**
          * behaviors of the pet
          */

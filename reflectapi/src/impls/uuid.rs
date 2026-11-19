@@ -6,7 +6,8 @@ fn reflectapi_uuid(schema: &mut crate::Typespace) -> String {
             "UUID value type".to_string(),
             vec![],
             None,
-        );
+        )
+        .with_format("uuid");
         schema.insert_type(type_def.into());
     }
     type_name.into()

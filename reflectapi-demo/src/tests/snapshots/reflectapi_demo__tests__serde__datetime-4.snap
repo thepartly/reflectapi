@@ -50,7 +50,12 @@ snapshot_kind: text
       "chrono.NaiveDateTime": {
         "description": "Date time without timezone (%Y-%m-%dT%H:%M:%S%.f)",
         "type": "string",
-        "format": "date-time"
+        "format": "date-time-local"
+      },
+      "chrono.NaiveTime": {
+        "description": "Time without timezone (%H:%M:%S%.f)",
+        "type": "string",
+        "format": "time-local"
       },
       "reflectapi_demo.tests.serde.TestStruct": {
         "type": "object",
@@ -90,13 +95,9 @@ snapshot_kind: text
             "$ref": "#/components/schemas/chrono.NaiveDateTime"
           },
           "naive_time": {
-            "$ref": "#/components/schemas/std.string.String"
+            "$ref": "#/components/schemas/chrono.NaiveTime"
           }
         }
-      },
-      "std.string.String": {
-        "description": "UTF-8 encoded string",
-        "type": "string"
       },
       "std.time.Duration": {
         "description": "Time duration type",
