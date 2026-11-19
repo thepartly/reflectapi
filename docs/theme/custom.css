@@ -151,15 +151,22 @@ html, body {
 }
 
 /* The top bar's brand: logo and wordmark, linking to the landing page */
+/* Held to the bar's height: a taller title grows the bar, and the menu
+   toggle (a label, not a button) then sits higher than the other icons. */
+.menu-title {
+    height: var(--menu-bar-height);
+}
 .menu-title a.brand {
     display: inline-flex;
     align-items: center;
     gap: 8px;
+    height: var(--menu-bar-height);
+    vertical-align: top;
     color: var(--fg);
     text-decoration: none;
     font-size: 2.2rem;
 }
-.menu-title a.brand img { height: 30px; mix-blend-mode: multiply; }
+.menu-title a.brand img { height: 30px; }
 .menu-title a.brand b { font-weight: 600; color: var(--claw); }
 .coal .menu-title a.brand img,
 .navy .menu-title a.brand img,
