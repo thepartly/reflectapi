@@ -2356,65 +2356,71 @@ fn build_python_generation(
     let raw_functions_by_name: BTreeMap<String, &Function> =
         schema.functions().map(|f| (f.name.clone(), f)).collect();
 
-    let mut function_groups: BTreeMap<String, Vec<templates::Function>> = BTreeMap::new();
-    let mut top_level_functions: Vec<templates::Function> = Vec::new();
-
+    // Each route is a method at its dotted name's path, as in the Rust and
+    // TypeScript clients: `admin.users.get` is `client.admin.users.get`.
+    let mut root = templates::FunctionGroup::default();
+    let mut legacy_paths = Vec::new();
     for sem_func in semantic.functions() {
         let function_schema = match raw_functions_by_name.get(&sem_func.name) {
             Some(f) => f,
             None => continue,
         };
-        let rendered_function =
+        let mut function =
             render_function(function_schema, &schema, &implemented_types, &class_names)?;
-
-        // Group only when both the group and method names are nonempty.
-        if let Some(separator_pos) = sem_func
-            .name
-            .find('_')
-            .filter(|&pos| pos > 0 && pos + 1 < sem_func.name.len())
-            .or_else(|| {
-                sem_func
-                    .name
-                    .find('.')
-                    .filter(|&pos| pos > 0 && pos + 1 < sem_func.name.len())
-            })
-        {
-            let group_name = &sem_func.name[..separator_pos];
-            let method_name = &sem_func.name[separator_pos + 1..];
-
-            // Create a modified function with the shortened name for nested access
-            let mut nested_function = rendered_function.clone();
-            nested_function.name =
-                safe_python_identifier_with_context(method_name, IdentifierContext::Method);
-            nested_function.original_name = Some(rendered_function.name.clone());
-
-            function_groups
-                .entry(safe_python_identifier(group_name))
-                .or_default()
-                .push(nested_function);
-        } else {
-            // Functions without separators remain as top-level methods
-            top_level_functions.push(rendered_function);
+        let path = python_route_path(&sem_func.name, &function.name);
+        let legacy_path = legacy_python_route_path(&sem_func.name, &function.name);
+        if legacy_path != path {
+            legacy_paths.push((legacy_path, path.join(".")));
         }
+
+        let (method_name, group_path) = path.split_last().unwrap();
+        let mut group = &mut root;
+        for depth in 1..=group_path.len() {
+            group = group.subgroup(&group_path[..depth]);
+        }
+        if !group_path.is_empty() {
+            function.original_name = Some(function.name.clone());
+            function.name = method_name.clone();
+        }
+        group.functions.push(function);
     }
 
-    // Convert function groups to structured format
-    let mut function_group_pairs: Vec<_> = function_groups.into_iter().collect();
-    function_group_pairs.sort_by(|a, b| a.0.cmp(&b.0)); // Sort by group name for deterministic output
-    let structured_function_groups: Vec<templates::FunctionGroup> = function_group_pairs
-        .into_iter()
-        .map(|(group_name, functions)| templates::FunctionGroup {
-            name: group_name.clone(),
-            class_name: format!("{}Client", to_pascal_case(&group_name)),
-            functions,
-        })
-        .collect();
+    root.call_routes_named_as_subgroups();
+
+    // The paths of the grouping the Python client used before, which split a
+    // name at its first `_`, remain as deprecated aliases where no new name
+    // takes them.
+    for (legacy_path, new_path) in legacy_paths {
+        let alias = templates::Alias {
+            name: legacy_path.last().unwrap().clone(),
+            old_path: legacy_path.join("."),
+            new_path,
+        };
+        let group = match &legacy_path[..] {
+            [_] => &mut root,
+            // A legacy group may share a new group's name, but not a method's
+            // or another alias's.
+            [group_name, _]
+                if !root.has_member(group_name) || root.subgroups.contains_key(group_name) =>
+            {
+                root.subgroup(&legacy_path[..1])
+            }
+            _ => continue,
+        };
+        if !group.has_member(&alias.name) {
+            group.aliases.push(alias);
+        }
+    }
+    imports.has_warnings |= root.has_aliases();
+    // A group's class shares the module with the models in single-file output.
+    let mut taken_class_names = emitted_class_names.clone();
+    taken_class_names.extend(["Client".to_string(), "AsyncClient".to_string()]);
+    root.assign_class_names(&mut taken_class_names);
 
     let client_template = templates::ClientClass {
         class_name: "Client".to_string(),
         async_class_name: "AsyncClient".to_string(),
-        top_level_functions,
-        function_groups: structured_function_groups,
+        root,
         generate_async: config.generate_async,
         generate_sync: config.generate_sync,
         base_url: config.base_url.clone(),
@@ -2463,6 +2469,42 @@ fn build_python_generation(
         client_code,
         testing_code,
     })
+}
+
+/// A route's attribute path from the client: its name's `.`-separated
+/// segments, the last the method. A name with no `.`, or an empty segment, is
+/// a method of the client, `top_level_name`.
+fn python_route_path(name: &str, top_level_name: &str) -> Vec<String> {
+    let segments: Vec<&str> = name.split('.').collect();
+    if segments.len() == 1 || segments.contains(&"") {
+        return vec![top_level_name.to_string()];
+    }
+    let (method, groups) = segments.split_last().unwrap();
+    groups
+        .iter()
+        .map(|group| safe_python_identifier(group))
+        .chain([safe_python_identifier_with_context(
+            method,
+            IdentifierContext::Method,
+        )])
+        .collect()
+}
+
+/// The path the Python client gave a route before it grouped on `.` alone
+/// (#249): a group and method split at the first `_` that has a character on
+/// each side, or else at such a `.`.
+fn legacy_python_route_path(name: &str, top_level_name: &str) -> Vec<String> {
+    let inner = |separator| {
+        name.find(separator)
+            .filter(|&pos| pos > 0 && pos + 1 < name.len())
+    };
+    match inner('_').or_else(|| inner('.')) {
+        Some(pos) => vec![
+            safe_python_identifier(&name[..pos]),
+            safe_python_identifier_with_context(&name[pos + 1..], IdentifierContext::Method),
+        ],
+        None => vec![top_level_name.to_string()],
+    }
 }
 
 pub fn generate(schema: Schema, config: &Config) -> anyhow::Result<String> {
@@ -6793,6 +6835,7 @@ fn sanitize_description(desc: &str) -> String {
 }
 
 pub mod templates {
+    use std::collections::{BTreeMap, HashSet};
     use std::fmt::Write;
 
     use indexmap::IndexMap;
@@ -7492,8 +7535,8 @@ pub mod templates {
     pub struct ClientClass {
         pub class_name: String,
         pub async_class_name: String,
-        pub top_level_functions: Vec<Function>,
-        pub function_groups: Vec<FunctionGroup>,
+        /// The client's own methods and groups.
+        pub root: FunctionGroup,
         pub generate_async: bool,
         pub generate_sync: bool,
         pub base_url: Option<String>,
@@ -7502,123 +7545,129 @@ pub mod templates {
     impl ClientClass {
         pub fn render(&self) -> String {
             let mut s = String::new();
-
             if self.generate_async {
-                // Async group classes
-                for group in &self.function_groups {
-                    writeln!(s).unwrap();
-                    writeln!(s, "class Async{}:", group.class_name).unwrap();
-                    writeln!(
-                        s,
-                        "    \"\"\"Async client for {} operations.\"\"\"",
-                        group.name
-                    )
-                    .unwrap();
-                    writeln!(s).unwrap();
-                    writeln!(
-                        s,
-                        "    def __init__(self, client: AsyncClientBase) -> None:"
-                    )
-                    .unwrap();
-                    writeln!(s, "        self._client = client").unwrap();
-
-                    for function in &group.functions {
-                        Self::write_function(&mut s, function, true, true, true);
-                    }
-                    writeln!(s).unwrap();
-                }
-
-                // Async client class
-                writeln!(s).unwrap();
-                writeln!(s, "class {}(AsyncClientBase):", self.async_class_name).unwrap();
-                writeln!(s, "    \"\"\"Async client for the API.\"\"\"").unwrap();
-                writeln!(s).unwrap();
-                writeln!(s, "    def __init__(").unwrap();
-                writeln!(s, "        self,").unwrap();
-                if let Some(base_url) = &self.base_url {
-                    writeln!(s, "        base_url: str = \"{base_url}\",").unwrap();
-                } else {
-                    writeln!(s, "        base_url: str,").unwrap();
-                }
-                writeln!(s, "        **kwargs: Any,").unwrap();
-                writeln!(s, "    ) -> None:").unwrap();
-                writeln!(s, "        super().__init__(base_url, **kwargs)").unwrap();
-                writeln!(s).unwrap();
-                for group in &self.function_groups {
-                    writeln!(s).unwrap();
-                    writeln!(
-                        s,
-                        "        self.{}: Async{} = Async{}(self)",
-                        group.name, group.class_name, group.class_name
-                    )
-                    .unwrap();
-                }
-                writeln!(s).unwrap();
-
-                for function in &self.top_level_functions {
-                    Self::write_function(&mut s, function, true, false, true);
-                }
-                writeln!(s).unwrap();
+                self.write_client(&mut s, true);
             }
-
             writeln!(s).unwrap();
-
             if self.generate_sync {
-                // Sync group classes
-                for group in &self.function_groups {
-                    writeln!(s).unwrap();
-                    writeln!(s, "class {}:", group.class_name).unwrap();
-                    writeln!(
-                        s,
-                        "    \"\"\"Synchronous client for {} operations.\"\"\"",
-                        group.name
-                    )
-                    .unwrap();
-                    writeln!(s).unwrap();
-                    writeln!(s, "    def __init__(self, client: ClientBase) -> None:").unwrap();
-                    writeln!(s, "        self._client = client").unwrap();
-
-                    for function in &group.functions {
-                        Self::write_function(&mut s, function, false, true, true);
-                    }
-                    writeln!(s).unwrap();
-                }
-
-                // Sync client class
-                writeln!(s).unwrap();
-                writeln!(s, "class {}(ClientBase):", self.class_name).unwrap();
-                writeln!(s, "    \"\"\"Synchronous client for the API.\"\"\"").unwrap();
-                writeln!(s).unwrap();
-                writeln!(s, "    def __init__(").unwrap();
-                writeln!(s, "        self,").unwrap();
-                if let Some(base_url) = &self.base_url {
-                    writeln!(s, "        base_url: str = \"{base_url}\",").unwrap();
-                } else {
-                    writeln!(s, "        base_url: str,").unwrap();
-                }
-                writeln!(s, "        **kwargs: Any,").unwrap();
-                writeln!(s, "    ) -> None:").unwrap();
-                writeln!(s, "        super().__init__(base_url, **kwargs)").unwrap();
-                writeln!(s).unwrap();
-                for group in &self.function_groups {
-                    writeln!(s).unwrap();
-                    writeln!(
-                        s,
-                        "        self.{}: {} = {}(self)",
-                        group.name, group.class_name, group.class_name
-                    )
-                    .unwrap();
-                }
-                writeln!(s).unwrap();
-
-                for function in &self.top_level_functions {
-                    Self::write_function(&mut s, function, false, false, false);
-                }
-                writeln!(s).unwrap();
+                self.write_client(&mut s, false);
             }
-
             writeln!(s).unwrap();
             s
+        }
+
+        fn write_client(&self, s: &mut String, is_async: bool) {
+            let (prefix, client_class, base_class, kind) = if is_async {
+                ("Async", &self.async_class_name, "AsyncClientBase", "Async")
+            } else {
+                ("", &self.class_name, "ClientBase", "Synchronous")
+            };
+            for group in self.root.subgroups.values() {
+                Self::write_group(s, group, is_async, client_class);
+            }
+
+            writeln!(s).unwrap();
+            writeln!(s, "class {client_class}({base_class}):").unwrap();
+            writeln!(s, "    \"\"\"{kind} client for the API.\"\"\"").unwrap();
+            writeln!(s).unwrap();
+            writeln!(s, "    def __init__(").unwrap();
+            writeln!(s, "        self,").unwrap();
+            if let Some(base_url) = &self.base_url {
+                writeln!(s, "        base_url: str = \"{base_url}\",").unwrap();
+            } else {
+                writeln!(s, "        base_url: str,").unwrap();
+            }
+            writeln!(s, "        **kwargs: Any,").unwrap();
+            writeln!(s, "    ) -> None:").unwrap();
+            writeln!(s, "        super().__init__(base_url, **kwargs)").unwrap();
+            writeln!(s).unwrap();
+            for (name, group) in &self.root.subgroups {
+                writeln!(s).unwrap();
+                writeln!(
+                    s,
+                    "        self.{name}: {prefix}{class} = {prefix}{class}(self)",
+                    class = group.class_name
+                )
+                .unwrap();
+            }
+            writeln!(s).unwrap();
+
+            for function in &self.root.functions {
+                Self::write_function(s, function, is_async, false, is_async);
+            }
+            for alias in &self.root.aliases {
+                Self::write_alias(s, alias, "self");
+            }
+            writeln!(s).unwrap();
+        }
+
+        /// Writes `group`'s class after its subgroups'. Every group holds the
+        /// client, which its subgroups and aliases reach routes through.
+        fn write_group(s: &mut String, group: &FunctionGroup, is_async: bool, client_class: &str) {
+            for subgroup in group.subgroups.values() {
+                Self::write_group(s, subgroup, is_async, client_class);
+            }
+            let (prefix, kind) = if is_async {
+                ("Async", "Async client")
+            } else {
+                ("", "Synchronous client")
+            };
+            let kind = if group.functions.is_empty() && group.subgroups.is_empty() {
+                "Deprecated names"
+            } else {
+                kind
+            };
+
+            writeln!(s).unwrap();
+            writeln!(s, "class {prefix}{}:", group.class_name).unwrap();
+            writeln!(
+                s,
+                "    \"\"\"{kind} for {} operations.\"\"\"",
+                group.path.join(".")
+            )
+            .unwrap();
+            writeln!(s).unwrap();
+            writeln!(s, "    def __init__(self, client: {client_class}) -> None:").unwrap();
+            writeln!(s, "        self._client = client").unwrap();
+            for (name, subgroup) in &group.subgroups {
+                writeln!(
+                    s,
+                    "        self.{name}: {prefix}{class} = {prefix}{class}(client)",
+                    class = subgroup.class_name
+                )
+                .unwrap();
+            }
+
+            for function in &group.functions {
+                Self::write_function(s, function, is_async, true, true);
+            }
+            for alias in &group.aliases {
+                Self::write_alias(s, alias, "self._client");
+            }
+            writeln!(s).unwrap();
+        }
+
+        /// A property that warns and returns the route's method, so the
+        /// deprecated name keeps its signature.
+        fn write_alias(s: &mut String, alias: &Alias, client: &str) {
+            let warning = super::python_string_literal(&format!(
+                "{} is deprecated: use {}",
+                alias.old_path, alias.new_path
+            ));
+            writeln!(s).unwrap();
+            writeln!(s, "    @property").unwrap();
+            writeln!(
+                s,
+                "    @typing_extensions.deprecated({warning}, category=None)"
+            )
+            .unwrap();
+            writeln!(s, "    def {}(self):", alias.name).unwrap();
+            writeln!(
+                s,
+                "        warnings.warn({warning}, DeprecationWarning, stacklevel=2)"
+            )
+            .unwrap();
+            writeln!(s, "        return {client}.{}", alias.new_path).unwrap();
         }
 
         fn write_function(
@@ -7684,10 +7733,13 @@ pub mod templates {
                 writeln!(s).unwrap();
                 writeln!(s, "        Args:").unwrap();
                 if function.has_body {
+                    let operation = match function.name.as_str() {
+                        "__call__" => function.original_name.as_deref().unwrap_or("__call__"),
+                        name => name,
+                    };
                     writeln!(
                         s,
-                        "            data: Request data for the {} operation.",
-                        function.name
+                        "            data: Request data for the {operation} operation."
                     )
                     .unwrap();
                 }
@@ -7961,11 +8013,89 @@ pub mod templates {
         }
     }
 
-    #[derive(Clone)]
+    /// The client, or a group of its routes: a class whose attributes are
+    /// methods, subgroups and deprecated aliases.
+    #[derive(Default)]
     pub struct FunctionGroup {
-        pub name: String,
+        /// The attributes from the client to this group; empty for the client.
+        pub path: Vec<String>,
         pub class_name: String,
         pub functions: Vec<Function>,
+        pub subgroups: BTreeMap<String, FunctionGroup>,
+        pub aliases: Vec<Alias>,
+    }
+
+    impl FunctionGroup {
+        /// The subgroup at `path`, whose parent is this group, made if it's
+        /// new.
+        pub fn subgroup(&mut self, path: &[String]) -> &mut FunctionGroup {
+            let name = path.last().unwrap().clone();
+            self.subgroups.entry(name).or_insert_with(|| FunctionGroup {
+                path: path.to_vec(),
+                ..Default::default()
+            })
+        }
+
+        /// Whether `name` is an attribute of this group's class.
+        pub fn has_member(&self, name: &str) -> bool {
+            name == "_client"
+                || self.subgroups.contains_key(name)
+                || self.functions.iter().any(|f| f.name == name)
+                || self.aliases.iter().any(|a| a.name == name)
+        }
+
+        /// Makes a route that shares its name with a subgroup the subgroup's
+        /// `__call__`, so routes `admin.users` and `admin.users.get` are
+        /// `client.admin.users()` and `client.admin.users.get()`.
+        pub fn call_routes_named_as_subgroups(&mut self) {
+            for mut function in std::mem::take(&mut self.functions) {
+                match self.subgroups.get_mut(&function.name) {
+                    Some(subgroup) => {
+                        function
+                            .original_name
+                            .get_or_insert_with(|| function.name.clone());
+                        function.name = "__call__".to_string();
+                        subgroup.functions.push(function);
+                    }
+                    None => self.functions.push(function),
+                }
+            }
+            for subgroup in self.subgroups.values_mut() {
+                subgroup.call_routes_named_as_subgroups();
+            }
+        }
+
+        pub fn has_aliases(&self) -> bool {
+            !self.aliases.is_empty() || self.subgroups.values().any(Self::has_aliases)
+        }
+
+        /// Names each subgroup's class after its path, numbering a name whose
+        /// sync or async class is `taken`.
+        pub fn assign_class_names(&mut self, taken: &mut HashSet<String>) {
+            for group in self.subgroups.values_mut() {
+                let base = format!("{}Client", super::to_pascal_case(&group.path.join("_")));
+                let mut name = base.clone();
+                for n in 2.. {
+                    if !taken.contains(&name) && !taken.contains(&format!("Async{name}")) {
+                        break;
+                    }
+                    name = format!("{base}{n}");
+                }
+                taken.insert(format!("Async{name}"));
+                taken.insert(name.clone());
+                group.class_name = name;
+                group.assign_class_names(taken);
+            }
+        }
+    }
+
+    /// A route's name in an earlier grouping, kept as a deprecated alias.
+    pub struct Alias {
+        pub name: String,
+        /// The alias's path from the client, such as `pets_list.all`.
+        pub old_path: String,
+        /// The route's path from the client, such as `pets.list_all`.
+        pub new_path: String,
     }
 
     #[derive(Clone)]
@@ -9302,17 +9432,9 @@ mod tests {
         assert!(!init_py.contains("SyncClient"));
     }
 
-    #[test]
-    fn function_grouping_keeps_edge_underscores_as_top_level_methods() {
+    /// The generated `_client.py` for routes with these names.
+    fn client_for_routes(names: &[&str]) -> String {
         let mut schema = crate::Schema::new();
-        let names = [
-            "enum_",
-            "delete_",
-            "_private",
-            "users_read",
-            "orders.get",
-            "orders.get_",
-        ];
         schema.functions = names
             .iter()
             .map(|&name| {
@@ -9325,31 +9447,184 @@ mod tests {
             format: false,
             ..Config::default()
         };
-        let files = super::generate_files(schema, &config).unwrap();
-        let client = &files["_client.py"];
+        let mut files = super::generate_files(schema, &config).unwrap();
+        let client = files.remove("_client.py").unwrap();
+        for name in names {
+            assert!(client.contains(&format!("path = \"/api/{name}\"")));
+        }
+        assert!(!client.contains("def ("));
+        client
+    }
 
-        for class in ["AsyncClient(AsyncClientBase)", "Client(ClientBase)"] {
-            let class_body = client
-                .split_once(&format!("class {class}:"))
-                .unwrap()
+    /// The bodies of the async and sync classes named `class`.
+    fn class_bodies<'a>(client: &'a str, class: &str) -> [&'a str; 2] {
+        ["Async", ""].map(|prefix| {
+            client
+                .split_once(&format!("\nclass {prefix}{class}"))
+                .unwrap_or_else(|| panic!("no class {prefix}{class}"))
                 .1
                 .split("\nclass ")
                 .next()
-                .unwrap();
-            for name in ["enum_", "delete_", "_private"] {
-                assert!(class_body.contains(&format!("def {name}(")));
+                .unwrap()
+        })
+    }
+
+    #[test]
+    fn function_grouping_follows_dotted_route_names() {
+        let client = client_for_routes(&[
+            "enum_",
+            "delete_",
+            "_private",
+            "users_read",
+            "orders.get",
+            "orders.get_",
+            "pets.list_all",
+            "offer_rules.get",
+            "admin.users.get",
+            "admin.users.keys.rotate",
+        ]);
+
+        for body in class_bodies(&client, "Client(") {
+            for name in ["enum_", "delete_", "_private", "users_read"] {
+                assert!(body.contains(&format!("def {name}(\n")), "{name}");
             }
-            assert!(!class_body.contains("def read("));
-            assert!(!class_body.contains("def get("));
+            for group in ["orders", "pets", "offer_rules", "admin"] {
+                assert!(body.contains(&format!("self.{group}: ")), "{group}");
+            }
         }
-        assert!(!client.contains("def ("));
-        assert!(client.contains("self.users: UsersClient = UsersClient(self)"));
-        assert!(client.contains("self.orders: OrdersClient = OrdersClient(self)"));
-        assert!(client.contains("def read("));
-        assert!(client.contains("def get("));
-        assert!(client.contains("def get_("));
-        for name in names {
-            assert!(client.contains(&format!("path = \"/api/{name}\"")));
+        for body in class_bodies(&client, "OrdersClient:") {
+            assert!(body.contains("def get(\n"));
+            assert!(body.contains("def get_(\n"));
+        }
+        for body in class_bodies(&client, "PetsClient:") {
+            assert!(body.contains("def list_all(\n"));
+        }
+        for body in class_bodies(&client, "OfferRulesClient:") {
+            assert!(body.contains("def get(\n"));
+        }
+        let [async_admin, admin] = class_bodies(&client, "AdminClient:");
+        assert!(async_admin
+            .contains("self.users: AsyncAdminUsersClient = AsyncAdminUsersClient(client)"));
+        assert!(admin.contains("self.users: AdminUsersClient = AdminUsersClient(client)"));
+        let [async_users, users] = class_bodies(&client, "AdminUsersClient:");
+        assert!(async_users
+            .contains("self.keys: AsyncAdminUsersKeysClient = AsyncAdminUsersKeysClient(client)"));
+        assert!(users.contains("self.keys: AdminUsersKeysClient = AdminUsersKeysClient(client)"));
+        for body in [async_users, users] {
+            assert!(body.contains("def get(\n"));
+        }
+        for body in class_bodies(&client, "AdminUsersKeysClient:") {
+            assert!(body.contains("def rotate(\n"));
+        }
+    }
+
+    #[test]
+    fn function_grouping_calls_a_route_named_as_a_group() {
+        let client = client_for_routes(&["pets", "pets.list", "admin.users", "admin.users.get"]);
+
+        for body in class_bodies(&client, "Client(") {
+            assert!(body.contains("self.pets: "));
+            assert!(!body.contains("def pets("));
+        }
+        for body in class_bodies(&client, "PetsClient:") {
+            assert!(body.contains("def __call__(\n"));
+            assert!(body.contains("def list(\n"));
+        }
+        for body in class_bodies(&client, "AdminClient:") {
+            assert!(body.contains("self.users: "));
+            assert!(!body.contains("def users("));
+        }
+        let [async_users, users] = class_bodies(&client, "AdminUsersClient:");
+        assert!(async_users.contains("async def __call__(\n"));
+        assert!(users.contains("    def __call__(\n"));
+        for body in [async_users, users] {
+            assert!(body.contains("def get(\n"));
+        }
+    }
+
+    #[test]
+    fn function_group_classes_avoid_model_names() {
+        use reflectapi_schema::{Field, Fields, Struct, Type, TypeReference};
+
+        let mut schema = crate::Schema::new();
+        let mut model = Struct::new("AdminUsersClient");
+        model.fields = Fields::Named(vec![Field::new(
+            "id".into(),
+            TypeReference::new("u32", vec![]),
+        )]);
+        schema.input_types.insert_type(Type::Struct(model));
+        let mut function = reflectapi_schema::Function::new("admin.users.get".into());
+        function.path = "/api".into();
+        function.input_type = Some(TypeReference::new("AdminUsersClient", vec![]));
+        schema.functions.push(function);
+        let config = Config {
+            format: false,
+            ..Config::default()
+        };
+
+        let code = super::generate(schema, &config).unwrap();
+        assert_eq!(code.matches("\nclass AdminUsersClient(").count(), 1);
+        assert!(code.contains("\nclass AdminUsersClient2:"));
+        assert!(code.contains("\nclass AsyncAdminUsersClient2:"));
+        assert!(code.contains("self.users: AdminUsersClient2 = AdminUsersClient2(client)"));
+    }
+
+    #[test]
+    fn function_grouping_keeps_legacy_paths_as_deprecated_aliases() {
+        let client = client_for_routes(&[
+            "enum_",
+            "orders.get_",
+            "users_read",
+            "pets.list_all",
+            "offer_rules.get",
+            "admin.users.get",
+            "admin.users_get",
+            "admin.roles.list",
+            "jobs",
+            "jobs_run",
+        ]);
+        let alias = |name: &str, old: &str, new: &str| {
+            let warning = format!("\"{old} is deprecated: use {new}\"");
+            format!(
+                "    @property\n    @typing_extensions.deprecated({warning}, category=None)\n    \
+                 def {name}(self):\n        \
+                 warnings.warn({warning}, DeprecationWarning, stacklevel=2)\n        \
+                 return self._client.{new}\n"
+            )
+        };
+
+        assert!(client.contains("import warnings"));
+        // A path that hasn't changed has no alias, nor does `jobs.run`, whose
+        // group `jobs` is now a method.
+        for old in ["enum_", "orders.get_", "offer_rules.get", "jobs.run"] {
+            assert!(!client.contains(&format!("\"{old} is deprecated")), "{old}");
+        }
+        // A legacy group no new name takes holds just its aliases.
+        for (class, old, new) in [
+            ("UsersClient:", "users.read", "users_read"),
+            ("PetsListClient:", "pets_list.all", "pets.list_all"),
+            ("OfferClient:", "offer.rules_get", "offer_rules.get"),
+            // `AdminUsersClient` is the class of `admin.users`.
+            ("AdminUsersClient2:", "admin_users.get", "admin.users_get"),
+        ] {
+            let name = old.rsplit('.').next().unwrap();
+            for body in class_bodies(&client, class) {
+                assert!(body.contains("\"\"\"Deprecated names for "), "{old}");
+                assert!(body.contains(&alias(name, old, new)), "{old}");
+            }
+        }
+        // A legacy group that is a new group too gains the aliases no new
+        // name takes: `admin.users_get` is a route, not an alias.
+        for body in class_bodies(&client, "AdminClient:") {
+            assert!(body.contains(&alias("roles_list", "admin.roles_list", "admin.roles.list")));
+            assert!(body.contains("def users_get(\n"));
+            assert!(!body.contains("def users_get(self):"));
+        }
+        // The method `jobs` takes the name of `jobs_run`'s legacy group.
+        for body in class_bodies(&client, "Client(") {
+            assert!(body.contains("def jobs(\n"));
+            assert!(body.contains("def jobs_run(\n"));
+            assert!(!body.contains("self.jobs:"));
         }
     }
 

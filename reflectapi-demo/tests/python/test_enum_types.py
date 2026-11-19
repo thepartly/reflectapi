@@ -79,7 +79,7 @@ def check_sync_responses(client: Client) -> None:
     assert_type(internal, ApiResponse[output.OpenInternal, Any, ResponseHeaders])
     assert_type(internal.data, output.OpenInternal)
 
-    optional = client.enums_optional.flatten_enum()
+    optional = client.enums.optional_flatten_enum()
     assert_type(
         optional,
         ApiResponse[output.OptionalFlattenEnumEnvelope, Any, ResponseHeaders],

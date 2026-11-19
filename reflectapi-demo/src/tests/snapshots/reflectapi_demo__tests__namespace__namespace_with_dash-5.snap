@@ -13,10 +13,12 @@ from __future__ import annotations
 
 
 # Standard library imports
+import warnings
 from typing import Annotated, Any, Generic, Optional, TypeVar, Union
 
 # Third-party imports
 from pydantic import BaseModel, ConfigDict, Field
+import typing_extensions
 
 # Runtime imports
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
@@ -24,13 +26,13 @@ from reflectapi_runtime import ReflectapiEmpty
 from reflectapi_runtime import ReflectapiInfallible
 
 
-class AsyncJobsTwoClient:
-    """Async client for jobs_two operations."""
+class AsyncJobsTwoPetOrdersClient:
+    """Async client for jobs_two.pet_orders operations."""
 
-    def __init__(self, client: AsyncClientBase) -> None:
+    def __init__(self, client: AsyncClient) -> None:
         self._client = client
 
-    async def pet_orders_list_x(
+    async def list_x(
         self,
     ) -> ApiResponse[Any]:
         """desc
@@ -48,6 +50,29 @@ class AsyncJobsTwoClient:
         )
 
 
+class AsyncJobsTwoClient:
+    """Async client for jobs_two operations."""
+
+    def __init__(self, client: AsyncClient) -> None:
+        self._client = client
+        self.pet_orders: AsyncJobsTwoPetOrdersClient = AsyncJobsTwoPetOrdersClient(
+            client
+        )
+
+    @property
+    @typing_extensions.deprecated(
+        "jobs_two.pet_orders_list_x is deprecated: use jobs_two.pet_orders.list_x",
+        category=None,
+    )
+    def pet_orders_list_x(self):
+        warnings.warn(
+            "jobs_two.pet_orders_list_x is deprecated: use jobs_two.pet_orders.list_x",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self._client.jobs_two.pet_orders.list_x
+
+
 class AsyncClient(AsyncClientBase):
     """Async client for the API."""
 
@@ -61,13 +86,13 @@ class AsyncClient(AsyncClientBase):
         self.jobs_two: AsyncJobsTwoClient = AsyncJobsTwoClient(self)
 
 
-class JobsTwoClient:
-    """Synchronous client for jobs_two operations."""
+class JobsTwoPetOrdersClient:
+    """Synchronous client for jobs_two.pet_orders operations."""
 
-    def __init__(self, client: ClientBase) -> None:
+    def __init__(self, client: Client) -> None:
         self._client = client
 
-    def pet_orders_list_x(
+    def list_x(
         self,
     ) -> ApiResponse[Any]:
         """desc
@@ -83,6 +108,27 @@ class JobsTwoClient:
             params=params if params else None,
             response_model=None,
         )
+
+
+class JobsTwoClient:
+    """Synchronous client for jobs_two operations."""
+
+    def __init__(self, client: Client) -> None:
+        self._client = client
+        self.pet_orders: JobsTwoPetOrdersClient = JobsTwoPetOrdersClient(client)
+
+    @property
+    @typing_extensions.deprecated(
+        "jobs_two.pet_orders_list_x is deprecated: use jobs_two.pet_orders.list_x",
+        category=None,
+    )
+    def pet_orders_list_x(self):
+        warnings.warn(
+            "jobs_two.pet_orders_list_x is deprecated: use jobs_two.pet_orders.list_x",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self._client.jobs_two.pet_orders.list_x
 
 
 class Client(ClientBase):
