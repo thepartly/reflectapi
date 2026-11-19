@@ -8,7 +8,6 @@
 - [Installation](./getting-started/installation.md)
 - [TypeScript Client from a Rust API with axum](./guides/typescript-client-axum.md)
 - [Python Client from a Rust API](./guides/python-client.md)
-- [Alternatives](./guides/alternatives.md)
 
 # Concepts
 

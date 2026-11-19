@@ -46,8 +46,9 @@ at Rust Forge 2025 in Wellington, New Zealand.
 - **New to reflectapi:** the [Quick Start](./getting-started/quick-start.md)
   builds an API and calls it from TypeScript in a few minutes. Then read
   [How It Works](./concepts/how-it-works.md).
-- **Choosing a tool:** [alternatives](./guides/alternatives.md), such as
-  utoipa, aide and OpenAPI generators, and when each fits.
+- **Choosing a tool:** the README lists
+  [alternatives](https://github.com/thepartly/reflectapi#alternatives), such
+  as utoipa, aide and OpenAPI generators, and when each fits.
 - **Building a real API:** the Concepts section covers errors, types,
   organising and evolving an API, and testing. The Reference section lists
   every attribute and how each client language behaves.
