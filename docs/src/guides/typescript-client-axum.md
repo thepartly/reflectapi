@@ -17,7 +17,7 @@ way to serve them. The same API can also run on
 [Cloudflare Workers or celld](../serving/workers.md), or on
 [any other HTTP server](../serving/other-servers.md). If you want to keep
 axum-native handlers and document them, see the
-[comparison with utoipa and aide](./comparison.md).
+[alternatives](./alternatives.md), such as utoipa and aide.
 
 ## 1. Add dependencies
 
