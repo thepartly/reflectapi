@@ -167,7 +167,7 @@ pub mod interface {
             C::Error,
         >
         where
-            C::Error: Send + 'static,
+            C::Error: reflectapi::rt::MaybeSend + 'static,
         {
             reflectapi::rt::__stream_request_impl(&self.client, "/pets.cdc-events", input, headers)
                 .await

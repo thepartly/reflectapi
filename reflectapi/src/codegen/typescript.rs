@@ -205,6 +205,8 @@ fn format_ts(src: String) -> anyhow::Result<String> {
 }
 
 fn typecheck(main: &str, transport: &str) -> anyhow::Result<()> {
+    super::ensure_typecheck_can_run()?;
+
     // tsc resolves `import ... from './generated.transport'` against
     // the filesystem, so both files must live in the same directory.
     let dir = super::tmp_path(main).with_extension("dir");

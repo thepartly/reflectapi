@@ -158,4 +158,12 @@ decode newer wire values through those generated clients. The suite also
 checks consumer-facing TS and Python types, closed request enums, nested and
 flattened models, errors, headers where supported, and streaming items.
 
+`reflectapi-demo/tests/wasm` holds codegen to a bytes-in, bytes-out contract:
+a JSON request (target, schema, options) in, the files as JSON out. Built for
+`wasm32-unknown-unknown`, the module imports nothing, so codegen can't reach a
+filesystem, a process, the environment or a clock, and `check.mjs` checks
+that, run under Node, it gives the native build's files. Formatting and
+type-checking run external tools, so they belong to the host; in wasm they're
+an error that says so.
+
 This architecture chapter is intended to describe the code paths that exist in the repository, not an aspirational future design.

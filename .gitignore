@@ -9,3 +9,7 @@ __pycache__/
 reflectapi-python-runtime/.coverage
 reflectapi-python-runtime/coverage.xml
 reflectapi-python-runtime/dist/
+
+# Built by `cargo test --manifest-path` and `cargo build` in the harness crates
+reflectapi-demo/tests/rust/*/target/
+reflectapi-demo/tests/wasm/target/
