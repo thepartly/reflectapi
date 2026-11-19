@@ -49,6 +49,22 @@ def test_every_spelling_round_trips(text):
     assert roundtrip({"at": text, "local": "2026-11-19T10:20:30"})["at"] == text
 
 
+@pytest.mark.parametrize(
+    ("text", "written"),
+    [
+        ("1763550000", "2025-11-19T11:00:00Z"),
+        ("2026-11-19", "2026-11-19T00:00:00"),
+        ("2026-11-19 10:20:30Z", "2026-11-19T10:20:30Z"),
+        ("2026-11-19T10:20Z", "2026-11-19T10:20:00Z"),
+        ("2026-11-19T10:20:30+0000", "2026-11-19T10:20:30Z"),
+    ],
+)
+def test_text_chrono_would_not_read_is_written_as_a_datetime(text, written):
+    model = Stamped(at=text, local="2026-11-19T10:20:30")  # type: ignore[arg-type]
+    assert not isinstance(model.at, WireDateTime)
+    assert json.loads(model.model_dump_json())["at"] == written
+
+
 def test_it_is_a_datetime_with_the_microseconds():
     model = Stamped.model_validate_json(json.dumps(NANOS))
     expected = datetime(2026, 11, 19, 10, 20, 30, 123456, tzinfo=UTC)

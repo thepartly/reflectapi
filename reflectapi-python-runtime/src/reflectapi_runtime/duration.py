@@ -100,7 +100,8 @@ class _KeepWireValue:
                     return WireDuration._read(secs, nanos)
                 if isinstance(secs, (int, float)) and isinstance(nanos, (int, float)):
                     return timedelta(seconds=secs, microseconds=nanos / 1_000)
-            return parse(value)
+            parsed: timedelta = parse(value)
+            return parsed
 
         def serialize(
             value: timedelta,

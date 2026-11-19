@@ -12,8 +12,8 @@ any ``datetime`` can be assigned to such a field:
 
 - **Reading** (server → client): the text is parsed as pydantic parses a
   ``datetime``, into a ``WireDateTime``: a ``datetime``, with the
-  microseconds, that keeps the text. ``isinstance(x, datetime)``,
-  comparisons and arithmetic work as before.
+  microseconds, that keeps the text if it's in the form chrono writes.
+  ``isinstance(x, datetime)``, comparisons and arithmetic work as before.
 - **Writing** (client → server): a ``WireDateTime`` is written as the exact
   text it was read from. Any other ``datetime``, including the result of
   arithmetic or ``replace()``, is written as pydantic writes one.
@@ -24,6 +24,7 @@ Two values that differ only below a microsecond compare equal, as their
 
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from typing import TYPE_CHECKING, Annotated, Any
 
@@ -73,6 +74,14 @@ def _restore(reduced: Any, wire: str | None) -> WireDateTime:
     return out
 
 
+# The text chrono's serde writes, for `DateTime` (with an offset) and
+# `NaiveDateTime` (without). Other text pydantic accepts, such as a Unix
+# timestamp or a date, isn't kept: chrono wouldn't read it back.
+_CHRONO_TEXT = re.compile(
+    r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})?"
+)
+
+
 class _KeepWireText:
     """Pydantic schema: read into a ``WireDateTime``, write its text back."""
 
@@ -85,7 +94,7 @@ class _KeepWireText:
             if isinstance(value, WireDateTime):
                 return value
             parsed: datetime = parse(value)
-            if isinstance(value, str):
+            if isinstance(value, str) and _CHRONO_TEXT.fullmatch(value):
                 return WireDateTime._read(parsed, value)
             return parsed
 
