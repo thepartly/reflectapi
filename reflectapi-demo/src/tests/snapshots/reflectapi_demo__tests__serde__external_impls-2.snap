@@ -36,7 +36,7 @@ export namespace reflectapi_demo {
   export namespace tests {
     export namespace serde {
       export interface Test {
-        index_map: Record<number /* u8 */, number /* u32 */>;
+        index_map: { [key in number /* u8 */]: number /* u32 */ };
         index_set: Array<string>;
         url: string;
         json: any /* serde_json::Value */;

@@ -48,15 +48,9 @@ snapshot_kind: text
             "type": "object",
             "title": "Empty",
             "required": [
-              "c",
               "t"
             ],
             "properties": {
-              "c": {
-                "type": "object",
-                "title": "Empty",
-                "properties": {}
-              },
               "t": {
                 "const": "Empty"
               }

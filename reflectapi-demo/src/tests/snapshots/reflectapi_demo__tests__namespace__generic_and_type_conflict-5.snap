@@ -65,19 +65,15 @@ class AsyncClient(AsyncClientBase):
 
     async def get(
         self,
-        data: Optional[
-            reflectapi_demo.tests.namespace.K[Annotated[Any, "External type: I"]]
-        ] = None,
-    ) -> ApiResponse[
-        reflectapi_demo.tests.namespace.K[Annotated[Any, "External type: I"]]
-    ]:
+        data: Optional[reflectapi_demo.tests.namespace.K[None]] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.namespace.K[None]]:
         """
 
         Args:
             data: Request data for the get operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.namespace.K[Annotated[Any, "External type: I"]]]: Response containing reflectapi_demo.tests.namespace.K[Annotated[Any, "External type: I"]] data
+            ApiResponse[reflectapi_demo.tests.namespace.K[None]]: Response containing reflectapi_demo.tests.namespace.K[None] data
         """
         path = "/get"
 
@@ -86,9 +82,7 @@ class AsyncClient(AsyncClientBase):
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.namespace.K[
-                Annotated[Any, "External type: I"]
-            ],
+            response_model=reflectapi_demo.tests.namespace.K[None],
         )
 
 
@@ -104,19 +98,15 @@ class Client(ClientBase):
 
     def get(
         self,
-        data: Optional[
-            reflectapi_demo.tests.namespace.K[Annotated[Any, "External type: I"]]
-        ] = None,
-    ) -> ApiResponse[
-        reflectapi_demo.tests.namespace.K[Annotated[Any, "External type: I"]]
-    ]:
+        data: Optional[reflectapi_demo.tests.namespace.K[None]] = None,
+    ) -> ApiResponse[reflectapi_demo.tests.namespace.K[None]]:
         """
 
         Args:
             data: Request data for the get operation.
 
         Returns:
-            ApiResponse[reflectapi_demo.tests.namespace.K[Annotated[Any, "External type: I"]]]: Response containing reflectapi_demo.tests.namespace.K[Annotated[Any, "External type: I"]] data
+            ApiResponse[reflectapi_demo.tests.namespace.K[None]]: Response containing reflectapi_demo.tests.namespace.K[None] data
         """
         path = "/get"
 
@@ -125,9 +115,7 @@ class Client(ClientBase):
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi_demo.tests.namespace.K[
-                Annotated[Any, "External type: I"]
-            ],
+            response_model=reflectapi_demo.tests.namespace.K[None],
         )
 
 

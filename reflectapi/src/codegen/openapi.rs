@@ -1163,34 +1163,47 @@ impl Converter<'_> {
                 );
             }
             crate::Representation::Adjacent { tag, content } => {
+                // ```rust
+                // #[derive(Serialize)]
+                // #[serde(tag = "t", content = "c")]
+                // enum {
+                //    A,            // { "t": "A" }
+                //    B(T)          // { "t": "B", "c": T }
+                //    C { .. }      // { "t": "C", "c": { .. } }
+                // }
+                // ```
+                let mut properties = BTreeMap::from([(
+                    tag.to_owned(),
+                    Property {
+                        description: String::new(),
+                        deprecation: Default::default(),
+                        schema: mk_tag(variant.serde_name()),
+                    },
+                )]);
                 let data = match shape {
-                    Shape::Newtype(field) => self.convert_type_ref(schema, kind, field.type_ref()),
-                    _ => self.struct_to_schema(schema, kind, &type_ref, &strukt),
+                    Shape::Unit => None,
+                    Shape::Newtype(field) => {
+                        Some(self.convert_type_ref(schema, kind, field.type_ref()))
+                    }
+                    _ => Some(self.struct_to_schema(schema, kind, &type_ref, &strukt)),
                 };
+                if let Some(data) = data {
+                    properties.insert(
+                        content.to_owned(),
+                        Property {
+                            description: String::new(),
+                            deprecation: Default::default(),
+                            schema: data,
+                        },
+                    );
+                }
                 return Inline(
                     FlatSchema {
                         description: sanitize_description(variant.description()),
                         ty: Type::Object {
                             title: fmt_type_ref(&type_ref),
-                            required: [tag.to_owned(), content.to_owned()].into(),
-                            properties: BTreeMap::from([
-                                (
-                                    tag.to_owned(),
-                                    Property {
-                                        description: String::new(),
-                                        deprecation: Default::default(),
-                                        schema: mk_tag(&variant.name),
-                                    },
-                                ),
-                                (
-                                    content.to_owned(),
-                                    Property {
-                                        description: String::new(),
-                                        deprecation: Default::default(),
-                                        schema: data,
-                                    },
-                                ),
-                            ]),
+                            required: properties.keys().cloned().collect(),
+                            properties,
                         },
                     }
                     .into(),

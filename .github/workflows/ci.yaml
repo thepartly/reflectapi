@@ -33,6 +33,8 @@ jobs:
         run: cargo test --manifest-path reflectapi-demo/tests/rust/enum_compatibility/Cargo.toml
       - name: Test generated Rust field presence
         run: cargo test --manifest-path reflectapi-demo/tests/rust/field_presence/Cargo.toml
+      - name: Replay serde conformance samples through the generated Rust client
+        run: cargo test --manifest-path reflectapi-demo/tests/rust/conformance/Cargo.toml
       # Serving, codegen and generated clients must build for wasm32. The demo
       # client uses reqwest, whose wasm body stream isn't `Send`.
       - name: Build for wasm32
@@ -50,7 +52,8 @@ jobs:
           cargo build --release --target wasm32-unknown-unknown
           cargo build --release --bin native
           node check.mjs target/wasm32-unknown-unknown/release/reflectapi_codegen_wasm.wasm \
-            target/release/native ../../reflectapi.json ../../target/field-presence/schema.json
+            target/release/native ../../reflectapi.json ../../target/field-presence/schema.json \
+            ../../target/conformance/reflectapi.json
       - uses: actions/upload-artifact@v7
         with:
           name: enum-compatibility-typescript
@@ -62,6 +65,13 @@ jobs:
         with:
           name: field-presence-typescript
           path: reflectapi-demo/target/field-presence/typescript/*.ts
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: conformance-typescript
+          path: |
+            reflectapi-demo/target/conformance/typescript/*.ts
+            reflectapi-demo/target/conformance/samples.json
 
   typescript-runtime:
     name: TypeScript runtime tests
@@ -90,6 +100,13 @@ jobs:
           path: reflectapi-demo/target/field-presence/typescript
       - name: Check generated TypeScript field presence
         run: REFLECTAPI_PRESENCE_SKIP_GENERATION=1 sh ../../tests/typescript/run-field-presence.sh
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: conformance-typescript
+          path: reflectapi-demo/target/conformance
+      - name: Check serde conformance samples against the generated TypeScript client
+        run: REFLECTAPI_CONFORMANCE_SKIP_GENERATION=1 sh ../../tests/typescript/run-conformance.sh
 
   python-runtime:
     name: Python runtime tests (${{ matrix.python-version }})
@@ -222,3 +239,11 @@ jobs:
       - name: Test generated Python field presence
         working-directory: reflectapi-demo/clients/python
         run: uv run --locked $UV_RUN_ARGS pytest ../../tests/python/test_field_presence.py -q -p no:cacheprovider
+      # Replays serde's samples for each conformance case through the
+      # generated Python client, and validates them against the generated
+      # OpenAPI spec. See reflectapi-demo/tests/conformance.rs.
+      - name: Generate conformance clients
+        run: cargo test -p reflectapi-demo --test conformance
+      - name: Check serde conformance samples against the Python client and OpenAPI
+        working-directory: reflectapi-demo/clients/python
+        run: uv run --locked $UV_RUN_ARGS pytest ../../tests/python/test_conformance.py -q -p no:cacheprovider

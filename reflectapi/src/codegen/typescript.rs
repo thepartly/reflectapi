@@ -1935,7 +1935,12 @@ fn build_implemented_types() -> HashMap<String, String> {
     implemented_types.insert("reflectapi::Option".into(), "(T | null | undefined)".into());
 
     implemented_types.insert("std::vec::Vec".into(), "Array<T>".into());
-    implemented_types.insert("std::collections::HashMap".into(), "Record<K, V>".into());
+    // `Record<K, V>` spelled out, since a schema type named `Record` would
+    // shadow the built-in.
+    implemented_types.insert(
+        "std::collections::HashMap".into(),
+        "{ [key in K]: V }".into(),
+    );
 
     // serde_json serializes `()` as `null` not `[]`
     implemented_types.insert("std::tuple::Tuple0".into(), "null".into());
