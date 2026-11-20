@@ -117,6 +117,41 @@ pub fn validate_deprecation_dates(
     Ok(())
 }
 
+/// Days from 1970-01-01 to a `YYYY-MM-DD` date, or `None` if it isn't one.
+pub(crate) fn days_from_civil(date: &str) -> Option<i64> {
+    if !is_iso_date(date) {
+        return None;
+    }
+    let year: i64 = date[0..4].parse().ok()?;
+    let month: i64 = date[5..7].parse().ok()?;
+    let day: i64 = date[8..10].parse().ok()?;
+    let year = if month <= 2 { year - 1 } else { year };
+    let era = year.div_euclid(400);
+    let year_of_era = year - era * 400;
+    let day_of_year = (153 * ((month + 9) % 12) + 2) / 5 + day - 1;
+    let day_of_era = year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
+    Some(era * 146_097 + day_of_era - 719_468)
+}
+
+/// The `YYYY-MM-DD` date a number of days after 1970-01-01.
+pub(crate) fn civil_from_days(days: i64) -> String {
+    let days = days + 719_468;
+    let era = days.div_euclid(146_097);
+    let day_of_era = days - era * 146_097;
+    let year_of_era =
+        (day_of_era - day_of_era / 1460 + day_of_era / 36_524 - day_of_era / 146_096) / 365;
+    let day_of_year = day_of_era - (365 * year_of_era + year_of_era / 4 - year_of_era / 100);
+    let shifted_month = (5 * day_of_year + 2) / 153;
+    let day = day_of_year - (153 * shifted_month + 2) / 5 + 1;
+    let month = if shifted_month < 10 {
+        shifted_month + 3
+    } else {
+        shifted_month - 9
+    };
+    let year = year_of_era + era * 400 + i64::from(month <= 2);
+    format!("{year:04}-{month:02}-{day:02}")
+}
+
 fn is_iso_date(s: &str) -> bool {
     let b = s.as_bytes();
     if b.len() != 10 || b[4] != b'-' || b[7] != b'-' {
@@ -144,6 +179,24 @@ fn is_iso_date(s: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn counts_days_across_leap_years_and_eras() {
+        for (date, days) in [
+            ("1970-01-01", 0),
+            ("1969-12-31", -1),
+            ("2000-03-01", 11_017),
+            ("2024-02-29", 19_782),
+            ("2026-11-20", 20_777),
+        ] {
+            assert_eq!(days_from_civil(date), Some(days), "{date}");
+            assert_eq!(civil_from_days(days), date);
+        }
+        assert_eq!(days_from_civil("2026-02-29"), None);
+        for days in (-719_162..=2_932_896).step_by(7) {
+            assert_eq!(days_from_civil(&civil_from_days(days)), Some(days));
+        }
+    }
 
     #[test]
     fn accepts_calendar_dates() {

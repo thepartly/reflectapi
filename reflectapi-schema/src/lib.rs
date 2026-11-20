@@ -1,5 +1,6 @@
 mod codegen;
 mod deprecation;
+pub mod diff;
 mod internal;
 mod rename;
 mod subst;

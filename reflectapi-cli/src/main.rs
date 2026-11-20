@@ -1,3 +1,5 @@
+mod diff;
+
 use anyhow::Context;
 use clap::{Parser, Subcommand, ValueEnum};
 use std::collections::BTreeSet;
@@ -87,6 +89,9 @@ enum Commands {
     /// Documentation subcommands
     #[command(subcommand)]
     Doc(DocSubcommand),
+    /// Compares two reflectapi schemas and reports changes that break existing clients.
+    /// Exits with status 1 when a breaking change isn't acknowledged, and 2 on an error.
+    Diff(diff::Args),
 }
 
 #[derive(Subcommand)]
@@ -115,6 +120,15 @@ fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
+        Commands::Diff(args) => match diff::run(args) {
+            Ok(diff::Breaks::No) => Ok(()),
+            Ok(diff::Breaks::Yes) => std::process::exit(1),
+            // 2, not 1, so CI can tell a broken setup from a break.
+            Err(e) => {
+                eprintln!("Error: {e:?}");
+                std::process::exit(2);
+            }
+        },
         Commands::Doc(doc) => match doc {
             DocSubcommand::Open { port, path } => {
                 let mut path = path.canonicalize()?;
