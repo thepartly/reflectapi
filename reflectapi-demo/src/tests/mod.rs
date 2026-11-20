@@ -1,6 +1,7 @@
 #[macro_use]
 mod assert;
 mod basic;
+mod diff;
 mod enums;
 mod generics;
 mod namespace;

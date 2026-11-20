@@ -28,3 +28,6 @@ glob = { version = "0.3.0", optional = true }
 
 [features]
 default = ["glob"]
+
+[dev-dependencies]
+serde_json = "1.0.114"
