@@ -3198,7 +3198,29 @@ fn referenced_namespace_roots(
         .collect()
 }
 
-fn render_namespace_bindings(module: &templates::Module, ns_path: &[String]) -> String {
+/// The path of every module in `module`'s tree that holds types, such as
+/// `["myapi", "model"]`, each segment a safe Python module name.
+fn type_module_paths(module: &templates::Module, prefix: &[String], paths: &mut Vec<Vec<String>>) {
+    for sub in module.submodules.values().filter(|sub| !sub.is_empty()) {
+        let mut path = prefix.to_vec();
+        path.push(safe_python_module_segment(&sub.name));
+        paths.push(path.clone());
+        type_module_paths(sub, &path, paths);
+    }
+}
+
+/// Binds the namespaces a module's annotations name, such as `myapi.model`
+/// in `kind: myapi.model.Kind`.
+///
+/// At runtime, the module takes each namespace from `sys.modules`, since a
+/// package may still be importing. A type checker can't follow that, and
+/// would read every such annotation as `Any`, so for it the module imports
+/// each namespace it names instead.
+fn render_namespace_bindings(
+    generation: &PythonGeneration,
+    module: &templates::Module,
+    ns_path: &[String],
+) -> String {
     if ns_path.is_empty() {
         return String::new();
     }
@@ -3225,15 +3247,36 @@ fn render_namespace_bindings(module: &templates::Module, ns_path: &[String]) -> 
         "sys"
     };
 
+    let prefix = root_relative_prefix(ns_path.len());
     let mut lines = Vec::new();
     lines.push(sys_import.to_string());
+    lines.push("from typing import TYPE_CHECKING".to_string());
     if ns_path.len() > 1 {
+        lines.push(format!("from {prefix} import {root}"));
+    }
+
+    lines.push("if TYPE_CHECKING:".to_string());
+    if ns_path.len() == 1 {
+        lines.push(format!("    from {prefix} import {root}"));
+    }
+    let mut paths = Vec::new();
+    type_module_paths(&generation.module_tree, &[], &mut paths);
+    let named_paths = paths
+        .iter()
+        .filter(|path| path.len() > 1)
+        .filter(|path| contains_qualified_name(&rendered_code, &path.join(".")));
+    for (index, path) in named_paths.enumerate() {
+        let (leaf, parent) = path.split_last().unwrap();
         lines.push(format!(
-            "from {} import {}",
-            root_relative_prefix(ns_path.len()),
-            root
+            "    from {prefix}{} import {leaf} as _reflectapi_namespace_{index}",
+            parent.join(".")
         ));
     }
+    if lines.last().is_some_and(|line| line == "if TYPE_CHECKING:") {
+        lines.push("    pass".to_string());
+    }
+
+    lines.push("else:".to_string());
     if ns_path.len() > 2 {
         // During package import, Python may not have attached partially-loaded
         // intermediate packages to the root module yet.
@@ -3241,11 +3284,13 @@ fn render_namespace_bindings(module: &templates::Module, ns_path: &[String]) -> 
             let parent_module = module_qualified_name(&ns_path[..depth]);
             let split_count = ns_path.len() - depth;
             lines.push(format!(
-                "{parent_module} = {sys_module}.modules[__name__.rsplit(\".\", {split_count})[0]]"
+                "    {parent_module} = {sys_module}.modules[__name__.rsplit(\".\", {split_count})[0]]"
             ));
         }
     }
-    lines.push(format!("{current_module} = {sys_module}.modules[__name__]"));
+    lines.push(format!(
+        "    {current_module} = {sys_module}.modules[__name__]"
+    ));
 
     lines.join("\n")
 }
@@ -3433,7 +3478,7 @@ fn render_module_file(
 ) -> anyhow::Result<String> {
     let mut parts = vec![generation.preamble.clone()];
 
-    let namespace_bindings = render_namespace_bindings(module, ns_path);
+    let namespace_bindings = render_namespace_bindings(generation, module, ns_path);
     if !namespace_bindings.is_empty() {
         parts.push(namespace_bindings);
     }

@@ -45,10 +45,14 @@ T = TypeVar("T")
 
 
 import sys
+from typing import TYPE_CHECKING
 from .... import myapi
 
-myapi.model = sys.modules[__name__.rsplit(".", 1)[0]]
-myapi.model.input = sys.modules[__name__]
+if TYPE_CHECKING:
+    from ....myapi import model as _reflectapi_namespace_0
+else:
+    myapi.model = sys.modules[__name__.rsplit(".", 1)[0]]
+    myapi.model.input = sys.modules[__name__]
 
 # External type definitions
 StdNumNonZeroU32 = Annotated[int, "Rust NonZero u32 type"]
