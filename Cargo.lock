@@ -1685,6 +1685,7 @@ name = "reflectapi-cli"
 version = "0.26.0"
 dependencies = [
  "anyhow",
+ "chrono",
  "clap",
  "clap_derive",
  "reflectapi",

@@ -156,7 +156,8 @@ expression: schema
               "deserialize_with": true
             }
           ]
-        }
+        },
+        "deny_unknown_fields": true
       },
       {
         "kind": "enum",

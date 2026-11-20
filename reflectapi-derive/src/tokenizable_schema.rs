@@ -248,6 +248,7 @@ impl ToTokens for TokenizableEnum<'_> {
         let parameters = self.inner.parameters().map(TokenizableTypeParameter::new);
         let representation = TokenizableRepresentation::new(&self.inner.representation);
         let open = self.inner.open;
+        let deny_unknown_fields = self.inner.deny_unknown_fields;
         let variants = self.inner.variants().map(TokenizableVariant::new);
         let codegen_config =
             TokenizableLanguageSpecificTypeCodegenConfig(&self.inner.codegen_config);
@@ -259,6 +260,7 @@ impl ToTokens for TokenizableEnum<'_> {
                 __reflectapi_enum.parameters = vec![#(#parameters),*];
                 __reflectapi_enum.representation = #representation;
                 __reflectapi_enum.open = #open;
+                __reflectapi_enum.deny_unknown_fields = #deny_unknown_fields;
                 __reflectapi_enum.variants = vec![#(#variants),*];
                 __reflectapi_enum.codegen_config = #codegen_config;
                 __reflectapi_enum
@@ -332,6 +334,7 @@ impl ToTokens for TokenizableStruct<'_> {
 
         let transparent = self.inner.transparent;
         let distinct = self.inner.distinct;
+        let deny_unknown_fields = self.inner.deny_unknown_fields;
         let codegen_config =
             TokenizableLanguageSpecificTypeCodegenConfig(&self.inner.codegen_config);
         tokens.extend(quote::quote! {
@@ -343,6 +346,7 @@ impl ToTokens for TokenizableStruct<'_> {
                 __reflectapi_struct.fields = #fields;
                 __reflectapi_struct.transparent = #transparent;
                 __reflectapi_struct.distinct = #distinct;
+                __reflectapi_struct.deny_unknown_fields = #deny_unknown_fields;
                 __reflectapi_struct.codegen_config = #codegen_config;
                 __reflectapi_struct
             }

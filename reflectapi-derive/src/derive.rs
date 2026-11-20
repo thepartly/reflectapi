@@ -311,6 +311,8 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
         }
     }
 
+    let denies_unknown_fields =
+        container.attrs.deny_unknown_fields() && cx.reflectapi_type() == ReflectType::Input;
     match &container.data {
         ast::Data::Enum(variants) => {
             let mut result = Enum::new(type_def_name);
@@ -318,6 +320,7 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
             result.serde_name = serde_name;
             result.codegen_config = codegen_config;
             result.open = attrs.open && cx.reflectapi_type() == ReflectType::Output;
+            result.deny_unknown_fields = denies_unknown_fields;
             match container.attrs.tag() {
                 serde_derive_internals::attr::TagType::External => {
                     result.representation = reflectapi_schema::Representation::External;
@@ -390,6 +393,7 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
                 visit_generic_parameters(cx, container.generics, &mut result.parameters);
                 result.transparent = container.attrs.transparent();
                 result.distinct = attrs.distinct;
+                result.deny_unknown_fields = denies_unknown_fields;
                 result.into()
             }
         }
