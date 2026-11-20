@@ -27,6 +27,25 @@ export type AsyncResult<T, E, H = {}> = Promise<CallResult<T, E, H>>;
 
 export type FixedSizeArray<T, N extends number> = Array<T> & { length: N };
 
+declare const __distinct: unique symbol;
+/**
+ * A `#[reflectapi(distinct)]` type: on the wire the `T` it wraps, but a type of
+ * its own, so one ID can't be passed where another is expected. Make one with
+ * the constructor generated beside it, or take it from a response.
+ */
+export type __Distinct<T, Name extends string> = T extends null | undefined
+  ? // Branding `null` would make it `never`, so an optional value keeps it.
+    T
+  : T & { readonly [__distinct]: { readonly base: T; readonly name: Name } };
+/** `T` with each distinct type replaced by the value it wraps: its plain JSON shape. */
+export type __Wire<T> = IsAny<T> extends true
+  ? T
+  : T extends { readonly [__distinct]: { readonly base: infer B } }
+    ? __Wire<B>
+    : T extends object
+      ? { [K in keyof T]: __Wire<T[K]> }
+      : T;
+
 export class Result<T, E> {
   constructor(private value: { ok: T } | { err: E }) { }
 

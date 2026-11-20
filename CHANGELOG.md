@@ -4,6 +4,14 @@
 
 ### Added
 
+- **`#[reflectapi(distinct)]`** keeps a newtype, such as `struct UserId(Uuid)`, a type of its own in generated clients, as Rust does, so one ID can't be passed where another of the same wire type is expected. The wire is unchanged.
+  - **TypeScript:** a branded type with a constructor of the same name.
+  - **Rust client:** a newtype rather than a type alias.
+  - **OpenAPI:** a named component.
+  - **Python:** the wrapped type, as before.
+
+  See [Distinct types](https://github.com/thepartly/reflectapi/blob/main/docs/src/getting-started/attributes.md#distinct-types). ([#240](https://github.com/thepartly/reflectapi/issues/240))
+
 - **A schema primitive says what its string is**: `Primitive::format`, a JSON Schema or OpenAPI format such as `uuid`, `date-time`, `date-time-local`, `date`, `time-local` or `uri`, or a type's own, such as `decimal`. reflectapi's `uuid`, `chrono`, `url` and `rust_decimal` types set it, and your own primitive can, with `Primitive::with_format`. Generators read it in one place, falling back to the built-in types' formats for a schema written before it existed. ([#240](https://github.com/thepartly/reflectapi/issues/240))
 
 ### Changed
@@ -16,6 +24,7 @@
 
 ### Fixed
 
+- **A generated Rust client's tuple structs have public fields**, so one can be built outside the generated module: `pub struct Pair(pub u8, pub String)`. They were private, so `Pair(1, "one".into())` didn't compile.
 - **Type checkers see the types of fields from other namespaces in multi-file Python clients.** A field such as `kind: myapi.model.Kind` in `myapi.model.output` was `Any` to pyright and mypy, since each module binds its namespaces from `sys.modules` at runtime, which a type checker can't follow. Each module now imports those namespaces under `TYPE_CHECKING` instead, so such fields have their real types. Runtime behaviour is unchanged. Type-checking a generated client's callers may report errors that `Any` hid.
 - **Python clients write request headers as they go on the wire**: a `datetime` header as RFC 3339 (`2026-01-01T00:00:00Z`), where `str()` gave `2026-01-01 00:00:00+00:00`, and an enum header as its value, where it gave `Color.RED`.
 - **Python clients send a timestamp back exactly as they received it.** chrono writes nanoseconds (`2026-11-19T10:20:30.123456789Z`, as `Utc::now()` gives on Linux); Python's `datetime` holds microseconds, and pydantic silently dropped the rest, so a timestamp sent back as a version token, cursor or key no longer matched. `chrono::DateTime` and `chrono::NaiveDateTime` fields are now `reflectapi_runtime.ReflectapiDateTime`, an annotated `datetime`, so any `datetime` can still be assigned. A value read from the wire is a `WireDateTime`, a `datetime` that writes back the exact text it was read from, in bodies and headers. A new value, from arithmetic, `replace()` or your own code, is written as before. `std::time::Duration` gets the same treatment: a `ReflectapiDuration` read from the wire is a `WireDuration`, a `timedelta` truncated to the microsecond (it was rounded, so 1.999999999s became 2s) that writes back the exact `secs` and `nanos`. A duration beyond `timedelta.max`, such as `Duration::MAX`, reads as `timedelta.max` where it used to raise `OverflowError`, and a bare `timedelta` request body is now sent as `{secs, nanos}`. Generated clients need the matching `reflectapi-runtime`. ([#243](https://github.com/thepartly/reflectapi/issues/243))

@@ -1,0 +1,5 @@
+error: #[reflectapi(distinct)] applies to a newtype struct, `struct Id(Uuid)`, or a #[serde(transparent)] struct with one field
+ --> tests/errors/distinct_on_enum.rs:3:6
+  |
+3 | enum Shape {
+  |      ^^^^^

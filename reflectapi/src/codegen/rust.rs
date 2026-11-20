@@ -1031,9 +1031,10 @@ mod templates {
         fn render_plain(&self) -> String {
             if self.is_unnamed() {
                 format!(
-                    "{}{}{}",
+                    "{}{}{}{}",
                     self.description,
                     self.render_deprecation(),
+                    self.render_visibility_modifier(),
                     self.type_
                 )
             } else {
@@ -1119,9 +1120,10 @@ mod templates {
         pub fn render(&self) -> String {
             if self.is_unnamed() {
                 format!(
-                    "{}{}{}",
+                    "{}{}{}{}",
                     self.description,
                     self.render_attributes(),
+                    self.render_visibility_modifier(),
                     self.type_
                 )
             } else {
@@ -1818,7 +1820,7 @@ fn __render_type(
                     base_derives: config.base_derives.clone(),
                 };
                 unit_struct_template.render()
-            } else if struct_def.is_alias() {
+            } else if struct_def.is_alias() && !struct_def.distinct {
                 let field_type_ref = struct_def.fields.iter().next().unwrap().type_ref.clone();
                 let alias_template = templates::__Alias {
                     name: type_name,
@@ -1836,7 +1838,10 @@ fn __render_type(
                 let interface_template = templates::__Struct {
                     name: type_name,
                     description: __doc_to_ts_comments(&struct_def.description, 0),
-                    is_tuple: struct_def.is_tuple(),
+                    // A distinct type is a newtype in the client too, which
+                    // serde writes as the value it wraps, whether the server's
+                    // type is a newtype or a one-field transparent struct.
+                    is_tuple: struct_def.is_tuple() || struct_def.distinct,
                     is_input_type,
                     is_output_type,
                     is_error_type,
@@ -1846,8 +1851,16 @@ fn __render_type(
                         .fields
                         .iter()
                         .map(|field| templates::__Field {
-                            name: __field_name_to_snake_case(field.name()),
-                            serde_name: field.serde_name().into(),
+                            name: if struct_def.distinct {
+                                "0".into()
+                            } else {
+                                __field_name_to_snake_case(field.name())
+                            },
+                            serde_name: if struct_def.distinct {
+                                "0".into()
+                            } else {
+                                field.serde_name().into()
+                            },
                             description: __doc_to_ts_comments(&field.description, 4),
                             deprecated: __deprecated_attribute(field.deprecation()),
                             type_: optional_field_type(

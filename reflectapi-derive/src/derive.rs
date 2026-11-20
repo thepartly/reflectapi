@@ -190,6 +190,39 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
             ),
         }
     }
+    if attrs.distinct {
+        let wraps_one_field = match &container.data {
+            ast::Data::Struct(ast::Style::Newtype, _) => true,
+            ast::Data::Struct(ast::Style::Struct | ast::Style::Tuple, fields) => {
+                container.attrs.transparent() && fields.len() == 1
+            }
+            _ => false,
+        };
+        if !wraps_one_field {
+            cx.impl_error(
+                &container.original.ident,
+                "#[reflectapi(distinct)] applies to a newtype struct, `struct Id(Uuid)`, \
+                 or a #[serde(transparent)] struct with one field",
+            );
+        }
+        let overridden = match cx.reflectapi_type() {
+            ReflectType::Input => {
+                attrs.input_type.is_some()
+                    || container.attrs.type_from().is_some()
+                    || container.attrs.type_try_from().is_some()
+            }
+            ReflectType::Output => {
+                attrs.output_type.is_some() || container.attrs.type_into().is_some()
+            }
+        };
+        if overridden {
+            cx.impl_error(
+                &container.original.ident,
+                "#[reflectapi(distinct)] cannot be combined with a type override; \
+                 put it on the type the override names",
+            );
+        }
+    }
     let codegen_config = reflectapi_schema::LanguageSpecificTypeCodegenConfig {
         rust: reflectapi_schema::RustTypeCodegenConfig {
             additional_derives: attrs
@@ -218,6 +251,7 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
             parameters: Vec::new(),
             fields: Fields::Unnamed(vec![Field::new("0".into(), type_ref)]),
             transparent: true,
+            distinct: false,
             codegen_config,
         }
     }
@@ -357,6 +391,7 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
 
                 visit_generic_parameters(cx, container.generics, &mut result.parameters);
                 result.transparent = container.attrs.transparent();
+                result.distinct = attrs.distinct;
                 result.into()
             }
         }

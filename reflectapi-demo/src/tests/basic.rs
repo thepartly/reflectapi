@@ -161,6 +161,28 @@ fn test_reflectapi_struct_newtype() {
 }
 
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+#[reflectapi(distinct)]
+struct TestDistinctId(u32);
+
+#[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+#[reflectapi(distinct)]
+#[serde(transparent)]
+struct TestDistinctName {
+    name: String,
+}
+
+#[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+struct TestStructWithDistinct {
+    id: TestDistinctId,
+    name: TestDistinctName,
+    ids: Vec<TestDistinctId>,
+}
+#[test]
+fn test_reflectapi_struct_with_distinct() {
+    assert_snapshot!(TestStructWithDistinct);
+}
+
+#[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructTuple(u8, String);
 #[test]
 fn test_reflectapi_struct_tuple() {

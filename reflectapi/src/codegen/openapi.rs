@@ -1115,6 +1115,7 @@ impl Converter<'_> {
             parameters: vec![],
             fields: variant.fields.clone(),
             transparent: false,
+            distinct: false,
             codegen_config: adt.codegen_config.clone(),
         };
 
@@ -1531,9 +1532,17 @@ impl Converter<'_> {
         );
 
         // Serde writes a newtype or transparent struct as the value it wraps,
-        // not as a one-element array.
+        // not as a one-element array. A distinct one keeps its name, as a
+        // component that is the wrapped value.
         if let Some(inner) = schema_codegen::wrapped_field(strukt) {
-            return self.convert_type_ref(schema, kind, inner.type_ref());
+            let wrapped = self.convert_type_ref(schema, kind, inner.type_ref());
+            if !strukt.distinct {
+                return wrapped;
+            }
+            return Inline(Schema::AllOf {
+                title: fmt_type_ref(type_ref),
+                subschemas: vec![wrapped],
+            });
         }
         assert!(
             !strukt.transparent(),

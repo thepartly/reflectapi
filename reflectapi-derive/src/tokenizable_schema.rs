@@ -330,6 +330,7 @@ impl ToTokens for TokenizableStruct<'_> {
         };
 
         let transparent = self.inner.transparent;
+        let distinct = self.inner.distinct;
         let codegen_config =
             TokenizableLanguageSpecificTypeCodegenConfig(&self.inner.codegen_config);
         tokens.extend(quote::quote! {
@@ -340,6 +341,7 @@ impl ToTokens for TokenizableStruct<'_> {
                 parameters: vec![#(#parameters),*],
                 fields: #fields,
                 transparent: #transparent,
+                distinct: #distinct,
                 codegen_config: #codegen_config,
             }
         });
