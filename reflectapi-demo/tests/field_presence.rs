@@ -287,18 +287,18 @@ fn write_null_contract_client() {
     if python.exists() {
         std::fs::remove_dir_all(&python).unwrap();
     }
-    for (filename, source) in reflectapi::codegen::python::generate_files(
-        null_contract_schema(),
-        &reflectapi::codegen::python::Config {
-            package_name: "null_contract_client".into(),
-            generate_async: true,
-            generate_sync: true,
-            generate_testing: false,
-            format: false,
-            base_url: None,
-        },
-    )
-    .unwrap()
+    for (filename, source) in
+        reflectapi::codegen::python::generate_files(null_contract_schema(), &{
+            let mut config = reflectapi::codegen::python::Config::default();
+            config.package_name = "null_contract_client".into();
+            config.generate_async = true;
+            config.generate_sync = true;
+            config.generate_testing = false;
+            config.format = false;
+            config.base_url = None;
+            config
+        })
+        .unwrap()
     {
         let path = python.join(filename);
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -364,13 +364,11 @@ fn explicit_schema_requiredness_is_authoritative() {
     assert!(generated
         .lines()
         .any(|line| line.trim_start().starts_with("plain:")));
-    let python = reflectapi::codegen::python::generate_files(
-        schema,
-        &reflectapi::codegen::python::Config {
-            format: false,
-            ..Default::default()
-        },
-    )
+    let python = reflectapi::codegen::python::generate_files(schema, &{
+        let mut config = reflectapi::codegen::python::Config::default();
+        config.format = false;
+        config
+    })
     .unwrap();
     assert!(!python
         .values()
@@ -410,17 +408,16 @@ fn write_generated_clients() {
     if python.exists() {
         std::fs::remove_dir_all(&python).unwrap();
     }
-    for (filename, source) in reflectapi::codegen::python::generate_files(
-        schema,
-        &reflectapi::codegen::python::Config {
-            package_name: "presence_client".into(),
-            generate_async: true,
-            generate_sync: true,
-            generate_testing: false,
-            format: false,
-            base_url: None,
-        },
-    )
+    for (filename, source) in reflectapi::codegen::python::generate_files(schema, &{
+        let mut config = reflectapi::codegen::python::Config::default();
+        config.package_name = "presence_client".into();
+        config.generate_async = true;
+        config.generate_sync = true;
+        config.generate_testing = false;
+        config.format = false;
+        config.base_url = None;
+        config
+    })
     .unwrap()
     {
         let path = python.join(filename);

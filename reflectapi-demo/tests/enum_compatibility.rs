@@ -671,14 +671,12 @@ fn python_flattened_enum_keeps_release_and_date_deprecation() {
     breed.deprecated_since = Some("2026-10-05".into());
     breed.sunset = Some("2026-11-05".into());
 
-    let files = reflectapi::codegen::python::generate_files(
-        schema,
-        &reflectapi::codegen::python::Config {
-            package_name: "enum_client".into(),
-            format: false,
-            ..Default::default()
-        },
-    )
+    let files = reflectapi::codegen::python::generate_files(schema, &{
+        let mut config = reflectapi::codegen::python::Config::default();
+        config.package_name = "enum_client".into();
+        config.format = false;
+        config
+    })
     .unwrap();
     let output = &files["enum_compatibility/fixtures/output/__init__.py"];
     assert!(output.lines().any(|line| {
@@ -796,17 +794,16 @@ fn write_generated_clients() {
     if python.exists() {
         std::fs::remove_dir_all(&python).unwrap();
     }
-    for (filename, source) in reflectapi::codegen::python::generate_files(
-        schema,
-        &reflectapi::codegen::python::Config {
-            package_name: "enum_client".into(),
-            generate_async: true,
-            generate_sync: true,
-            generate_testing: false,
-            format: false,
-            base_url: None,
-        },
-    )
+    for (filename, source) in reflectapi::codegen::python::generate_files(schema, &{
+        let mut config = reflectapi::codegen::python::Config::default();
+        config.package_name = "enum_client".into();
+        config.generate_async = true;
+        config.generate_sync = true;
+        config.generate_testing = false;
+        config.format = false;
+        config.base_url = None;
+        config
+    })
     .unwrap()
     {
         let path = python.join(filename);

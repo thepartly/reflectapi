@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use quote::ToTokens;
-use reflectapi_schema::{Enum, Field, Fields, Struct, Type, TypeParameter, Variant};
+use reflectapi_schema::{Enum, Field, Fields, Struct, Type, TypeParameter};
 use serde_derive_internals::ast;
 use syn::parse_quote;
 
