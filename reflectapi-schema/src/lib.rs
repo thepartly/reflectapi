@@ -68,6 +68,30 @@ pub struct Schema {
     pub output_types: Typespace,
 }
 
+/// Just a schema's `format_version`, read without the rest of the schema.
+///
+/// [`Schema`]'s own check fires as it reads `format_version`, so it reports a
+/// newer format only if that key comes before anything it can't parse, as it
+/// does in JSON reflectapi writes. Reading the JSON into this first checks
+/// the version wherever the key is, since the other keys are skipped unread:
+///
+/// ```
+/// # let json = r#"{"name": "api", "format_version": 1}"#;
+/// let _: reflectapi_schema::SchemaFormat = serde_json::from_str(json)?;
+/// let schema: reflectapi_schema::Schema = serde_json::from_str(json)?;
+/// # Ok::<(), serde_json::Error>(())
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Deserialize)]
+#[non_exhaustive]
+pub struct SchemaFormat {
+    /// The schema's format version, checked: see [`SCHEMA_FORMAT_VERSION`].
+    #[serde(
+        default = "format_version::unrecorded",
+        deserialize_with = "format_version::deserialize"
+    )]
+    pub format_version: u32,
+}
+
 mod format_version {
     use super::SCHEMA_FORMAT_VERSION;
 

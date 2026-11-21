@@ -2,7 +2,7 @@
 //! newer than it understands instead of generating a client that's silently
 //! wrong (#246).
 
-use reflectapi_schema::{Schema, SCHEMA_FORMAT_VERSION};
+use reflectapi_schema::{Schema, SchemaFormat, SCHEMA_FORMAT_VERSION};
 
 fn parse(json: serde_json::Value) -> Result<Schema, String> {
     serde_json::from_str(&json.to_string()).map_err(|error| error.to_string())
@@ -108,4 +108,47 @@ fn merging_schemas_keeps_the_newer_format() {
     let mut older = parse(serde_json::json!({"name": "api"})).unwrap();
     older.extend(Schema::new());
     assert_eq!(older.format_version, SCHEMA_FORMAT_VERSION);
+}
+
+/// JSON key order isn't significant, and a tool may reorder keys. `Schema`
+/// alone checks the version only when it comes first; reading the JSON into
+/// `SchemaFormat` first checks it wherever it is.
+#[test]
+fn a_newer_format_is_refused_wherever_its_key_is() {
+    let newer = SCHEMA_FORMAT_VERSION + 1;
+    let json = format!(
+        r#"{{
+            "name": "api",
+            "functions": [{{
+                "name": "events.subscribe",
+                "path": "",
+                "output_kind": "a_route_kind_from_the_future",
+                "serialization": ["json"],
+                "readonly": false
+            }}],
+            "format_version": {newer}
+        }}"#
+    );
+    let error = serde_json::from_str::<SchemaFormat>(&json)
+        .unwrap_err()
+        .to_string();
+    assert!(
+        error.contains(&format!("this schema is in format version {newer}")),
+        "{error}"
+    );
+    // Without the probe, the unknown route kind is reported first.
+    let error = serde_json::from_str::<Schema>(&json)
+        .unwrap_err()
+        .to_string();
+    assert!(error.contains("unknown variant"), "{error}");
+}
+
+#[test]
+fn the_format_probe_reads_a_current_or_unversioned_schema() {
+    let probe: SchemaFormat =
+        serde_json::from_str(include_str!("fixtures/unversioned-0.25.json")).unwrap();
+    assert_eq!(probe.format_version, 1);
+    let json = serde_json::to_string(&Schema::new()).unwrap();
+    let probe: SchemaFormat = serde_json::from_str(&json).unwrap();
+    assert_eq!(probe.format_version, SCHEMA_FORMAT_VERSION);
 }
