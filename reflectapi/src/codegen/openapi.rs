@@ -507,7 +507,6 @@ impl FlatSchema {
 
 #[derive(Clone, PartialEq, Serialize)]
 #[serde(untagged)]
-#[non_exhaustive]
 pub enum InlineOrRef<T> {
     Inline(T),
     Ref(Ref<T>),

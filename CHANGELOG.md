@@ -20,6 +20,7 @@
   - **`reflectapi-schema`:** `Schema`, `Function`, `TypeReference`, `TypeParameter`, `Primitive`, `Struct`, `Field`, `Enum`, `Variant`, `Deprecation` and the codegen configs, and the error `InvalidDeprecationDate`.
   - **`reflectapi`:** `codegen::python::Config`, every OpenAPI spec type (`openapi::Spec`, `Tag` and the rest), `BuildError`, `ValidationError` and `ValidationPointer`.
   - **Still exhaustive:** the enums that describe the wire (`Type`, `Fields`, `Representation`, `OutputType`, `SerializationMode`). A new variant of one changes what a client sends or accepts, so code that matches on it should have to handle it.
+  - **Patterns and matches:** a pattern destructuring one of these structs needs a trailing `..`, and a `match` on `BuildError`, `ValidationPointer`, `InvalidDeprecationDate` or an OpenAPI enum such as `openapi::Type` needs a wildcard arm. `openapi::InlineOrRef` stays exhaustive: it's the two-way choice between an inline schema and a `$ref`.
   - **Generated code:** the derive now builds schema types with constructors, so it keeps compiling when a field is added.
   - **Removed:** the unused `reflectapi::codegen::Config`.
 

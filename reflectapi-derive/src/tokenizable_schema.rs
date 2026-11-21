@@ -126,7 +126,6 @@ impl ToTokens for TokenizableField<'_> {
                 __reflectapi_field.hidden = #hidden;
                 __reflectapi_field.serialize_with = #serialize_with;
                 __reflectapi_field.deserialize_with = #deserialize_with;
-                __reflectapi_field.transform_callback = String::new();
                 __reflectapi_field.transform_callback_fn = #transform_callback_fn;
                 __reflectapi_field
             }
