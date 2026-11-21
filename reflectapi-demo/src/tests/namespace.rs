@@ -1305,3 +1305,25 @@ fn test_nesting_a_builder_with_a_different_type_of_the_same_name_fails() {
         .glob_rename_types(format!("{PATH}::c::*"), "geo::");
     first.nest(second).build().unwrap();
 }
+
+#[test]
+fn test_nesting_a_builder_that_has_two_types_under_one_name_fails() {
+    use rename_collisions::*;
+
+    let child = reflectapi::Builder::<()>::new()
+        .route(get_a, |r| r.name("a.get"))
+        .route(get_b, |r| r.name("b.get"))
+        .glob_rename_types(format!("{PATH}::a::*"), "geo::")
+        .glob_rename_types(format!("{PATH}::b::*"), "geo::");
+    let errors = errors(
+        reflectapi::Builder::<()>::new()
+            .nest(child)
+            .build()
+            .map(|(schema, _)| schema),
+    );
+    assert_eq!(errors.len(), 1, "{errors:?}");
+    assert!(
+        errors[0].starts_with("`geo::Point` names more than one response type"),
+        "{errors:?}"
+    );
+}

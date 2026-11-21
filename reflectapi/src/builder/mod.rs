@@ -291,8 +291,11 @@ where
     /// The handlers from `other` are grouped into a separate [`Router`] identified
     /// by `other`'s name. This is useful for combining independent API modules.
     /// Note: This does not prepend any paths. Use [`Builder::nest`] for hierarchical routing.
-    pub fn extend(mut self, other: Builder<S, M>) -> Self {
+    pub fn extend(mut self, mut other: Builder<S, M>) -> Self {
         if M::WITH_SCHEMA {
+            // Merging keeps one type per name, so `other`'s own collisions
+            // must be found before they're merged away.
+            self.errors.extend(dedup_types(&mut other.schema));
             for (side, ours, theirs) in [
                 (
                     "request",
@@ -454,24 +457,7 @@ where
     pub fn build(
         mut self,
     ) -> std::result::Result<(crate::Schema, Vec<Router<S>>), crate::BuildErrors> {
-        // A rename can map several types onto one name. Copies of one type are
-        // merged; different types under one name are an error, since every
-        // generated client would keep only one of them.
-        for (side, types) in [
-            ("request", &mut self.schema.input_types),
-            ("response", &mut self.schema.output_types),
-        ] {
-            for name in types.dedup_types() {
-                self.errors.push(BuildError::Other(
-                    format!(
-                        "`{name}` names more than one {side} type, so generated clients would \
-                         keep only one: a rename probably maps different types onto this name, \
-                         so rename one of them"
-                    )
-                    .into(),
-                ));
-            }
-        }
+        self.errors.extend(dedup_types(&mut self.schema));
         self.schema.input_types.sort_types();
         self.schema.output_types.sort_types();
 
@@ -651,6 +637,29 @@ impl RouteBuilder {
 
 /// Field and variant dates are checked when their type is derived; route
 /// dates come from the builder and are only checked here.
+/// Merges copies of one type under one name, and reports different types
+/// under one name, which a rename can produce: every generated client would
+/// keep only one of them.
+fn dedup_types(schema: &mut crate::Schema) -> Vec<BuildError> {
+    let mut errors = Vec::new();
+    for (side, types) in [
+        ("request", &mut schema.input_types),
+        ("response", &mut schema.output_types),
+    ] {
+        for name in types.dedup_types() {
+            errors.push(BuildError::Other(
+                format!(
+                    "`{name}` names more than one {side} type, so generated clients would keep \
+                     only one: a rename probably maps different types onto this name, so rename \
+                     one of them"
+                )
+                .into(),
+            ));
+        }
+    }
+    errors
+}
+
 fn validate_deprecation_dates(schema: &crate::Schema) -> Vec<BuildError> {
     schema
         .functions
