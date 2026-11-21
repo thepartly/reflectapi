@@ -464,6 +464,9 @@ fn generate_optimized_imports(imports: &templates::Imports) -> String {
     if imports.has_literal {
         typing_imports.insert("Literal");
     }
+    if imports.has_new_types {
+        typing_imports.insert("NewType");
+    }
 
     // Pydantic imports — Field is always imported since it's used for
     // descriptions, aliases, discriminators, and defaults across many contexts.
@@ -2203,6 +2206,7 @@ fn build_python_generation(
         has_typed_flattened_enum,
         has_field_validators: false,
         has_model_validators: false,
+        has_new_types: false,
     };
     // Only the client code warns about deprecated methods, so model modules
     // get the imports without `warnings` and `typing_extensions`.
@@ -2335,11 +2339,20 @@ fn build_python_generation(
     imports.has_model_validators = rendered_types
         .values()
         .any(|code| code.contains("@model_validator("));
+    imports.has_new_types = rendered_types
+        .values()
+        .any(|code| code.contains(" = NewType("));
     // Flattening can synthesize omittable fields from required children.
     imports.has_partial_models |= rendered_types
         .values()
         .any(|code| code.contains("(ReflectapiPartialModel"));
-    let rendered_type_keys: Vec<String> = rendered_types.keys().cloned().collect();
+    // A distinct type's `NewType` is a function, not a model: it has nothing
+    // to rebuild and no testing strategy of its own.
+    let rendered_type_keys: Vec<String> = rendered_types
+        .iter()
+        .filter(|(_, code)| !code.contains(" = NewType("))
+        .map(|(name, _)| name.clone())
+        .collect();
 
     // Build namespace module tree. Single-file output still renders this tree
     // as aliases; multi-file output writes each node as a real Python module.
@@ -4412,6 +4425,47 @@ fn collect_flattened_enum_fields(
     Ok(())
 }
 
+/// Python classes a `NewType` can be made of. `NewType` needs a class, and
+/// `bool` can't be subclassed.
+const NEW_TYPE_BASES: &[&str] = &[
+    "str",
+    "int",
+    "float",
+    "bytes",
+    "UUID",
+    "date",
+    "Path",
+    "IPv4Address",
+    "IPv6Address",
+];
+
+/// The Python class a `#[reflectapi(distinct)]` newtype is a `NewType` of:
+/// the type it wraps, if that's one of [`NEW_TYPE_BASES`] and the newtype
+/// isn't generic. Any other distinct type, such as one around an `Option`, a
+/// container, a timestamp or a model, is written as the type it wraps, as an
+/// ordinary newtype is.
+fn distinct_new_type_base(
+    struct_def: &reflectapi_schema::Struct,
+    schema: &Schema,
+    implemented_types: &BTreeMap<String, String>,
+    class_names: &BTreeMap<String, String>,
+) -> anyhow::Result<Option<String>> {
+    if !struct_def.distinct || !struct_def.parameters.is_empty() {
+        return Ok(None);
+    }
+    let Some(inner) = schema_codegen::wrapped_field(struct_def) else {
+        return Ok(None);
+    };
+    let base = type_ref_to_python_type_simple(
+        &inner.type_ref,
+        schema,
+        implemented_types,
+        class_names,
+        &[],
+    )?;
+    Ok(NEW_TYPE_BASES.contains(&base.as_str()).then_some(base))
+}
+
 fn render_struct(
     struct_def: &reflectapi_schema::Struct,
     schema: &Schema,
@@ -4432,6 +4486,18 @@ fn render_struct(
             class_names,
             used_type_vars,
         );
+    }
+
+    if let Some(base) = distinct_new_type_base(struct_def, schema, implemented_types, class_names)?
+    {
+        let name = python_class_name(&struct_def.name, class_names);
+        let mut code = String::new();
+        for line in struct_def.description.lines() {
+            code.push_str(format!("# {line}").trim_end());
+            code.push('\n');
+        }
+        code.push_str(&format!("{name} = NewType(\"{name}\", {base})\n"));
+        return Ok(code);
     }
 
     // A newtype or one-field transparent struct is written as its field, so
@@ -6659,9 +6725,14 @@ fn type_ref_to_python_type(
 
     // 3. THIRD: Only after checking fallbacks, check if it's a user-defined type in the schema
     if let Some(type_def) = schema.get_type(&type_ref.name) {
-        // A newtype or one-field transparent struct is written as its field.
+        // A newtype or one-field transparent struct is written as its field,
+        // unless it's a distinct type written as a `NewType`.
         if let reflectapi_schema::Type::Struct(struct_def) = type_def {
-            if let Some(inner_field) = schema_codegen::wrapped_field(struct_def) {
+            let new_type =
+                distinct_new_type_base(struct_def, schema, implemented_types, class_names)?;
+            if let Some(inner_field) =
+                schema_codegen::wrapped_field(struct_def).filter(|_| new_type.is_none())
+            {
                 let substitutions = struct_def
                     .parameters
                     .iter()
@@ -7142,6 +7213,7 @@ pub mod templates {
         pub has_typed_flattened_enum: bool,
         pub has_field_validators: bool,
         pub has_model_validators: bool,
+        pub has_new_types: bool,
     }
 
     pub struct DataClass {

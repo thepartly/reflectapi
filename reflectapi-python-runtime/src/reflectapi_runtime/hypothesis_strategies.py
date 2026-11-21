@@ -34,6 +34,11 @@ if HAS_HYPOTHESIS:
         Returns:
             Hypothesis strategy for the given type.
         """
+        # A NewType, such as a distinct ID: its base type's values.
+        supertype = getattr(type_hint, "__supertype__", None)
+        if supertype is not None:
+            return strategy_for_type(supertype)
+
         # Handle basic types
         if type_hint is str:
             return st.text()

@@ -8,7 +8,7 @@
   - **TypeScript:** a branded type with a constructor of the same name.
   - **Rust client:** a newtype rather than a type alias.
   - **OpenAPI:** a named component.
-  - **Python:** the wrapped type, as before.
+  - **Python:** a `NewType`, such as `NewType("UserId", UUID)`, for a non-generic distinct type around a string, number, UUID, date, path or IP address; any other distinct type is the type it wraps, as before.
 
   See [Distinct types](https://github.com/thepartly/reflectapi/blob/main/docs/src/getting-started/attributes.md#distinct-types). ([#240](https://github.com/thepartly/reflectapi/issues/240))
 

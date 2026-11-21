@@ -29,7 +29,8 @@ pub struct UserId(pub uuid::Uuid);
   - `__Wire<T>` is `T` with each distinct type replaced by the value it wraps.
 - **Rust:** the client's `UserId` is a newtype, `pub struct UserId(pub uuid::Uuid)`, where an ordinary newtype becomes a type alias.
 - **OpenAPI:** `UserId` is a component of its own, an `allOf` of the type it wraps, so its name survives.
-- **Python:** the field is the wrapped type, as for any newtype, for now.
+- **Python:** `UserId` is `NewType("UserId", UUID)`, so a type checker such as pyright or mypy refuses a plain `UUID` or a `SessionId` where a `UserId` belongs. Make one with `UserId(value)`, which returns `value`; at runtime it is the `UUID`.
+  - `NewType` needs a class, so this applies to a non-generic distinct type around a string, number, UUID, date, path or IP address. Any other distinct type, such as one around an `Option`, a list, a timestamp or a model, or a generic one, is written as the type it wraps, as an ordinary newtype is.
 
 Only a newtype or a one-field transparent struct can be distinct, and not one
 whose schema comes from a type override. Making a type distinct changes its
