@@ -26,7 +26,10 @@ pub const VERSION: u32 = 1;
 struct Request {
     version: u32,
     target: Target,
-    schema: reflectapi::Schema,
+    /// Parsed only once the request's version is known to be supported, and
+    /// read for its `format_version` first, so a newer schema is reported as
+    /// such wherever that key is.
+    schema: Box<serde_json::value::RawValue>,
     #[serde(default)]
     options: Options,
 }
@@ -71,7 +74,9 @@ fn generate_files(request: &[u8]) -> Result<BTreeMap<String, String>, String> {
         ));
     }
     let Options { format, typecheck } = request.options;
-    let schema = request.schema;
+    let schema = request.schema.get();
+    serde_json::from_str::<reflectapi::SchemaFormat>(schema).map_err(|e| e.to_string())?;
+    let schema: reflectapi::Schema = serde_json::from_str(schema).map_err(|e| e.to_string())?;
     let files = match request.target {
         Target::Typescript => reflectapi::codegen::typescript::generate(
             schema,

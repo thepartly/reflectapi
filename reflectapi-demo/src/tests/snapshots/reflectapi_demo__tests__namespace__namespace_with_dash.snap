@@ -3,6 +3,7 @@ source: reflectapi-demo/src/tests/namespace.rs
 expression: schema
 ---
 {
+  "format_version": 1,
   "name": "pet-orders",
   "functions": [
     {

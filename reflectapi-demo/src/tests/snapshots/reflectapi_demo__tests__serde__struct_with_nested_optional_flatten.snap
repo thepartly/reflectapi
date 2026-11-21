@@ -4,6 +4,7 @@ assertion_line: 371
 expression: schema
 ---
 {
+  "format_version": 1,
   "name": "",
   "functions": [
     {

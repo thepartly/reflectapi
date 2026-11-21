@@ -4,6 +4,7 @@
 
 ### Added
 
+- **The schema JSON records its format version**, as `"format_version": 1`, its first key. A reader accepts any format up to its own and refuses a newer one with an error that says to upgrade `reflectapi-cli`, where it used to ignore what it didn't know and generate a client that was silently wrong. A schema written before this release has no version and reads as format 1. Within a format, changes are additive: anything an older reader would get wrong by ignoring it, such as a new route kind, needs a new format. `Schema` gains the public field `format_version`, and the crate exports `SCHEMA_FORMAT_VERSION` and `SchemaFormat`, which reads and checks only the version, wherever its key is in the JSON. ([#246](https://github.com/thepartly/reflectapi/issues/246))
 - **`#[reflectapi(distinct)]`** keeps a newtype, such as `struct UserId(Uuid)`, a type of its own in generated clients, as Rust does, so one ID can't be passed where another of the same wire type is expected. The wire is unchanged.
   - **TypeScript:** a branded type with a constructor of the same name.
   - **Rust client:** a newtype rather than a type alias.

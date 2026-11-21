@@ -111,6 +111,14 @@ enum Language {
     Openapi,
 }
 
+/// Parses a schema, checking its format version first wherever its key is,
+/// so a newer schema is reported as such rather than as a parse error.
+fn read_schema(json: &str) -> anyhow::Result<reflectapi::Schema> {
+    const CONTEXT: &str = "Failed to parse schema file as JSON into reflectapi::Schema object";
+    serde_json::from_str::<reflectapi::SchemaFormat>(json).context(CONTEXT)?;
+    serde_json::from_str(json).context(CONTEXT)
+}
+
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
@@ -122,10 +130,7 @@ fn main() -> anyhow::Result<()> {
                     path.push("reflectapi.json");
                 }
 
-                let schema: reflectapi::Schema = serde_json::from_reader(std::fs::File::open(
-                    &path,
-                )?)
-                .context("Failed to parse schema file as JSON into reflectapi::Schema object")?;
+                let schema = read_schema(&std::fs::read_to_string(&path)?)?;
 
                 let addr = format!("0.0.0.0:{port}");
                 eprintln!("Serving {} on http://{addr}", path.display());
@@ -160,8 +165,7 @@ fn main() -> anyhow::Result<()> {
             let schema_path = schema.unwrap_or(std::path::PathBuf::from("reflectapi.json"));
             let schema_as_json = std::fs::read_to_string(schema_path.clone())
                 .context(format!("Failed to read schema file: {schema_path:?}"))?;
-            let schema: reflectapi::Schema = serde_json::from_str(&schema_as_json)
-                .context("Failed to parse schema file as JSON into reflectapi::Schema object")?;
+            let schema = read_schema(&schema_as_json)?;
 
             let files: std::collections::BTreeMap<String, String> = match language {
                 Language::Typescript => reflectapi::codegen::typescript::generate(
