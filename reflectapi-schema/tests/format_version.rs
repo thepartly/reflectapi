@@ -152,3 +152,49 @@ fn the_format_probe_reads_a_current_or_unversioned_schema() {
     let probe: SchemaFormat = serde_json::from_str(&json).unwrap();
     assert_eq!(probe.format_version, SCHEMA_FORMAT_VERSION);
 }
+
+/// The version key in the middle: `Schema` alone reports what it reaches
+/// first, and the probe reports the version.
+#[test]
+fn a_newer_format_with_its_key_in_the_middle_is_refused_by_the_probe() {
+    let newer = SCHEMA_FORMAT_VERSION + 1;
+    let json = format!(
+        r#"{{
+            "name": "api",
+            "functions": [{{
+                "name": "events.subscribe",
+                "path": "",
+                "output_kind": "a_route_kind_from_the_future",
+                "serialization": ["json"],
+                "readonly": false
+            }}],
+            "format_version": {newer},
+            "output_types": {{"types": [{{"kind": "a_type_kind_from_the_future", "name": "X"}}]}}
+        }}"#
+    );
+    let error = serde_json::from_str::<SchemaFormat>(&json)
+        .unwrap_err()
+        .to_string();
+    assert!(
+        error.contains(&format!("this schema is in format version {newer}")),
+        "{error}"
+    );
+}
+
+#[test]
+fn format_version_0_is_refused() {
+    let json = r#"{"format_version": 0, "name": "api"}"#;
+    for error in [
+        serde_json::from_str::<Schema>(json)
+            .unwrap_err()
+            .to_string(),
+        serde_json::from_str::<SchemaFormat>(json)
+            .unwrap_err()
+            .to_string(),
+    ] {
+        assert!(
+            error.contains("format version 0, which doesn't exist"),
+            "{error}"
+        );
+    }
+}

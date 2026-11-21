@@ -33,12 +33,15 @@ use std::{
 /// refuses a newer one, rather than generating a client that's silently wrong.
 ///
 /// Within a version, changes are additive: an older reader may ignore them
-/// and still generate a client that sends and accepts the same JSON. A new
+/// and still generate a client that makes the same requests and accepts the
+/// same responses, with the same method, path, headers and body. A new
 /// description, deprecation, `format` or `distinct` is additive, since it
 /// only refines types and docs. A change that an older reader would get wrong
 /// by ignoring it bumps the version. Examples are a new route kind, a new
-/// variant of a schema enum, and a field that changes the wire shape of a
-/// type, as `untagged` or `open` do.
+/// variant of a schema enum, a field that changes the wire shape of a type,
+/// as `untagged` or `open` do, and a field that changes how a route is called,
+/// such as an HTTP method. Removing or renaming a field, or changing what a
+/// missing field means, bumps it too.
 pub const SCHEMA_FORMAT_VERSION: u32 = 1;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -47,6 +50,10 @@ pub struct Schema {
     /// It's the first key written, so a reader refuses a newer format before
     /// it parses anything it might not understand. A schema without one is
     /// format 1, the format from before versions were recorded.
+    ///
+    /// A schema built in code starts at the current format. One that was read
+    /// keeps the format it was read with, so code that gives it something
+    /// newer formats introduced must raise this to match.
     #[serde(
         default = "format_version::unrecorded",
         deserialize_with = "format_version::deserialize"
@@ -103,6 +110,11 @@ mod format_version {
         deserializer: D,
     ) -> Result<u32, D::Error> {
         let version = <u32 as serde::Deserialize>::deserialize(deserializer)?;
+        if version == 0 {
+            return Err(serde::de::Error::custom(
+                "this schema is in format version 0, which doesn't exist: versions start at 1",
+            ));
+        }
         if version > SCHEMA_FORMAT_VERSION {
             return Err(serde::de::Error::custom(format!(
                 "this schema is in format version {version}, but reflectapi-schema {} reads \
