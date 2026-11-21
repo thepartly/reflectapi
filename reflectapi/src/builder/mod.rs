@@ -292,6 +292,31 @@ where
     /// by `other`'s name. This is useful for combining independent API modules.
     /// Note: This does not prepend any paths. Use [`Builder::nest`] for hierarchical routing.
     pub fn extend(mut self, other: Builder<S, M>) -> Self {
+        if M::WITH_SCHEMA {
+            for (side, ours, theirs) in [
+                (
+                    "request",
+                    &self.schema.input_types,
+                    &other.schema.input_types,
+                ),
+                (
+                    "response",
+                    &self.schema.output_types,
+                    &other.schema.output_types,
+                ),
+            ] {
+                for name in ours.conflicting_types(theirs) {
+                    self.errors.push(BuildError::Other(
+                        format!(
+                            "the builders being merged each have a {side} type named `{name}`, \
+                             and they differ, so generated clients would keep only one: \
+                             rename one of them"
+                        )
+                        .into(),
+                    ));
+                }
+            }
+        }
         let other_name = other.schema.name.clone();
         self.merged_handlers.push((other_name, other.handlers));
         self.schema.extend(other.schema);
@@ -429,6 +454,24 @@ where
     pub fn build(
         mut self,
     ) -> std::result::Result<(crate::Schema, Vec<Router<S>>), crate::BuildErrors> {
+        // A rename can map several types onto one name. Copies of one type are
+        // merged; different types under one name are an error, since every
+        // generated client would keep only one of them.
+        for (side, types) in [
+            ("request", &mut self.schema.input_types),
+            ("response", &mut self.schema.output_types),
+        ] {
+            for name in types.dedup_types() {
+                self.errors.push(BuildError::Other(
+                    format!(
+                        "`{name}` names more than one {side} type, so generated clients would \
+                         keep only one: a rename probably maps different types onto this name, \
+                         so rename one of them"
+                    )
+                    .into(),
+                ));
+            }
+        }
         self.schema.input_types.sort_types();
         self.schema.output_types.sort_types();
 
