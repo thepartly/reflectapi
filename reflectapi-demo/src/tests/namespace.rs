@@ -1191,6 +1191,67 @@ mod rename_collisions {
         reflectapi::Empty {}
     }
 
+    /// A transparent `Id` and a struct `Id`, for folding after a rename.
+    pub mod t {
+        #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+        #[serde(transparent)]
+        pub struct Id(pub u32);
+    }
+
+    pub mod u {
+        #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+        pub struct Id {
+            pub code: String,
+        }
+    }
+
+    pub async fn get_t<S>(_: S, _: reflectapi::Empty, _: reflectapi::Empty) -> t::Id {
+        t::Id(1)
+    }
+
+    pub async fn get_u<S>(_: S, _: reflectapi::Empty, _: reflectapi::Empty) -> u::Id {
+        u::Id { code: "u".into() }
+    }
+
+    /// A request `User`, a different response `User`, and a request type that
+    /// will be renamed to where consolidation moves the request `User`.
+    pub mod m {
+        #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+        pub struct User {
+            pub name: String,
+        }
+    }
+
+    pub mod n {
+        #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+        pub struct User {
+            pub id: u64,
+            pub name: String,
+        }
+    }
+
+    pub mod k {
+        #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+        pub struct User {
+            pub email: String,
+        }
+    }
+
+    pub async fn put_m<S>(_: S, _: m::User, _: reflectapi::Empty) -> reflectapi::Empty {
+        reflectapi::Empty {}
+    }
+
+    pub async fn get_n<S>(_: S, _: reflectapi::Empty, _: reflectapi::Empty) -> n::User {
+        n::User {
+            id: 1,
+            name: "n".into(),
+        }
+    }
+
+    pub async fn put_k<S>(_: S, _: k::User, _: reflectapi::Empty) -> reflectapi::Empty {
+        reflectapi::Empty {}
+    }
+
     pub const PATH: &str = "reflectapi_demo::tests::namespace::rename_collisions";
 
     pub fn errors(result: Result<reflectapi::Schema, reflectapi::BuildErrors>) -> Vec<String> {
@@ -1321,6 +1382,75 @@ fn test_nesting_a_builder_that_has_two_types_under_one_name_fails() {
             .build()
             .map(|(schema, _)| schema),
     );
+    assert_eq!(errors.len(), 1, "{errors:?}");
+    assert!(
+        errors[0].starts_with("`geo::Point` names more than one response type"),
+        "{errors:?}"
+    );
+}
+
+/// Folding transparent types after a rename must not resolve a collision by
+/// rewriting the other type's references to the transparent one's field.
+#[test]
+fn test_folding_transparent_types_after_a_colliding_rename_fails() {
+    use rename_collisions::*;
+
+    let errors = errors(
+        reflectapi::Builder::<()>::new()
+            .route(get_t, |r| r.name("t.get"))
+            .route(get_u, |r| r.name("u.get"))
+            .glob_rename_types(format!("{PATH}::t::*"), "common::")
+            .glob_rename_types(format!("{PATH}::u::*"), "common::")
+            .fold_transparent_types()
+            .build()
+            .map(|(schema, _)| schema),
+    );
+    assert_eq!(errors.len(), 1, "{errors:?}");
+    assert!(
+        errors[0].starts_with("`common::Id` names more than one response type"),
+        "{errors:?}"
+    );
+}
+
+/// Consolidation renames a request and a response type that share a name
+/// apart, into `input` and `output` namespaces, where a type may already be.
+#[test]
+fn test_consolidation_onto_an_existing_name_fails() {
+    use rename_collisions::*;
+
+    let errors = errors(
+        reflectapi::Builder::<()>::new()
+            .route(put_m, |r| r.name("m.put"))
+            .route(get_n, |r| r.name("n.get"))
+            .route(put_k, |r| r.name("k.put"))
+            .glob_rename_types(format!("{PATH}::m::*"), "foo::")
+            .glob_rename_types(format!("{PATH}::n::*"), "foo::")
+            .glob_rename_types(format!("{PATH}::k::*"), "foo::input::")
+            .build()
+            .map(|(schema, _)| schema),
+    );
+    assert_eq!(errors.len(), 1, "{errors:?}");
+    assert!(
+        errors[0].starts_with("`foo::input::User` names more than one request type"),
+        "{errors:?}"
+    );
+}
+
+/// A builder that already has a collision reports it once when extended,
+/// not again as a conflict with the builder being merged.
+#[test]
+fn test_extending_a_builder_that_has_a_collision_reports_it_once() {
+    use rename_collisions::*;
+
+    let first = reflectapi::Builder::<()>::new()
+        .route(get_a, |r| r.name("a.get"))
+        .route(get_b, |r| r.name("b.get"))
+        .glob_rename_types(format!("{PATH}::a::*"), "geo::")
+        .glob_rename_types(format!("{PATH}::b::*"), "geo::");
+    let second = reflectapi::Builder::<()>::new()
+        .route(get_c, |r| r.name("c.get"))
+        .glob_rename_types(format!("{PATH}::c::*"), "geo::");
+    let errors = errors(first.extend(second).build().map(|(schema, _)| schema));
     assert_eq!(errors.len(), 1, "{errors:?}");
     assert!(
         errors[0].starts_with("`geo::Point` names more than one response type"),

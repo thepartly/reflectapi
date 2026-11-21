@@ -294,8 +294,10 @@ where
     pub fn extend(mut self, mut other: Builder<S, M>) -> Self {
         if M::WITH_SCHEMA {
             // Merging keeps one type per name, so `other`'s own collisions
-            // must be found before they're merged away.
-            self.errors.extend(dedup_types(&mut other.schema));
+            // must be found before they're merged away. This builder's stay
+            // for `build` to find.
+            self.errors
+                .extend(dedup_types(&mut other.schema, RENAME_COLLISION));
             for (side, ours, theirs) in [
                 (
                     "request",
@@ -420,6 +422,10 @@ where
     /// This simplifies the schema by replacing wrapper types with their inner types.
     pub fn fold_transparent_types(mut self) -> Self {
         if M::WITH_SCHEMA {
+            // Folding rewrites every reference to a transparent type's name,
+            // so a collision under that name must be found first.
+            self.errors
+                .extend(dedup_types(&mut self.schema, RENAME_COLLISION));
             self.schema.fold_transparent_types();
         }
         self
@@ -430,7 +436,15 @@ where
         self,
     ) -> std::result::Result<(crate::Schema, Vec<Router<S>>), crate::BuildErrors> {
         if !self.errors.is_empty() {
-            return Err(crate::BuildErrors(self.errors));
+            // A problem found at more than one step, such as a name
+            // collision, is reported once.
+            let mut seen = std::collections::HashSet::new();
+            let errors = self
+                .errors
+                .into_iter()
+                .filter(|error| seen.insert(error.to_string()))
+                .collect();
+            return Err(crate::BuildErrors(errors));
         }
 
         let mut routers = vec![Router {
@@ -457,7 +471,8 @@ where
     pub fn build(
         mut self,
     ) -> std::result::Result<(crate::Schema, Vec<Router<S>>), crate::BuildErrors> {
-        self.errors.extend(dedup_types(&mut self.schema));
+        self.errors
+            .extend(dedup_types(&mut self.schema, RENAME_COLLISION));
         self.schema.input_types.sort_types();
         self.schema.output_types.sort_types();
 
@@ -472,6 +487,10 @@ where
 
         let (mut schema, routers) = self.into_parts()?;
         schema.consolidate_types();
+        let errors = dedup_types(&mut schema, CONSOLIDATION_COLLISION);
+        if !errors.is_empty() {
+            return Err(crate::BuildErrors(errors));
+        }
 
         Ok((schema, routers))
     }
@@ -635,12 +654,16 @@ impl RouteBuilder {
     }
 }
 
-/// Field and variant dates are checked when their type is derived; route
-/// dates come from the builder and are only checked here.
+/// Why two different types can share a name, for [`dedup_types`]' error.
+const RENAME_COLLISION: &str =
+    "a rename probably maps different types onto this name, so rename one of them";
+const CONSOLIDATION_COLLISION: &str =
+    "a request and a response type that shared a name were renamed apart into `input` and \
+     `output` namespaces, and a type already had the new name, so rename one of them";
+
 /// Merges copies of one type under one name, and reports different types
-/// under one name, which a rename can produce: every generated client would
-/// keep only one of them.
-fn dedup_types(schema: &mut crate::Schema) -> Vec<BuildError> {
+/// under one name: every generated client would keep only one of them.
+fn dedup_types(schema: &mut crate::Schema, cause: &str) -> Vec<BuildError> {
     let mut errors = Vec::new();
     for (side, types) in [
         ("request", &mut schema.input_types),
@@ -650,8 +673,7 @@ fn dedup_types(schema: &mut crate::Schema) -> Vec<BuildError> {
             errors.push(BuildError::Other(
                 format!(
                     "`{name}` names more than one {side} type, so generated clients would keep \
-                     only one: a rename probably maps different types onto this name, so rename \
-                     one of them"
+                     only one: {cause}"
                 )
                 .into(),
             ));
@@ -660,6 +682,8 @@ fn dedup_types(schema: &mut crate::Schema) -> Vec<BuildError> {
     errors
 }
 
+/// Field and variant dates are checked when their type is derived; route
+/// dates come from the builder and are only checked here.
 fn validate_deprecation_dates(schema: &crate::Schema) -> Vec<BuildError> {
     schema
         .functions

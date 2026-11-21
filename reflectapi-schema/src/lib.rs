@@ -411,8 +411,11 @@ impl Typespace {
     /// client would keep only one of them.
     pub fn dedup_types(&mut self) -> Vec<String> {
         let mut kept: Vec<Type> = Vec::with_capacity(self.types.len());
+        let mut kept_by_name: HashMap<String, Vec<usize>> = HashMap::new();
         for ty in std::mem::take(&mut self.types) {
-            if !kept.iter().any(|other| other == &ty) {
+            let same_name = kept_by_name.entry(ty.name().to_string()).or_default();
+            if !same_name.iter().any(|&index| kept[index] == ty) {
+                same_name.push(kept.len());
                 kept.push(ty);
             }
         }
@@ -429,15 +432,16 @@ impl Typespace {
         conflicting.into_iter().collect()
     }
 
-    /// The names of types both typespaces have, but for different types.
-    /// [`Typespace::extend`] would keep this typespace's type for each.
+    /// The names of types both typespaces have, where `other`'s type equals
+    /// none of this typespace's types of that name. [`Typespace::extend`]
+    /// would keep this typespace's type for each.
     pub fn conflicting_types(&self, other: &Typespace) -> Vec<String> {
         let mut conflicting: Vec<String> = other
             .types
             .iter()
             .filter(|ty| {
-                self.get_type(ty.name())
-                    .is_some_and(|existing| existing != *ty)
+                let mut same_name = self.types.iter().filter(|t| t.name() == ty.name());
+                same_name.clone().next().is_some() && same_name.all(|existing| existing != *ty)
             })
             .map(|ty| ty.name().to_string())
             .collect();
