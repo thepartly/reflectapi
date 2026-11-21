@@ -770,6 +770,7 @@ fn is_string_on_the_wire(
 
 /// An error that can occur during the [`Builder::build`] process.
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum BuildError {
     /// An error from a custom validation function.
     Validation(crate::ValidationError),

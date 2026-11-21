@@ -5,6 +5,7 @@ use core::fmt;
 /// Returned by `deprecation()` on [`crate::Function`], [`crate::Field`] and
 /// [`crate::Variant`] when the item is deprecated.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Deprecation<'a> {
     /// Free-form note, often naming the replacement. May be empty.
     pub note: &'a str,
@@ -66,6 +67,7 @@ impl<'a> Deprecation<'a> {
 
 /// Why a deprecation date was rejected.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum InvalidDeprecationDate {
     /// Not a calendar date in `YYYY-MM-DD` form.
     Format { value: String },

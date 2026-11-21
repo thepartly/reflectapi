@@ -720,19 +720,12 @@ impl Output for () {
 fn reflectapi_duration(schema: &mut crate::Typespace) -> crate::TypeReference {
     let type_name = "std::time::Duration";
     if schema.reserve_type(type_name) {
-        let type_def = crate::Struct {
-            name: type_name.into(),
-            description: "Time duration type".into(),
-            fields: crate::Fields::Named(vec![
-                crate::Field::new("secs".into(), "u64".into()).with_required(true),
-                crate::Field::new("nanos".into(), "u32".into()).with_required(true),
-            ]),
-            serde_name: Default::default(),
-            parameters: Default::default(),
-            transparent: Default::default(),
-            distinct: Default::default(),
-            codegen_config: Default::default(),
-        };
+        let mut type_def = crate::Struct::new(type_name);
+        type_def.description = "Time duration type".into();
+        type_def.fields = crate::Fields::Named(vec![
+            crate::Field::new("secs".into(), "u64".into()).with_required(true),
+            crate::Field::new("nanos".into(), "u32".into()).with_required(true),
+        ]);
 
         schema.insert_type(type_def.into());
     }

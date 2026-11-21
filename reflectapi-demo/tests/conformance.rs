@@ -556,17 +556,16 @@ fn write_conformance_fixture() {
     );
     write("rust/cases.rs", &rust_cases(&samples));
 
-    for (filename, source) in reflectapi::codegen::python::generate_files(
-        schema,
-        &reflectapi::codegen::python::Config {
-            package_name: "conformance_client".into(),
-            generate_async: true,
-            generate_sync: true,
-            generate_testing: false,
-            format: false,
-            base_url: None,
-        },
-    )
+    for (filename, source) in reflectapi::codegen::python::generate_files(schema, &{
+        let mut config = reflectapi::codegen::python::Config::default();
+        config.package_name = "conformance_client".into();
+        config.generate_async = true;
+        config.generate_sync = true;
+        config.generate_testing = false;
+        config.format = false;
+        config.base_url = None;
+        config
+    })
     .unwrap()
     {
         write(&format!("python/conformance_client/{filename}"), &source);

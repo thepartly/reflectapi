@@ -51,10 +51,7 @@ impl ToTokens for TokenizableTypeReference<'_> {
         let name = self.inner.name.as_str();
         let arguments = self.inner.arguments().map(TokenizableTypeReference::new);
         tokens.extend(quote::quote! {
-            reflectapi::TypeReference {
-                name: #name.into(),
-                arguments: vec![#(#arguments),*]
-            }
+            reflectapi::TypeReference::new(#name, vec![#(#arguments),*])
         });
     }
 }
@@ -74,10 +71,7 @@ impl ToTokens for TokenizableTypeParameter<'_> {
         let name = self.inner.name.as_str();
         let description = self.inner.description.as_str();
         tokens.extend(quote::quote! {
-            reflectapi::TypeParameter {
-                name: #name.into(),
-                description: #description.into()
-            }
+            reflectapi::TypeParameter::new(#name.into(), #description.into())
         });
     }
 }
@@ -119,22 +113,21 @@ impl ToTokens for TokenizableField<'_> {
             };
         }
         tokens.extend(quote::quote! {
-            reflectapi::Field {
-                name: #name.into(),
-                serde_name: #serde_name.into(),
-                description: #description.into(),
-                deprecation_note: #deprecation_note,
-                deprecated_in: #deprecated_in,
-                deprecated_since: #deprecated_since,
-                sunset: #sunset,
-                type_ref: #type_ref,
-                required: #required,
-                flattened: #flattened,
-                hidden: #hidden,
-                serialize_with: #serialize_with,
-                deserialize_with: #deserialize_with,
-                transform_callback: String::new(),
-                transform_callback_fn: #transform_callback_fn,
+            {
+                let mut __reflectapi_field = reflectapi::Field::new(#name.into(), #type_ref);
+                __reflectapi_field.serde_name = #serde_name.into();
+                __reflectapi_field.description = #description.into();
+                __reflectapi_field.deprecation_note = #deprecation_note;
+                __reflectapi_field.deprecated_in = #deprecated_in;
+                __reflectapi_field.deprecated_since = #deprecated_since;
+                __reflectapi_field.sunset = #sunset;
+                __reflectapi_field.required = #required;
+                __reflectapi_field.flattened = #flattened;
+                __reflectapi_field.hidden = #hidden;
+                __reflectapi_field.serialize_with = #serialize_with;
+                __reflectapi_field.deserialize_with = #deserialize_with;
+                __reflectapi_field.transform_callback_fn = #transform_callback_fn;
+                __reflectapi_field
             }
         });
     }
@@ -181,18 +174,19 @@ impl ToTokens for TokenizableVariant<'_> {
         let untagged = self.inner.untagged;
         let other = self.inner.other;
         tokens.extend(quote::quote! {
-            reflectapi::Variant {
-                name: #name.into(),
-                serde_name: #serde_name.into(),
-                description: #description.into(),
-                deprecation_note: #deprecation_note,
-                deprecated_in: #deprecated_in,
-                deprecated_since: #deprecated_since,
-                sunset: #sunset,
-                fields: #fields,
-                discriminant: #discriminant,
-                untagged: #untagged,
-                other: #other,
+            {
+                let mut __reflectapi_variant = reflectapi::Variant::new(#name.into());
+                __reflectapi_variant.serde_name = #serde_name.into();
+                __reflectapi_variant.description = #description.into();
+                __reflectapi_variant.deprecation_note = #deprecation_note;
+                __reflectapi_variant.deprecated_in = #deprecated_in;
+                __reflectapi_variant.deprecated_since = #deprecated_since;
+                __reflectapi_variant.sunset = #sunset;
+                __reflectapi_variant.fields = #fields;
+                __reflectapi_variant.discriminant = #discriminant;
+                __reflectapi_variant.untagged = #untagged;
+                __reflectapi_variant.other = #other;
+                __reflectapi_variant
             }
         });
     }
@@ -258,15 +252,16 @@ impl ToTokens for TokenizableEnum<'_> {
         let codegen_config =
             TokenizableLanguageSpecificTypeCodegenConfig(&self.inner.codegen_config);
         tokens.extend(quote::quote! {
-            reflectapi::Enum {
-                name: #name.into(),
-                serde_name: #serde_name.into(),
-                description: #description.into(),
-                parameters: vec![#(#parameters),*],
-                representation: #representation,
-                open: #open,
-                variants: vec![#(#variants),*],
-                codegen_config: #codegen_config,
+            {
+                let mut __reflectapi_enum = reflectapi::Enum::new(#name.into());
+                __reflectapi_enum.serde_name = #serde_name.into();
+                __reflectapi_enum.description = #description.into();
+                __reflectapi_enum.parameters = vec![#(#parameters),*];
+                __reflectapi_enum.representation = #representation;
+                __reflectapi_enum.open = #open;
+                __reflectapi_enum.variants = vec![#(#variants),*];
+                __reflectapi_enum.codegen_config = #codegen_config;
+                __reflectapi_enum
             }
         });
     }
@@ -280,8 +275,11 @@ impl ToTokens for TokenizableLanguageSpecificTypeCodegenConfig<'_> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let rust = TokenizableRustTypeCodegenConfig(&self.0.rust);
         tokens.extend(quote::quote! {
-            reflectapi::LanguageSpecificTypeCodegenConfig {
-                rust: #rust,
+            {
+                let mut __reflectapi_codegen_config =
+                    reflectapi::LanguageSpecificTypeCodegenConfig::default();
+                __reflectapi_codegen_config.rust = #rust;
+                __reflectapi_codegen_config
             }
         });
     }
@@ -293,8 +291,11 @@ impl ToTokens for TokenizableRustTypeCodegenConfig<'_> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let additional_derives = &self.0.additional_derives;
         tokens.extend(quote::quote! {
-            reflectapi::RustTypeCodegenConfig {
-                additional_derives: std::collections::BTreeSet::from_iter([#(String::from(#additional_derives)),*]),
+            {
+                let mut __reflectapi_rust_config = reflectapi::RustTypeCodegenConfig::default();
+                __reflectapi_rust_config.additional_derives =
+                    std::collections::BTreeSet::from_iter([#(String::from(#additional_derives)),*]);
+                __reflectapi_rust_config
             }
         });
     }
@@ -334,15 +335,16 @@ impl ToTokens for TokenizableStruct<'_> {
         let codegen_config =
             TokenizableLanguageSpecificTypeCodegenConfig(&self.inner.codegen_config);
         tokens.extend(quote::quote! {
-            reflectapi::Struct {
-                name: #name.into(),
-                serde_name: #serde_name.into(),
-                description: #description.into(),
-                parameters: vec![#(#parameters),*],
-                fields: #fields,
-                transparent: #transparent,
-                distinct: #distinct,
-                codegen_config: #codegen_config,
+            {
+                let mut __reflectapi_struct = reflectapi::Struct::new(#name);
+                __reflectapi_struct.serde_name = #serde_name.into();
+                __reflectapi_struct.description = #description.into();
+                __reflectapi_struct.parameters = vec![#(#parameters),*];
+                __reflectapi_struct.fields = #fields;
+                __reflectapi_struct.transparent = #transparent;
+                __reflectapi_struct.distinct = #distinct;
+                __reflectapi_struct.codegen_config = #codegen_config;
+                __reflectapi_struct
             }
         });
     }
@@ -363,22 +365,27 @@ impl ToTokens for TokenizablePrimitive<'_> {
         let name = self.inner.name.as_str();
         let description = self.inner.description.as_str();
         let parameters = self.inner.parameters().map(TokenizableTypeParameter::new);
-        let fallback = self
-            .inner
-            .fallback
-            .as_ref()
-            .map(TokenizableTypeReference::new);
+        let fallback = match &self.inner.fallback {
+            Some(fallback) => {
+                let fallback = TokenizableTypeReference::new(fallback);
+                quote::quote! { Some(#fallback) }
+            }
+            None => quote::quote! { None },
+        };
         let format = tokenize_option_string(&self.inner.format);
         let codegen_config =
             TokenizableLanguageSpecificTypeCodegenConfig(&self.inner.codegen_config);
         tokens.extend(quote::quote! {
-            reflectapi::Primitive {
-                name: #name.into(),
-                description: #description.into(),
-                parameters: vec![#(#parameters),*],
-                fallback: #fallback,
-                format: #format,
-                codegen_config: #codegen_config,
+            {
+                let mut __reflectapi_primitive = reflectapi::Primitive::new(
+                    #name.into(),
+                    #description.into(),
+                    vec![#(#parameters),*],
+                    #fallback,
+                );
+                __reflectapi_primitive.format = #format;
+                __reflectapi_primitive.codegen_config = #codegen_config;
+                __reflectapi_primitive
             }
         });
     }

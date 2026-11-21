@@ -34,6 +34,7 @@ fn python_string_literal(text: &str) -> String {
 
 /// Configuration for Python client generation
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct Config {
     /// Package name for the generated client
     pub package_name: String,
@@ -1911,14 +1912,14 @@ fn substitute_type_params(
         }
     }
 
-    TypeReference {
-        name: type_ref.name.clone(),
-        arguments: type_ref
+    TypeReference::new(
+        type_ref.name.clone(),
+        type_ref
             .arguments
             .iter()
             .map(|argument| substitute_type_params(argument, substitutions))
             .collect(),
-    }
+    )
 }
 
 fn concrete_struct_from_type_ref(
@@ -9768,17 +9769,11 @@ mod tests {
     }
 
     fn tref(name: &str) -> TypeReference {
-        TypeReference {
-            name: name.to_string(),
-            arguments: vec![],
-        }
+        TypeReference::new(name, vec![])
     }
 
     fn tref_args(name: &str, args: Vec<TypeReference>) -> TypeReference {
-        TypeReference {
-            name: name.to_string(),
-            arguments: args,
-        }
+        TypeReference::new(name, args)
     }
 
     #[test]

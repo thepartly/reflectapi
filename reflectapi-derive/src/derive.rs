@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use quote::ToTokens;
-use reflectapi_schema::{Enum, Field, Fields, Struct, Type, TypeParameter, Variant};
+use reflectapi_schema::{Enum, Field, Fields, Struct, Type, TypeParameter};
 use serde_derive_internals::ast;
 use syn::parse_quote;
 
@@ -223,19 +223,16 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
             );
         }
     }
-    let codegen_config = reflectapi_schema::LanguageSpecificTypeCodegenConfig {
-        rust: reflectapi_schema::RustTypeCodegenConfig {
-            additional_derives: attrs
-                .derives
-                .iter()
-                .map(|d| {
-                    let mut s = d.to_token_stream().to_string();
-                    s.retain(|c| !c.is_whitespace());
-                    s
-                })
-                .collect(),
-        },
-    };
+    let mut codegen_config = reflectapi_schema::LanguageSpecificTypeCodegenConfig::default();
+    codegen_config.rust.additional_derives = attrs
+        .derives
+        .iter()
+        .map(|d| {
+            let mut s = d.to_token_stream().to_string();
+            s.retain(|c| !c.is_whitespace());
+            s
+        })
+        .collect();
 
     fn make_alias_type(
         type_def_name: String,
@@ -244,16 +241,13 @@ fn visit_type(cx: &Context, container: &ast::Container<'_>) -> Type {
         type_ref: reflectapi_schema::TypeReference,
         codegen_config: reflectapi_schema::LanguageSpecificTypeCodegenConfig,
     ) -> Struct {
-        Struct {
-            name: type_def_name,
-            serde_name,
-            description: type_def_description,
-            parameters: Vec::new(),
-            fields: Fields::Unnamed(vec![Field::new("0".into(), type_ref)]),
-            transparent: true,
-            distinct: false,
-            codegen_config,
-        }
+        let mut alias = Struct::new(type_def_name);
+        alias.serde_name = serde_name;
+        alias.description = type_def_description;
+        alias.fields = Fields::Unnamed(vec![Field::new("0".into(), type_ref)]);
+        alias.transparent = true;
+        alias.codegen_config = codegen_config;
+        alias
     }
 
     match cx.reflectapi_type() {
@@ -467,19 +461,18 @@ fn visit_variant(
 
     let (deprecation_note, deprecated_in, deprecated_since, sunset) =
         variant_attrs.deprecation.into_parts();
-    Variant {
-        name: variant_def_name,
-        serde_name,
-        description: parse_doc_attributes(&variant.original.attrs),
-        deprecation_note,
-        deprecated_in,
-        deprecated_since,
-        sunset,
-        fields,
-        discriminant,
-        untagged: variant.attrs.untagged(),
-        other: variant.attrs.other() && cx.reflectapi_type() == ReflectType::Output,
-    }
+    let mut variant_def = reflectapi_schema::Variant::new(variant_def_name);
+    variant_def.serde_name = serde_name;
+    variant_def.description = parse_doc_attributes(&variant.original.attrs);
+    variant_def.deprecation_note = deprecation_note;
+    variant_def.deprecated_in = deprecated_in;
+    variant_def.deprecated_since = deprecated_since;
+    variant_def.sunset = sunset;
+    variant_def.fields = fields;
+    variant_def.discriminant = discriminant;
+    variant_def.untagged = variant.attrs.untagged();
+    variant_def.other = variant.attrs.other() && cx.reflectapi_type() == ReflectType::Output;
+    variant_def
 }
 
 fn visit_field(cx: &Context, field: &ast::Field<'_>) -> Option<reflectapi_schema::Field> {

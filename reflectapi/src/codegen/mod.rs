@@ -313,17 +313,6 @@ fn flattened_enum_fragments(
     fragments
 }
 
-#[derive(Debug, Default)]
-pub struct Config {
-    /// Attempt to format the generated code. Will give up if no formatter is found.
-    pub format: bool,
-    /// Typecheck the generated code. Will ignore if the typechecker is not available.
-    pub typecheck: bool,
-    /// Include tracing in the generated code.
-    pub tracing: bool,
-    pub shared_modules: Vec<String>,
-}
-
 /// Type-checking writes the generated code to a temporary directory and runs
 /// `tsc` or `make` there. A wasm build can't do either, and `temp_dir()`
 /// panics on `wasm32-unknown-unknown`, so it fails here instead.
@@ -462,10 +451,9 @@ mod enum_policy_tests {
         let mut schema = external_open_schema();
         let mut wrapper = crate::Struct::new("GenericAlias");
         wrapper.transparent = true;
-        wrapper.parameters.push(crate::TypeParameter {
-            name: "T".into(),
-            description: String::new(),
-        });
+        wrapper
+            .parameters
+            .push(crate::TypeParameter::new("T".into(), String::new()));
         wrapper.fields = crate::Fields::Named(vec![crate::Field::new(
             "inner".into(),
             crate::TypeReference::new("T", vec![]),
