@@ -59,7 +59,7 @@ jobs:
         with:
           path: docs/book
 
-  # Publish the site built above to https://thepartly.github.io/reflectapi/
+  # Publish the site built above to https://reflectapi.rs/
   deploy:
     name: Deploy Documentation to GitHub Pages
     runs-on: ubuntu-latest

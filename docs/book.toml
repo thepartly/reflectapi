@@ -13,7 +13,7 @@ preferred-dark-theme = "coal"
 additional-css = ["theme/custom.css"]
 git-repository-url = "https://github.com/thepartly/reflectapi"
 edit-url-template = "https://github.com/thepartly/reflectapi/edit/main/docs/{path}"
-site-url = "https://thepartly.github.io/reflectapi/"
+site-url = "https://reflectapi.rs/"
 
 [output.html.playground]
 copyable = true

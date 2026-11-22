@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **The user guide is at [reflectapi.rs](https://reflectapi.rs/).** The derives' compile errors, generated clients' headers, the crates' homepages and docs.rs link there. Links to thepartly.github.io/reflectapi redirect to the same page.
+
 ## 0.26.0
 
 The user guide moves to [thepartly.github.io/reflectapi](https://thepartly.github.io/reflectapi/), with new pages on [how reflectapi works](https://thepartly.github.io/reflectapi/concepts/how-it-works.html), [what goes over the wire](https://thepartly.github.io/reflectapi/concepts/wire.html), errors, types, organising, evolving and testing an API. docs.rs now documents every feature. Python clients are stable.

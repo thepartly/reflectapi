@@ -1,6 +1,6 @@
 error: #[reflectapi(open)] requires a tagged enum without untagged variants
 
-         = help: see https://thepartly.github.io/reflectapi/getting-started/attributes.html
+         = help: see https://reflectapi.rs/getting-started/attributes.html
 
  --> tests/errors/open_on_untagged_enum.rs:4:6
   |

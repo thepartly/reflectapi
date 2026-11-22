@@ -3,16 +3,16 @@
 //! Define your web API in Rust, generate typed TypeScript, Python and Rust clients.
 //! Serve it with Axum, Cloudflare Workers or any HTTP server.
 //!
-//! This is the API reference. The [user guide](https://thepartly.github.io/reflectapi/)
+//! This is the API reference. The [user guide](https://reflectapi.rs/)
 //! is the place to start, and covers what spans many items here:
-//! [how it works](https://thepartly.github.io/reflectapi/concepts/how-it-works.html),
-//! [what goes over the wire](https://thepartly.github.io/reflectapi/concepts/wire.html),
-//! [errors](https://thepartly.github.io/reflectapi/concepts/errors.html),
-//! [types](https://thepartly.github.io/reflectapi/concepts/types.html),
-//! [the attributes](https://thepartly.github.io/reflectapi/getting-started/attributes.html)
-//! and [the generated clients](https://thepartly.github.io/reflectapi/clients/).
+//! [how it works](https://reflectapi.rs/concepts/how-it-works.html),
+//! [what goes over the wire](https://reflectapi.rs/concepts/wire.html),
+//! [errors](https://reflectapi.rs/concepts/errors.html),
+//! [types](https://reflectapi.rs/concepts/types.html),
+//! [the attributes](https://reflectapi.rs/getting-started/attributes.html)
+//! and [the generated clients](https://reflectapi.rs/clients/).
 //! The whole guide as one file, for coding agents:
-//! <https://thepartly.github.io/reflectapi/llms-full.txt>.
+//! <https://reflectapi.rs/llms-full.txt>.
 //!
 //! ## Example
 //!
@@ -64,8 +64,8 @@
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc(
-    html_logo_url = "https://thepartly.github.io/reflectapi/reflectapi-logo.png",
-    html_favicon_url = "https://thepartly.github.io/reflectapi/reflectapi-logo.png"
+    html_logo_url = "https://reflectapi.rs/reflectapi-logo.png",
+    html_favicon_url = "https://reflectapi.rs/reflectapi-logo.png"
 )]
 
 mod empty;
