@@ -138,7 +138,7 @@ with Client("http://localhost:3000") as client:
 ```
 
 Each method returns an `ApiResponse` whose `value` is the validated response
-model. A non-2xx response raises `ApplicationError`, which carries the route's
+model. A `4xx` or `5xx` response raises `ApplicationError`, which carries the route's
 typed error when it declares one. Transport failures raise `NetworkError` or
 `TimeoutError`, and a response that does not match the model raises
 `ValidationError`. All four are exported by `reflectapi_runtime`.

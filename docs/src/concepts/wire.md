@@ -89,7 +89,10 @@ lowercase form.
 
 - A field that is not an `Option` is a required header. Without it, the
   request is refused with `400` before the handler runs.
-- Each value is read as a string and deserialized into the field's type.
+- Each value is passed to the field's type as a string, so a field must be a
+  string on the wire: `String`, a unit-variant enum, or a type such as
+  `uuid::Uuid` or `chrono::DateTime`. A number or `bool` field fails with
+  `400` whenever its header is sent.
 - If a header appears more than once, the first value is read.
 - The handler is given only the headers it declares. Others, such as
   cookies or a proxy's headers, are dropped before it runs.

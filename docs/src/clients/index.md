@@ -36,11 +36,11 @@ only; see [Tags and partial clients](../concepts/organising.md#tags-and-partial-
 
 The CLI defaults to `reflectapi.json` if `--schema` is omitted. The demo project uses that filename. If your application writes a different filename such as `reflectapi-schema.json`, pass that path explicitly.
 
-```bash
-# Create output directories first. TypeScript and Rust write a single file
-# unless the output path already exists as a directory or ends with a slash.
-mkdir -p clients/typescript clients/python clients/rust
+`--output` is a directory, created if needed, unless its last part is the
+name of a generated file, such as `generated.ts`: then the file is written
+there, with any sibling files beside it.
 
+```bash
 # Generate TypeScript client -> clients/typescript/generated.ts
 #                          and clients/typescript/generated.transport.ts
 cargo run --bin reflectapi -- codegen \
@@ -170,9 +170,10 @@ After regenerating, update affected field initializers that previously used
   one Python class per logical type so `model.<X>` resolves consistently.
 - Raises `ApplicationError` for a route's error; see
   [Errors](../concepts/errors.md#python).
-- Groups routes by the first segment of their name only: `orders.items.list`
-  is `client.orders.items_list`, where TypeScript and Rust nest every segment
-  (`client.orders.items.list`).
+- Groups routes at every `.` of their name, as TypeScript and Rust do:
+  `orders.items.list` is `client.orders.items.list`. Paths from earlier
+  releases, which split a name at its first `_`, remain as deprecated aliases
+  that warn when used.
 - Uses `reflectapi_runtime` for client base classes and runtime helpers.
   Install the `reflectapi-runtime` release that matches the CLI that
   generated the client: generated code can call helpers an older runtime

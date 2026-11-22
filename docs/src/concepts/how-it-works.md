@@ -188,7 +188,7 @@ A readonly route is served on `GET` as well as `POST`. The schema records the
 flag, but the generated clients call every route with `POST`.
 
 A larger API is split across several builders, combined with [`Builder::nest`](https://docs.rs/reflectapi/latest/reflectapi/struct.Builder.html#method.nest)
-and [`Builder::extend`](https://docs.rs/reflectapi/latest/reflectapi/struct.Builder.html#method.extend), and can sit under a base path set with [`Builder::path`](https://docs.rs/reflectapi/latest/reflectapi/struct.Builder.html#method.path).
+and [`Builder::extend`](https://docs.rs/reflectapi/latest/reflectapi/struct.Builder.html#method.extend), and can sit under a base path set with [`Builder::path`](https://docs.rs/reflectapi/latest/reflectapi/struct.Builder.html#method.path), which applies to the routes added after it.
 See [Organising a Larger API](./organising.md).
 
 ## Names become namespaces

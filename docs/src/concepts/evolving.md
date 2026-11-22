@@ -123,9 +123,9 @@ struct literal must add the new field after regenerating.
 ## Removing and renaming fields
 
 To rename a field in Rust without changing the wire, keep its old name with
-`#[serde(rename = "...")]`. Deployed clients don't notice. In regenerated
-Rust and Python clients the field takes its new Rust name, mapped to the wire
-name; TypeScript uses the wire name.
+`#[serde(rename = "...")]`. Neither deployed nor regenerated clients notice:
+clients name a field after its serde name, and use the Rust identifier only
+when the serde name can't be one.
 
 To remove a response field, deprecate it first:
 

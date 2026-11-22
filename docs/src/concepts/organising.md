@@ -119,10 +119,11 @@ let app = reflectapi::axum::into_router(AppState, routers, Default::default(), |
 A route's name is the name of its client method, and the dots group methods
 into namespaces. With the API above, a TypeScript client calls
 `client.pets.list(...)` and `client.admin.stats(...)`, and the Rust and Python
-clients use the same paths. TypeScript and Rust nest every segment: `a.b.c`
-is `client.a.b.c(...)`. Python makes only the first segment a namespace and
-joins the rest with underscores: `client.a.b_c(...)`. A `-` in a name becomes
-`_`, so `pets.get-first` is `get_first`.
+clients use the same paths. Every segment nests: `a.b.c` is
+`client.a.b.c(...)` in all three. A `-` in a name becomes `_`, so
+`pets.get-first` is `get_first`. Python clients from earlier releases grouped
+names differently; the old paths still work, as deprecated aliases that warn
+when used.
 
 The name is also part of the URL: a route is served at `{path}/{name}`, here
 `/api/pets.list`. Renaming a route or changing a builder's path moves it, and
