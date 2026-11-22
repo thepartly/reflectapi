@@ -16,7 +16,7 @@
 
 <br>
 
-`reflectapi` is a library and a toolkit for writing web API services in Rust and generating compatible clients, delivering great development experience and efficiency.
+**Define your web API in Rust, generate typed TypeScript, Python and Rust clients. Serve it with Axum, Cloudflare Workers or any HTTP server.**
 
 ## Features
 
@@ -25,7 +25,7 @@
 - **Multi-language client generation**:
   - TypeScript - stable
   - Rust - stable
-  - Python - experimental
+  - Python - stable
 - **Documentation rendering** using Redoc tool
 - **Web framework agnostic** with plugable Axum support included, other frameworks are possible
 - **Full support for all serde attributes**
@@ -35,9 +35,10 @@
 
 - [Crates.io](https://crates.io/crates/reflectapi) - Package information and versions
 - [API Documentation](https://docs.rs/reflectapi) - Complete API reference
-- [User Guide](docs/src/SUMMARY.md) - Tutorials and examples (build locally with `mdbook serve` in `docs/`)
-- [Architecture](docs/src/architecture.md) - System design and internals
-- [Enum evolution](docs/src/getting-started/attributes.md#enum-evolution) - Declared fallbacks and open response enums
+- [User Guide](https://thepartly.github.io/reflectapi/) - Tutorials and examples
+- [Reflect your Rust API into the world](https://www.youtube.com/watch?v=6Scgq9fBZQM&t=21675s) - Rust Forge 2025 talk: why reflectapi exists, with a live demo
+- [Architecture](https://thepartly.github.io/reflectapi/architecture.html) - System design and internals
+- [Enum evolution](https://thepartly.github.io/reflectapi/getting-started/attributes.html#enum-evolution) - Declared fallbacks and open response enums
 
 ## Development notes
 
@@ -82,7 +83,7 @@ cargo run --all-features
 To generate client in Python for demo server:
 
 ```
-cargo run --bin reflectapi -- codegen --language python --schema reflectapi-demo/reflectapi.json --output reflectapi-demo/clients/python
+cargo run --bin reflectapi -- codegen --language python --schema reflectapi-demo/reflectapi.json --output reflectapi-demo/clients/python/api_client --python-package-name api_client --python-sync
 ```
 
 ### Updating Snapshots
@@ -109,8 +110,11 @@ cargo test
 ### Building Documentation
 
 ```bash
-# Install required tools (one-time setup)
-cargo install mdbook mdbook-keeper
+# Install mdBook (one-time setup)
+cargo install mdbook --locked
+
+# Test the book's Rust examples: each page's `rust` blocks run as doctests
+cargo test --manifest-path docs/doctests/Cargo.toml --doc
 
 # Build documentation
 cd docs
@@ -119,8 +123,8 @@ mdbook build
 # Serve documentation locally
 mdbook serve  # Opens at http://localhost:3000
 
-# Note: mdbook-keeper automatically runs doctests during build
-# The build command both generates HTML and tests code examples
+# Add sitemap.xml, llms.txt and llms-full.txt to the built site (CI does this)
+python3 build-extras.py
 ```
 
 ### Releasing
@@ -164,3 +168,33 @@ git push origin v<version>
 ```
 
 For pre-releases use `--prerelease alpha` (or `beta` / `rc`) on `cargo release`; the Python equivalent is `0.18.0a1`, `0.18.0b1`, `0.18.0rc1`.
+
+## Alternatives
+
+Other ways to connect a Rust server to its clients, and when each fits.
+
+- **[utoipa](https://github.com/juhaku/utoipa)**: you keep your web
+  framework's handlers (axum, actix-web, Rocket and others) and want an
+  OpenAPI document generated from annotations on them.
+- **[aide](https://github.com/tamasfe/aide)**: you build with axum and want
+  the OpenAPI document derived from your routes and extractors.
+- **OpenAPI client generators**, such as
+  [openapi-generator](https://openapi-generator.tech),
+  [openapi-typescript](https://openapi-ts.dev),
+  [orval](https://orval.dev) and
+  [progenitor](https://github.com/oxidecomputer/progenitor): an OpenAPI
+  document is the contract, or you need clients in languages reflectapi
+  doesn't generate. reflectapi can write that document too; see
+  [Supported Outputs](https://thepartly.github.io/reflectapi/clients/#supported-outputs).
+- **[ts-rs](https://github.com/Aleph-Alpha/ts-rs),
+  [specta](https://github.com/specta-rs/specta) and
+  [typeshare](https://github.com/1Password/typeshare)**: you only need your
+  Rust types in TypeScript or other languages, and write the calls yourself.
+- **[tonic](https://github.com/hyperium/tonic)** with Protocol Buffers: the
+  contract is a `.proto` file, and clients and servers speak gRPC.
+
+reflectapi fits when you own the server and its clients, routes can be
+named calls rather than REST resources, and the Rust types and their serde
+attributes should be the only definition of the API.
+[Why reflectapi?](https://thepartly.github.io/reflectapi/introduction.html#why-reflectapi) explains why it doesn't
+build on OpenAPI.

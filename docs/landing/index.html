@@ -1,0 +1,808 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>reflectapi: typed TypeScript, Python and Rust clients for your Rust web API</title>
+<meta name="description" content="Define your web API in Rust, generate typed TypeScript, Python and Rust clients. Serve it with Axum, Cloudflare Workers or any HTTP server.">
+<link rel="canonical" href="https://thepartly.github.io/reflectapi/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="reflectapi: reflect your Rust API into the world">
+<meta property="og:description" content="Define your web API in Rust, generate typed TypeScript, Python and Rust clients. Serve it with Axum, Cloudflare Workers or any HTTP server.">
+<meta property="og:url" content="https://thepartly.github.io/reflectapi/">
+<link rel="sitemap" type="application/xml" href="sitemap.xml">
+<link rel="icon" type="image/png" href="reflectapi-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;700&family=Oxanium:wght@600&display=swap">
+<style>
+  /* Partly's red and silver palette, as in iond's presentation */
+  :root {
+    --night: #131414;   /* Partly Black: headings, dark ground */
+    --ink:   #494B4D;   /* Deep Silver: body text */
+    --muted: #6E6F70;   /* Dark Silver: secondary text */
+    --steel: #B2B5B6;   /* Silver: rules and borders */
+    --mist:  #E0E2E2;   /* Light Silver: cards */
+    --paper: #F7F7F7;   /* White Silver: ground */
+    --claw:  #E88542;   /* reflectapi's own orange, from its logo: marks and hairlines */
+    --claw-deep: #A8501A; /* the same orange, dark enough for text: inline code */
+
+    --font-display: "Oxanium", "Helvetica Neue", Arial, sans-serif;
+    --font-body: "Geist", "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "Geist Mono", ui-monospace, "Courier New", monospace;
+
+    --radius: 16px;
+    --width: 1120px;
+  }
+
+  * { box-sizing: border-box; }
+  /* Oxanium leaves space before a capital R, about 0.07em at heading sizes:
+     headings starting with it are pulled back to line up with the text. */
+  .optical-r { margin-left: -0.07em; }
+  [hidden] { display: none !important; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  section[id] { scroll-margin-top: 0; }
+  p.more { margin: 32px 0 0; font-size: 16px; }
+  p.more a { color: var(--night); text-decoration-color: var(--claw); text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
+
+  /* One response or a stream */
+  .modes { display: inline-flex; gap: 0; margin: 0 0 16px; border: 1px solid var(--night); border-radius: var(--radius); overflow: hidden; }
+  .modes button {
+    font-family: var(--font-mono); font-weight: 500; font-size: 13px; letter-spacing: .04em; text-transform: uppercase;
+    background: none; color: var(--night); border: 0; padding: 12px 20px; cursor: pointer;
+  }
+  .modes button[aria-selected="true"] { background: var(--night); color: var(--paper); }
+  .modes .dot { display: inline-block; width: 8px; height: 8px; margin: 0 8px 1px 0; border-radius: 50%; background: var(--claw); vertical-align: middle; }
+  .modes button:focus-visible { outline: 2px solid var(--claw); outline-offset: -4px; }
+  #how p.intro { color: var(--ink); font-size: 18px; }
+
+  /* Client tabs */
+  .tabbar { display: flex; align-items: center; gap: 4px; padding: 0 12px 0 20px; border-bottom: 1px solid var(--mist); }
+  .card .tabbar .label { display: inline; padding: 14px 8px 14px 0; border: 0; color: var(--muted); }
+  .tabbar button {
+    font: inherit;
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-size: 13px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: none;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    padding: 14px 8px 12px;
+    cursor: pointer;
+  }
+  .tabbar button:hover { color: var(--night); }
+  .tabbar button[aria-selected="true"] { color: var(--night); border-bottom-color: var(--claw); }
+  .tabbar button:focus-visible { outline: 2px solid var(--night); outline-offset: -2px; border-radius: 4px; }
+  html, body { margin: 0; }
+  body {
+    background: #FFFFFF;
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 18px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+  .wrap { max-width: var(--width); margin: 0 auto; padding: 0 32px; }
+
+  /* Labels, buttons and tags: mono caps */
+  .label, .button, nav a {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-size: 13px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+
+  /* Top bar */
+  header.top { border-bottom: 1px solid var(--mist); }
+  header.top .wrap { display: flex; align-items: center; justify-content: space-between; height: 72px; }
+  .wordmark {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 26px;
+    letter-spacing: -.02em;
+    color: var(--night);
+    text-decoration: none;
+  }
+  .wordmark { display: inline-flex; align-items: center; gap: 10px; }
+  .wordmark img { height: 34px; mix-blend-mode: multiply; }
+  .wordmark b { font-weight: 600; }
+  .wordmark span { color: var(--claw); }
+  nav { display: flex; gap: 28px; }
+  nav a { text-decoration: none; color: var(--ink); }
+  nav a:hover { color: var(--night); text-decoration: underline; }
+
+  /* Hero */
+  .hero { padding-top: 96px; padding-bottom: 72px; }
+  /* The lockup's lettering sits on a baseline 68.4% down its SVG: lowering
+     the image by the remaining 31.6% puts "Partly" on the text's baseline. */
+  .hero .badge a.label-logo { --logo-h: 34px; margin-left: 10px; }
+  .hero .badge a.label-logo img { height: var(--logo-h); vertical-align: calc(var(--logo-h) * -0.316 - 2px); }
+  @media (max-width: 520px) { .hero .badge .dim { display: none; } }
+  .hero .badge {
+    display: inline-block;
+    padding-bottom: 10px; border-bottom: 2px solid var(--claw);
+    font-size: 15px; line-height: 26px; color: var(--muted);
+  }
+  .hero .badge strong { color: var(--night); font-weight: 700; }
+  .hero .badge .dim { color: var(--muted); }
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    color: var(--night);
+    letter-spacing: -.02em;
+    margin: 0;
+  }
+  h1 { font-size: clamp(44px, 8.4vw, 104px); line-height: 1.02; margin: 20px 0 28px; max-width: 18ch; }
+  .lead { font-size: clamp(20px, 2vw, 24px); line-height: 1.4; max-width: 44em; margin: 0 0 36px; color: var(--ink); }
+  .actions { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+  .button {
+    display: inline-block;
+    padding: 14px 22px;
+    border: 1px solid var(--night);
+    border-radius: var(--radius);
+    text-decoration: none;
+    color: var(--night);
+  }
+  .button.primary { background: var(--night); color: var(--paper); }
+  .button:hover { background: var(--paper); color: var(--night); }
+  .install {
+    margin-top: 40px;
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 8px 28px;
+    font-family: var(--font-mono);
+    font-size: 15px;
+    color: var(--night);
+  }
+  .install span::before { content: "$ "; color: var(--muted); }
+
+  /* Code pair */
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding-bottom: 96px; }
+  .card { background: var(--paper); border: 1px solid var(--mist); border-radius: var(--radius); overflow: hidden; }
+  .card .label { display: block; padding: 14px 20px; color: var(--muted); border-bottom: 1px solid var(--mist); }
+  pre {
+    margin: 0;
+    padding: 20px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--night);
+    overflow-x: auto;
+  }
+  /* Syntax colours, shared with the book's light theme (theme/custom.css) */
+  pre .kw { color: #A8501A; font-weight: 500; }
+  pre .ty { color: #3E5C8A; }
+  pre .st { color: #1E7B3A; }
+  pre .fn { color: var(--night); font-weight: 500; }
+  pre .nu { color: #A8501A; }
+  pre .at { color: var(--muted); }
+  pre .cm { color: #8B8D8E; font-style: italic; }
+  .arrow { grid-column: 1 / -1; text-align: center; color: var(--muted); margin: -4px 0; }
+
+  /* Sections */
+  section.block { border-top: 1px solid var(--mist); padding: 88px 0; }
+  section.block > .wrap > .label { color: var(--muted); }
+  h2 { font-size: clamp(32px, 4vw, 48px); line-height: 1.08; margin: 16px 0 40px; max-width: 30ch; text-wrap: balance; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .card.mini pre { font-size: 12.5px; padding: 16px; }
+  p.intro { max-width: 40em; margin: -24px 0 32px; font-size: 16px; color: var(--muted); }
+  #streams p.intro { color: var(--ink); font-size: 18px; }
+  p.intro a { color: var(--night); text-decoration-color: var(--claw); text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
+  p.intro code { font-family: var(--font-mono); font-size: .88em; color: var(--claw-deep); background: #F1F2F2; border-radius: 4px; padding: 1px 5px; }
+  .pair.flush { padding: 0; }
+  .pair.flush .card > pre { min-height: 0; }
+  .card.mini .tabbar { padding: 0 10px; }
+  .card.mini .label { padding: 12px 16px; }
+
+  /* What carries over: one row per feature, Rust beside TypeScript */
+  .row { display: grid; grid-template-columns: 0.8fr 2.7fr; gap: 28px; padding: 28px 0; border-top: 1px solid var(--mist); }
+  h2 + .row { border-top: 0; padding-top: 0; }
+  .row h3 { font-size: 22px; margin-bottom: 10px; }
+  .row p { margin: 0; font-size: 16px; }
+  .row p a { color: var(--night); text-decoration-color: var(--claw); text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
+  .row p code { font-family: var(--font-mono); font-size: .88em; color: var(--claw-deep); background: #F1F2F2; border-radius: 4px; padding: 1px 5px; }
+  .row-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+  .row-cards pre { font-size: 12px; }
+  .row-cards pre s { text-decoration-color: var(--muted); }
+  .start { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 0 0 32px; }
+  ul.more-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  ul.more-list li { background: var(--paper); border: 1px solid var(--mist); border-radius: var(--radius); padding: 16px 18px; }
+  ul.more-list a {
+    display: block; margin-bottom: 6px;
+    font-family: var(--font-mono); font-weight: 500; font-size: 13px; letter-spacing: .04em; text-transform: uppercase;
+    color: var(--night); text-decoration: underline; text-decoration-color: var(--claw); text-decoration-thickness: 1.5px; text-underline-offset: 3px;
+  }
+  ul.more-list span { font-size: 15px; color: var(--ink); }
+  .feature { background: var(--paper); border: 1px solid var(--mist); border-radius: var(--radius); padding: 28px; }
+  .feature h3 { font-size: 24px; line-height: 1.15; margin-bottom: 14px; }
+  .feature p { margin: 0 0 18px; font-size: 16px; }
+  .feature a { font-size: 15px; color: var(--night); }
+
+  ol.steps { list-style: none; margin: 0 0 32px; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+  ol.steps li { border-top: 1px solid var(--night); padding-top: 18px; }
+  ol.steps .label { color: var(--night); }
+  ol.steps h3 { font-size: 22px; margin: 10px 0 10px; }
+  ol.steps p { margin: 0; font-size: 16px; }
+  ol.steps code, .feature code {
+    color: var(--claw-deep);
+    font-family: var(--font-mono);
+    font-size: .88em;
+    background: #F1F2F2;
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+  .feature code { background: #FFFFFF; }
+
+  /* The talk: the one dark band */
+  section.talk { background: var(--night); color: var(--mist); padding: 88px 0; }
+  section.talk .talk-body { display: flex; gap: 56px; align-items: flex-start; }
+  section.talk .talk-text p { max-width: 38em; }
+  section.talk .conf-logo { margin-top: 4px; }
+  section.talk .conf-logo { flex: none; }
+  section.talk .conf-logo:hover img { opacity: .8; }
+  section.talk .conf-logo img { height: 56px; display: block; }
+  section.talk .talk-body p { margin: 0 0 32px; }
+  @media (max-width: 860px) {
+    /* The logo first, left-aligned like the text, then the paragraph and the button */
+    section.talk .talk-body { flex-direction: column; align-items: flex-start; gap: 24px; }
+    section.talk .conf-logo { order: -1; margin-top: 0; }
+    section.talk .conf-logo img { height: 44px; }
+  }
+  section.talk .label { color: var(--steel); }
+  section.talk .label a { color: inherit; text-decoration: underline; text-decoration-color: var(--claw); text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
+  section.talk .label a:hover { color: var(--paper); }
+  section.talk h2 { color: var(--paper); margin-bottom: 20px; }
+  section.talk p { max-width: 38em; margin: 0 0 32px; }
+  section.talk .button { border-color: var(--paper); color: var(--paper); }
+  section.talk .button:hover { background: var(--ink); }
+
+  footer { padding: 40px 0 48px; background: var(--paper); border-top: 1px solid var(--mist); }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-end; justify-content: space-between; }
+  footer .footer-main { display: flex; flex-direction: column; gap: 18px; }
+  footer nav { flex-wrap: wrap; }
+  .partly { display: flex; align-items: center; gap: 12px; color: var(--muted); text-decoration: none; }
+  .partly img { height: 26px; }
+
+  @media (max-width: 860px) {
+    .wrap { padding: 0 16px; }
+    nav { gap: 16px; }
+    header.top nav a.wide { display: none; }
+    .hero { padding-top: 64px; padding-bottom: 48px; }
+    .pair, .grid3, .row, .row-cards, .start, ul.more-list { grid-template-columns: 1fr; }
+    ol.steps { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 520px) {
+    ol.steps { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body id="top">
+
+<header class="top">
+  <div class="wrap">
+    <a class="wordmark" href="./"><img src="reflectapi-logo.png" alt=""><b>reflect<span>api</span></b></a>
+    <nav>
+      <a href="introduction.html">Guide</a>
+      <a class="wide" href="https://docs.rs/reflectapi">API reference</a>
+      <a href="https://github.com/thepartly/reflectapi">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap hero">
+    <div class="label badge"><span class="dim">Open source ·</span> Built and used in <strong>production</strong> at<a class="label-logo" href="https://partly.com"><img src="partly-lockup.svg" alt="Partly"></a></div>
+    <h1 class="optical-r">Reflect your Rust API into the world</h1>
+    <p class="lead">Define your web API in Rust, generate typed TypeScript, Python and Rust clients, typed streams included. Serve it with Axum, Cloudflare Workers or any HTTP server.</p>
+    <div class="actions">
+      <a class="button primary" href="#how">From Rust to typed clients</a>
+      <a class="button" href="#more">Type fidelity</a>
+      <a class="button" href="#talk">Watch the talk</a>
+      <a class="button" href="#start">Get started</a>
+    </div>
+  </div>
+
+  <section class="block" id="how">
+    <div class="wrap">
+      <div class="label">From Rust to typed clients</div>
+      <h2>Your Rust code is the contract</h2>
+      <p class="intro">Each Rust route reaches every client as the same typed function: input, output, errors and streamed events.</p>
+      <ol class="steps">
+        <li><span class="label">01</span><h3>Derive</h3><p><code>reflectapi::Input</code> or <code>reflectapi::Output</code> beside serde's derives.</p></li>
+        <li><span class="label">02</span><h3>Route</h3><p>Plain async handlers, named on a <code>Builder</code> that gives the schema and the routes.</p></li>
+        <li><span class="label">03</span><h3>Generate</h3><p><code>reflectapi codegen</code> writes the clients from the schema.</p></li>
+        <li><span class="label">04</span><h3>Call</h3><p>Typed functions, in TypeScript, Python or Rust.</p></li>
+      </ol>
+      <div class="modes" role="tablist" aria-label="Kind of route">
+        <button role="tab" id="mode-response" aria-controls="how-response" aria-selected="true">One response</button>
+        <button role="tab" id="mode-stream" aria-controls="how-stream" aria-selected="false" tabindex="-1"><span class="dot" aria-hidden="true"></span>A typed stream</button>
+      </div>
+      <div class="pair flush" id="how-response" role="tabpanel" aria-labelledby="mode-response">
+        <div class="card">
+          <span class="label">Server: Rust</span>
+<pre><span class="kw">use</span> reflectapi::{<span class="ty">Builder</span>, <span class="ty">Empty</span>, <span class="ty">Input</span>, <span class="ty">Output</span>};
+<span class="kw">use</span> serde::{<span class="ty">Deserialize</span>, <span class="ty">Serialize</span>};
+
+<span class="cm">// 01 Derive</span>
+<span class="at">#[derive(Deserialize, Input)]</span>
+<span class="kw">struct</span> <span class="ty">CreateUser</span> { name: <span class="ty">String</span>, email: <span class="ty">String</span> }
+
+<span class="at">#[derive(Serialize, Output)]</span>
+<span class="kw">struct</span> <span class="ty">User</span> { id: <span class="ty">u32</span>, name: <span class="ty">String</span>, email: <span class="ty">String</span> }
+
+<span class="cm">// 02 Route</span>
+<span class="kw">async fn</span> <span class="fn">create_user</span>(
+    _: (), req: <span class="ty">CreateUser</span>, _: <span class="ty">Empty</span>,
+) -&gt; <span class="ty">User</span> {
+    <span class="ty">User</span> { id: <span class="nu">1</span>, name: req.name, email: req.email }
+}
+
+<span class="kw">let</span> (schema, routers) = <span class="ty">Builder</span>::<span class="fn">new</span>()
+    .<span class="fn">route</span>(create_user, |r| r.<span class="fn">name</span>(<span class="st">"users.create"</span>))
+    .<span class="fn">build</span>()?;</pre>
+        </div>
+        <div class="card">
+          <div class="tabbar" role="tablist" aria-label="Generated client">
+            <span class="label">Generated client:</span>
+            <button role="tab" id="tab-ts" data-lang="ts" aria-controls="client-ts" aria-selected="true">TypeScript</button>
+            <button role="tab" id="tab-py" data-lang="py" aria-controls="client-py" aria-selected="false" tabindex="-1">Python</button>
+            <button role="tab" id="tab-rs" data-lang="rs" aria-controls="client-rs" aria-selected="false" tabindex="-1">Rust</button>
+          </div>
+<pre id="client-ts" role="tabpanel" aria-labelledby="tab-ts"><span class="cm">// 04 Call</span>
+<span class="kw">import</span> { client } <span class="kw">from</span> <span class="st">"./generated"</span>;
+
+<span class="kw">const</span> api = <span class="fn">client</span>(<span class="st">"https://api.example.com"</span>);
+<span class="kw">const</span> result = <span class="kw">await</span> api.users.<span class="fn">create</span>(
+  { name: <span class="st">"Ada"</span>, email: <span class="st">"ada@example.com"</span> },
+  {},
+);
+<span class="kw">if</span> (result.<span class="fn">is_ok</span>()) {
+  console.<span class="fn">log</span>(result.<span class="fn">unwrap_ok</span>().id);
+}</pre>
+<pre id="client-py" role="tabpanel" aria-labelledby="tab-py" hidden><span class="cm"># 04 Call</span>
+<span class="kw">from</span> api_client <span class="kw">import</span> <span class="ty">AsyncClient</span>
+<span class="kw">from</span> api_client.my_api <span class="kw">import</span> <span class="ty">CreateUser</span>
+
+api = <span class="fn">AsyncClient</span>(<span class="st">"https://api.example.com"</span>)
+response = <span class="kw">await</span> api.users.<span class="fn">create</span>(
+    <span class="fn">CreateUser</span>(name=<span class="st">"Ada"</span>, email=<span class="st">"ada@example.com"</span>)
+)
+<span class="fn">print</span>(response.value.id)</pre>
+<pre id="client-rs" role="tabpanel" aria-labelledby="tab-rs" hidden><span class="cm">// 04 Call</span>
+<span class="kw">use</span> api_client::types::my_api::<span class="ty">CreateUser</span>;
+<span class="kw">use</span> reflectapi::<span class="ty">Empty</span>;
+
+<span class="kw">let</span> api = api_client::<span class="ty">Interface</span>::<span class="fn">try_new</span>(
+    reqwest::<span class="ty">Client</span>::<span class="fn">new</span>(),
+    <span class="st">"https://api.example.com"</span>.<span class="fn">parse</span>()?,
+)?;
+<span class="kw">let</span> input = <span class="ty">CreateUser</span> {
+    name: <span class="st">"Ada"</span>.<span class="fn">into</span>(),
+    email: <span class="st">"ada@example.com"</span>.<span class="fn">into</span>(),
+};
+<span class="kw">if let</span> <span class="ty">Ok</span>(user) = api.users.<span class="fn">create</span>(input, <span class="ty">Empty</span> {}).<span class="kw">await</span> {
+    <span class="fn">println!</span>(<span class="st">"{}"</span>, user.id);
+}</pre>
+        </div>
+      </div>
+      <div class="pair flush" id="how-stream" role="tabpanel" aria-labelledby="mode-stream" hidden>
+        <div class="card">
+          <span class="label">Server: Rust</span>
+<pre><span class="kw">use</span> futures_util::{<span class="fn">stream</span>, <span class="ty">Stream</span>};
+<span class="kw">use</span> reflectapi::{<span class="ty">Builder</span>, <span class="ty">Empty</span>, <span class="ty">Infallible</span>, <span class="ty">Output</span>};
+<span class="kw">use</span> serde::<span class="ty">Serialize</span>;
+
+<span class="cm">// 01 Derive</span>
+<span class="at">#[derive(Serialize, Output)]</span>
+<span class="at">#[serde(tag = "type")]</span>
+<span class="kw">enum</span> <span class="ty">UserEvent</span> {
+    Created { id: <span class="ty">u32</span>, name: <span class="ty">String</span> },
+    Deleted { id: <span class="ty">u32</span> },
+}
+
+<span class="cm">// 02 Route</span>
+<span class="kw">async fn</span> <span class="fn">user_events</span>(
+    _: (), _: <span class="ty">Empty</span>, _: <span class="ty">Empty</span>,
+) -&gt; <span class="ty">Result</span>&lt;<span class="kw">impl</span> <span class="ty">Stream</span>&lt;Item = <span class="ty">UserEvent</span>&gt;, <span class="ty">Infallible</span>&gt; {
+    <span class="ty">Ok</span>(stream::<span class="fn">iter</span>([<span class="ty">UserEvent</span>::Deleted { id: <span class="nu">1</span> }]))
+}
+
+<span class="kw">let</span> (schema, routers) = <span class="ty">Builder</span>::<span class="fn">new</span>()
+    .<span class="fn">stream_route</span>(user_events, |r| r.<span class="fn">name</span>(<span class="st">"users.events"</span>))
+    .<span class="fn">build</span>()?;</pre>
+        </div>
+        <div class="card">
+          <div class="tabbar" role="tablist" aria-label="Generated client">
+            <span class="label">Generated client:</span>
+            <button role="tab" id="tab-stream-ts" data-lang="ts" aria-controls="stream-ts" aria-selected="true">TypeScript</button>
+            <button role="tab" id="tab-stream-py" data-lang="py" aria-controls="stream-py" aria-selected="false" tabindex="-1">Python</button>
+            <button role="tab" id="tab-stream-rs" data-lang="rs" aria-controls="stream-rs" aria-selected="false" tabindex="-1">Rust</button>
+          </div>
+<pre id="stream-ts" role="tabpanel" aria-labelledby="tab-stream-ts"><span class="cm">// 04 Call</span>
+<span class="kw">import</span> { client } <span class="kw">from</span> <span class="st">"./generated"</span>;
+
+<span class="kw">const</span> api = <span class="fn">client</span>(<span class="st">"https://api.example.com"</span>);
+<span class="kw">const</span> events = <span class="kw">await</span> api.users.<span class="fn">events</span>({}, {});
+<span class="kw">if</span> (events.<span class="fn">is_ok</span>()) {
+  <span class="kw">for await</span> (<span class="kw">const</span> event <span class="kw">of</span> events.<span class="fn">unwrap_ok</span>()) {
+    <span class="kw">switch</span> (event.type) {
+      <span class="kw">case</span> <span class="st">"Created"</span>: console.<span class="fn">log</span>(event.name); <span class="kw">break</span>;
+      <span class="kw">case</span> <span class="st">"Deleted"</span>: console.<span class="fn">log</span>(event.id); <span class="kw">break</span>;
+    }
+  }
+}</pre>
+<pre id="stream-py" role="tabpanel" aria-labelledby="tab-stream-py" hidden><span class="cm"># 04 Call</span>
+<span class="kw">from</span> api_client <span class="kw">import</span> <span class="ty">AsyncClient</span>
+<span class="kw">from</span> api_client.my_api <span class="kw">import</span> (
+    <span class="ty">UserEventCreated</span>,
+    <span class="ty">UserEventDeleted</span>,
+)
+
+api = <span class="fn">AsyncClient</span>(<span class="st">"https://api.example.com"</span>)
+<span class="kw">async for</span> event <span class="kw">in</span> api.users.<span class="fn">events</span>():
+    <span class="kw">match</span> event.root:
+        <span class="kw">case</span> <span class="ty">UserEventCreated</span>(name=name):
+            <span class="fn">print</span>(name)
+        <span class="kw">case</span> <span class="ty">UserEventDeleted</span>(id=id):
+            <span class="fn">print</span>(id)</pre>
+<pre id="stream-rs" role="tabpanel" aria-labelledby="tab-stream-rs" hidden><span class="cm">// 04 Call</span>
+<span class="kw">use</span> api_client::types::my_api::<span class="ty">UserEvent</span>::*;
+<span class="kw">use</span> futures_util::<span class="ty">StreamExt</span>;
+<span class="kw">use</span> reflectapi::<span class="ty">Empty</span>;
+
+<span class="kw">let</span> api = api_client::<span class="ty">Interface</span>::<span class="fn">try_new</span>(
+    reqwest::<span class="ty">Client</span>::<span class="fn">new</span>(),
+    <span class="st">"https://api.example.com"</span>.<span class="fn">parse</span>()?,
+)?;
+<span class="kw">let</span> opened = api.users.<span class="fn">events</span>(<span class="ty">Empty</span> {}, <span class="ty">Empty</span> {}).<span class="kw">await</span>;
+<span class="kw">if let</span> <span class="ty">Ok</span>(<span class="kw">mut</span> events) = opened {
+    <span class="kw">while let</span> <span class="ty">Some</span>(event) = events.<span class="fn">next</span>().<span class="kw">await</span> {
+        <span class="kw">match</span> event? {
+            Created { name, .. } =&gt; <span class="fn">println!</span>(<span class="st">"{name}"</span>),
+            Deleted { id } =&gt; <span class="fn">println!</span>(<span class="st">"{id}"</span>),
+        }
+    }
+}</pre>
+        </div>
+      </div>
+      <p class="more">Serve the routes with <a href="serving/axum.html">axum</a> in one call, on <a href="serving/workers.html">Cloudflare Workers</a>, or from <a href="serving/other-servers.html">any HTTP server</a>. <a href="concepts/how-it-works.html">How it works, in detail</a></p>
+    </div>
+  </section>
+
+  <section class="block" id="more">
+    <div class="wrap">
+      <div class="label">Type fidelity</div>
+      <h2>Generated clients as precise as your Rust types</h2>
+
+      <div class="row">
+        <div class="row-text">
+          <h3>Errors are types too</h3>
+          <p>A route's error enum chooses each response's status, and every client gets it as a typed value to match on, kept apart from network failures. <a href="concepts/errors.html">Errors</a></p>
+        </div>
+        <div class="row-cards">
+          <div class="card mini">
+            <span class="label">Rust</span>
+<pre><span class="at">#[derive(Serialize, Output, StatusCode)]</span>
+<span class="kw">enum</span> <span class="ty">CreateUserError</span> {
+    <span class="at">#[reflectapi(status = 409)]</span>
+    EmailTaken,
+    <span class="at">#[reflectapi(status = 422)]</span>
+    InvalidEmail { reason: <span class="ty">String</span> },
+}
+<span class="cm">// async fn create_user(...)</span>
+<span class="cm">//     -&gt; Result&lt;User, CreateUserError&gt;</span></pre>
+          </div>
+          <div class="card mini">
+            <div class="tabbar" role="tablist" aria-label="Generated client">
+              <button role="tab" id="tab-err-ts" data-lang="ts" aria-controls="err-ts" aria-selected="true">TypeScript</button>
+              <button role="tab" id="tab-err-py" data-lang="py" aria-controls="err-py" aria-selected="false" tabindex="-1">Python</button>
+              <button role="tab" id="tab-err-rs" data-lang="rs" aria-controls="err-rs" aria-selected="false" tabindex="-1">Rust</button>
+            </div>
+<pre id="err-ts" role="tabpanel" aria-labelledby="tab-err-ts"><span class="kw">const</span> error = result.<span class="fn">unwrap_err</span>().<span class="fn">err</span>();
+<span class="kw">if</span> (error !== <span class="kw">undefined</span>) {
+  console.<span class="fn">log</span>(<span class="fn">match</span>(error, {
+    EmailTaken: () =&gt; <span class="st">"taken"</span>,
+    InvalidEmail: ({ reason }) =&gt; reason,
+  }));
+}
+<span class="cm">// Leave out a variant: a type error.</span></pre>
+<pre id="err-py" role="tabpanel" aria-labelledby="tab-err-py" hidden><span class="kw">except</span> <span class="ty">ApplicationError</span> <span class="kw">as</span> e:
+    <span class="kw">match</span> e.typed_error <span class="kw">and</span> e.typed_error.root:
+        <span class="kw">case</span> <span class="st">"EmailTaken"</span>:
+            <span class="fn">print</span>(<span class="st">"taken"</span>)
+        <span class="kw">case</span> <span class="ty">InvalidEmail</span>(reason=reason):
+            <span class="fn">print</span>(reason)</pre>
+<pre id="err-rs" role="tabpanel" aria-labelledby="tab-err-rs" hidden><span class="kw">match</span> api.users.<span class="fn">create</span>(input, <span class="ty">Empty</span> {}).<span class="kw">await</span> {
+    <span class="ty">Ok</span>(user) =&gt; <span class="fn">println!</span>(<span class="st">"{}"</span>, user.id),
+    <span class="ty">Err</span>(<span class="ty">Error</span>::<span class="ty">Application</span>(e)) =&gt; <span class="kw">match</span> e {
+        EmailTaken =&gt; <span class="fn">println!</span>(<span class="st">"taken"</span>),
+        InvalidEmail { reason } =&gt; {
+            <span class="fn">println!</span>(<span class="st">"{reason}"</span>)
+        }
+    },
+    <span class="ty">Err</span>(other) =&gt; <span class="fn">println!</span>(<span class="st">"{other}"</span>),
+}
+<span class="cm">// Leave out a variant: a compile error.</span></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="row-text">
+          <h3>Generics</h3>
+          <p>A generic type stays generic in every client, Python and Rust included, instead of one copy per use. <a href="concepts/types.html#your-own-types">Types</a></p>
+        </div>
+        <div class="row-cards">
+          <div class="card mini">
+            <span class="label">Rust</span>
+<pre><span class="at">#[derive(Serialize, Output)]</span>
+<span class="kw">struct</span> <span class="ty">Page</span>&lt;<span class="ty">T</span>&gt; {
+    items: <span class="ty">Vec</span>&lt;<span class="ty">T</span>&gt;,
+    cursor: <span class="ty">Option</span>&lt;<span class="ty">String</span>&gt;,
+}
+<span class="cm">// users.list returns Page&lt;User&gt;</span></pre>
+          </div>
+          <div class="card mini">
+            <div class="tabbar" role="tablist" aria-label="Generated client">
+              <button role="tab" id="tab-gen-ts" data-lang="ts" aria-controls="gen-ts" aria-selected="true">TypeScript</button>
+              <button role="tab" id="tab-gen-py" data-lang="py" aria-controls="gen-py" aria-selected="false" tabindex="-1">Python</button>
+              <button role="tab" id="tab-gen-rs" data-lang="rs" aria-controls="gen-rs" aria-selected="false" tabindex="-1">Rust</button>
+            </div>
+<pre id="gen-ts" role="tabpanel" aria-labelledby="tab-gen-ts"><span class="kw">export interface</span> <span class="ty">Page</span>&lt;<span class="ty">T</span>&gt; {
+    items: <span class="ty">Array</span>&lt;<span class="ty">T</span>&gt;,
+    cursor: (<span class="ty">string</span> | <span class="kw">null</span>),
+}
+<span class="cm">// users.list gives</span>
+<span class="cm">// AsyncResult&lt;Page&lt;User&gt;, {}&gt;</span></pre>
+<pre id="gen-py" role="tabpanel" aria-labelledby="tab-gen-py" hidden><span class="kw">class</span> <span class="ty">MyApiPage</span>(<span class="ty">BaseModel</span>, <span class="ty">Generic</span>[<span class="ty">T</span>]):
+    items: <span class="ty">list</span>[<span class="ty">T</span>]
+    cursor: <span class="ty">str</span> | <span class="kw">None</span>
+<span class="cm"># users.list gives</span>
+<span class="cm"># ApiResponse[Page[User]]</span></pre>
+<pre id="gen-rs" role="tabpanel" aria-labelledby="tab-gen-rs" hidden><span class="kw">pub struct</span> <span class="ty">Page</span>&lt;<span class="ty">T</span>&gt; {
+    <span class="kw">pub</span> items: <span class="ty">Vec</span>&lt;<span class="ty">T</span>&gt;,
+    <span class="kw">pub</span> cursor: <span class="ty">Option</span>&lt;<span class="ty">String</span>&gt;,
+}
+<span class="cm">// users.list gives</span>
+<span class="cm">// Result&lt;Page&lt;User&gt;, _&gt;</span></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="row-text">
+          <h3>Enums with data</h3>
+          <p>serde's tagging styles become discriminated unions, so the client narrows on the tag. <a href="concepts/types.html#enums">Enums</a></p>
+        </div>
+        <div class="row-cards">
+          <div class="card mini">
+            <span class="label">Rust</span>
+<pre><span class="at">#[derive(Serialize, Output)]</span>
+<span class="at">#[serde(tag = "type")]</span>
+<span class="kw">enum</span> <span class="ty">Shape</span> {
+    Circle { radius: <span class="ty">f64</span> },
+    Rect { w: <span class="ty">f64</span>, h: <span class="ty">f64</span> },
+}</pre>
+          </div>
+          <div class="card mini">
+            <div class="tabbar" role="tablist" aria-label="Generated client">
+              <button role="tab" id="tab-enum-ts" data-lang="ts" aria-controls="enum-ts" aria-selected="true">TypeScript</button>
+              <button role="tab" id="tab-enum-py" data-lang="py" aria-controls="enum-py" aria-selected="false" tabindex="-1">Python</button>
+              <button role="tab" id="tab-enum-rs" data-lang="rs" aria-controls="enum-rs" aria-selected="false" tabindex="-1">Rust</button>
+            </div>
+<pre id="enum-ts" role="tabpanel" aria-labelledby="tab-enum-ts"><span class="kw">export type</span> <span class="ty">Shape</span> =
+  | { type: <span class="st">"Circle"</span>, radius: <span class="ty">number</span> }
+  | { type: <span class="st">"Rect"</span>, w: <span class="ty">number</span>, h: <span class="ty">number</span> }</pre>
+<pre id="enum-py" role="tabpanel" aria-labelledby="tab-enum-py" hidden><span class="kw">class</span> <span class="ty">MyApiShapeCircle</span>(<span class="ty">BaseModel</span>):
+    type: <span class="ty">Literal</span>[<span class="st">'Circle'</span>]
+    radius: <span class="ty">float</span>
+
+<span class="kw">class</span> <span class="ty">MyApiShapeRect</span>(<span class="ty">BaseModel</span>):
+    type: <span class="ty">Literal</span>[<span class="st">'Rect'</span>]
+    w: <span class="ty">float</span>
+    h: <span class="ty">float</span>
+
+<span class="kw">class</span> <span class="ty">MyApiShape</span>(<span class="ty">RootModel</span>):
+    root: <span class="ty">Annotated</span>[
+        <span class="ty">Union</span>[
+            <span class="ty">MyApiShapeCircle</span>, <span class="ty">MyApiShapeRect</span>
+        ],
+        <span class="ty">Field</span>(discriminator=<span class="st">'type'</span>),
+    ]</pre>
+<pre id="enum-rs" role="tabpanel" aria-labelledby="tab-enum-rs" hidden><span class="at">#[derive(Debug, serde::Deserialize)]</span>
+<span class="at">#[serde(tag = "type")]</span>
+<span class="kw">pub enum</span> <span class="ty">Shape</span> {
+    Circle { radius: <span class="ty">f64</span> },
+    Rect { w: <span class="ty">f64</span>, h: <span class="ty">f64</span> },
+}</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="row-text">
+          <h3>Absent, null or a value</h3>
+          <p>For partial updates, <code>reflectapi::Option</code> tells "not sent" from "set to null", and the clients keep all three states. <a href="concepts/types.html#option-and-reflectapioption">Option</a></p>
+        </div>
+        <div class="row-cards">
+          <div class="card mini">
+            <span class="label">Rust</span>
+<pre><span class="at">#[derive(Deserialize, Input)]</span>
+<span class="kw">struct</span> <span class="ty">UserPatch</span> {
+    <span class="at">#[serde(default)]</span>
+    nickname: reflectapi::<span class="ty">Option</span>&lt;<span class="ty">String</span>&gt;,
+}</pre>
+          </div>
+          <div class="card mini">
+            <div class="tabbar" role="tablist" aria-label="Generated client">
+              <button role="tab" id="tab-opt-ts" data-lang="ts" aria-controls="opt-ts" aria-selected="true">TypeScript</button>
+              <button role="tab" id="tab-opt-py" data-lang="py" aria-controls="opt-py" aria-selected="false" tabindex="-1">Python</button>
+              <button role="tab" id="tab-opt-rs" data-lang="rs" aria-controls="opt-rs" aria-selected="false" tabindex="-1">Rust</button>
+            </div>
+<pre id="opt-ts" role="tabpanel" aria-labelledby="tab-opt-ts"><span class="kw">export interface</span> <span class="ty">UserPatch</span> {
+    nickname?: (<span class="ty">string</span> | <span class="kw">null</span> | <span class="kw">undefined</span>),
+}</pre>
+<pre id="opt-py" role="tabpanel" aria-labelledby="tab-opt-py" hidden><span class="kw">class</span> <span class="ty">MyApiUserPatch</span>(<span class="ty">ReflectapiPartialModel</span>):
+    nickname: <span class="ty">str</span> | <span class="kw">None</span> = <span class="kw">None</span>
+<span class="cm"># Sends only the fields you set:</span>
+<span class="cm"># unset is left out, None is sent as null.</span></pre>
+<pre id="opt-rs" role="tabpanel" aria-labelledby="tab-opt-rs" hidden><span class="at">#[derive(Debug, serde::Serialize)]</span>
+<span class="kw">pub struct</span> <span class="ty">UserPatch</span> {
+    <span class="at">#[serde(skip_serializing_if =</span>
+        <span class="at">"reflectapi::Option::is_undefined")]</span>
+    <span class="kw">pub</span> nickname: reflectapi::<span class="ty">Option</span>&lt;<span class="ty">String</span>&gt;,
+}</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="row-text">
+          <h3>Deprecations reach the editor</h3>
+          <p>A deprecated field or route is marked in every client, so editors strike it through. A deprecated response field also turns optional, ready for its removal. <a href="getting-started/deprecations.html">Deprecations</a></p>
+        </div>
+        <div class="row-cards">
+          <div class="card mini">
+            <span class="label">Rust</span>
+<pre><span class="at">#[derive(Serialize, Output)]</span>
+<span class="kw">struct</span> <span class="ty">Profile</span> {
+    <span class="at">#[deprecated(note = "Use display_name.")]</span>
+    nickname: <span class="ty">String</span>,
+    display_name: <span class="ty">String</span>,
+}</pre>
+          </div>
+          <div class="card mini">
+            <div class="tabbar" role="tablist" aria-label="Generated client">
+              <button role="tab" id="tab-dep-ts" data-lang="ts" aria-controls="dep-ts" aria-selected="true">TypeScript</button>
+              <button role="tab" id="tab-dep-py" data-lang="py" aria-controls="dep-py" aria-selected="false" tabindex="-1">Python</button>
+              <button role="tab" id="tab-dep-rs" data-lang="rs" aria-controls="dep-rs" aria-selected="false" tabindex="-1">Rust</button>
+            </div>
+<pre id="dep-ts" role="tabpanel" aria-labelledby="tab-dep-ts"><span class="kw">export interface</span> <span class="ty">Profile</span> {
+    <span class="cm">/** @deprecated Use display_name. */</span>
+    <s>nickname</s>?: <span class="ty">string</span>,
+    display_name: <span class="ty">string</span>,
+}</pre>
+<pre id="dep-py" role="tabpanel" aria-labelledby="tab-dep-py" hidden><span class="kw">class</span> <span class="ty">MyApiProfile</span>(<span class="ty">ReflectapiPartialModel</span>):
+    nickname: <span class="ty">str</span> | <span class="kw">None</span> = <span class="ty">Field</span>(
+        default=<span class="kw">None</span>,
+        deprecated=<span class="st">"Use display_name."</span>,
+    )
+    display_name: <span class="ty">str</span></pre>
+<pre id="dep-rs" role="tabpanel" aria-labelledby="tab-dep-rs" hidden><span class="kw">pub struct</span> <span class="ty">Profile</span> {
+    <span class="at">#[deprecated(note = "Use display_name.")]</span>
+    <span class="kw">pub</span> nickname: <span class="ty">Option</span>&lt;<span class="ty">String</span>&gt;,
+    <span class="kw">pub</span> display_name: <span class="ty">String</span>,
+}</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="row-text">
+          <h3>And more</h3>
+          <p>The rest of what a Rust type says reaches the clients too.</p>
+        </div>
+        <ul class="more-list">
+          <li><a href="concepts/how-it-works.html#types">Doc comments</a><span>Become docs in every client.</span></li>
+          <li><a href="concepts/organising.html#type-names-come-from-module-paths">Namespaces</a><span>Module paths become client modules.</span></li>
+          <li><a href="concepts/types.html#your-own-types">Flatten and rename</a><span>serde's attributes, respected.</span></li>
+          <li><a href="clients/#request-headers">Typed headers</a><span>Request and response headers as types.</span></li>
+          <li><a href="getting-started/attributes.html#enum-evolution">Open enums</a><span>Clients accept variants added later.</span></li>
+          <li><a href="clients/#supported-outputs">OpenAPI</a><span>A document for every other language and tool.</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="talk" id="talk">
+    <div class="wrap">
+      <div class="label">Conference talk · <a href="https://rustforgeconf.com">Rust Forge 2025</a> · Wellington</div>
+      <h2 class="optical-r">Reflect your Rust API into the world</h2>
+      <div class="talk-body">
+        <div class="talk-text">
+          <p>Why reflectapi exists, why client generation through OpenAPI kept failing, and a live demo of a server change turning into a compile error in its client.</p>
+          <a class="button" href="https://www.youtube.com/watch?v=6Scgq9fBZQM&amp;t=21675s">Watch the talk</a>
+        </div>
+        <a class="conf-logo" href="https://rustforgeconf.com"><img src="rust-forge-logo.svg" alt="Rust Forge"></a>
+      </div>
+    </div>
+  </section>
+  <section class="block" id="start">
+    <div class="wrap">
+      <h2>Get started</h2>
+      <div class="start">
+        <div class="card mini">
+          <span class="label">The crate, for the server</span>
+<pre><span class="cm">$</span> cargo add reflectapi --features builder,axum</pre>
+        </div>
+        <div class="card mini">
+          <span class="label">The CLI, for the clients</span>
+<pre><span class="cm">$</span> cargo binstall reflectapi-cli</pre>
+        </div>
+      </div>
+      <div class="actions">
+        <a class="button primary" href="getting-started/quick-start.html">Quick start guide</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="footer-main">
+    <a class="wordmark" href="#top"><img src="reflectapi-logo.png" alt=""><b>reflect<span>api</span></b></a>
+    <nav>
+      <a href="introduction.html">Guide</a>
+      <a href="https://docs.rs/reflectapi">API reference</a>
+      <a href="https://crates.io/crates/reflectapi">crates.io</a>
+      <a href="https://github.com/thepartly/reflectapi/tree/main/reflectapi-demo">Full example</a>
+      <a href="https://github.com/thepartly/reflectapi">GitHub</a>
+      <a href="llms.txt">llms.txt</a>
+    </nav>
+    </div>
+    <a class="partly" href="https://partly.com">
+      <span class="label">Built at</span>
+      <img src="partly-lockup.svg" alt="Partly">
+    </a>
+  </div>
+</footer>
+
+<script>
+  // Tabs: each tab list switches its own panels; click, or arrow keys.
+  // Choosing a client language shows that language in every client card.
+  const lists = [...document.querySelectorAll('[role="tablist"]')];
+  const select = (tab) => {
+    for (const t of tab.closest('[role="tablist"]').querySelectorAll('[role="tab"]')) {
+      const on = t === tab;
+      t.setAttribute("aria-selected", on);
+      t.tabIndex = on ? 0 : -1;
+      document.getElementById(t.getAttribute("aria-controls")).hidden = !on;
+    }
+  };
+  const choose = (tab) => {
+    const lang = tab.dataset.lang;
+    if (!lang) return select(tab);
+    for (const t of document.querySelectorAll(`[role="tab"][data-lang="${lang}"]`)) select(t);
+  };
+  for (const list of lists) {
+    const tabs = [...list.querySelectorAll('[role="tab"]')];
+    for (const [i, tab] of tabs.entries()) {
+      tab.addEventListener("click", () => choose(tab));
+      tab.addEventListener("keydown", (e) => {
+        const step = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+        if (!step) return;
+        const next = tabs[(i + step + tabs.length) % tabs.length];
+        choose(next);
+        next.focus();
+      });
+    }
+  }
+</script>
+</body>
+</html>

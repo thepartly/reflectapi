@@ -1,5 +1,6 @@
 mod event;
 mod handler;
+mod headers;
 mod mode;
 mod result;
 
@@ -388,7 +389,7 @@ where
         self
     }
 
-    /// Inlines all types marked as `#[reflectapi(transparent)]` throughout the schema.
+    /// Inlines all `#[serde(transparent)]` types throughout the schema.
     /// This simplifies the schema by replacing wrapper types with their inner types.
     pub fn fold_transparent_types(mut self) -> Self {
         if M::WITH_SCHEMA {
@@ -504,10 +505,11 @@ impl RouteBuilder {
         self
     }
 
-    /// Sets the path for the route.
+    /// Sets the path for the route, in place of the parent [`Builder`]'s base path.
     ///
-    /// If the parent [`Builder`] has a base path, this path will be appended to it.
-    /// The path will be normalized to ensure it starts with a `/` and does not end with one.
+    /// The route is served at this path followed by `/{name}`, and paths of
+    /// builders this one is nested into are still prepended. The path will be
+    /// normalized to ensure it starts with a `/` and does not end with one.
     pub fn path<T: AsRef<str>>(mut self, path: T) -> Self {
         self.path = path.as_ref().into();
         if self.path.ends_with('/') {

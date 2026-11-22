@@ -1,3 +1,7 @@
+//! Serves reflectapi routes with axum: [`into_router`] turns them into an `axum::Router`.
+//!
+//! See [Serving with axum](https://thepartly.github.io/reflectapi/serving/axum.html).
+
 use std::{fmt, future::Future, pin::Pin, sync::Arc, time::Duration};
 
 use axum::{

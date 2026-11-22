@@ -1,153 +1,331 @@
-/* Custom styling for ReflectAPI documentation */
+/*
+ * reflectapi's book in Partly's silver palette and type (Oxanium, Geist,
+ * Geist Mono), with reflectapi's own orange for hairline accents only: it is
+ * too light to carry text. The light themes (light, rust) share one look and
+ * the dark themes (coal, navy, ayu) another. Fonts load in theme/head.hbs.
+ */
 
 :root {
+    --night: #131414;   /* Partly Black */
+    --ink: #494B4D;     /* Deep Silver */
+    --muted: #6E6F70;   /* Dark Silver */
+    --steel: #B2B5B6;   /* Silver */
+    --mist: #E0E2E2;    /* Light Silver */
+    --paper: #F7F7F7;   /* White Silver */
+    --claw: #E88542;    /* reflectapi orange */
+    --claw-deep: #A8501A; /* the same orange, dark enough for text on light */
+
+    --font-display: "Oxanium", "Helvetica Neue", Arial, sans-serif;
+    --font-body: "Geist", "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "Geist Mono", ui-monospace, "Courier New", monospace;
+    --mono-font: var(--font-mono);
+    --code-font-size: 0.875em;
+
     --sidebar-width: 300px;
-    --page-padding: 15px;
-    --content-max-width: 750px;
-    --menu-bar-height: 50px;
+    --content-max-width: 780px;
+    --menu-bar-height: 56px;
+    --radius: 16px;
 }
 
-/* Brand colors */
-.light {
-    --links: #FF6B35;
-    --inline-code-color: #2D3748;
-    --inline-code-bg: #F7FAFC;
+.light, .rust {
+    --bg: #FFFFFF;
+    --fg: var(--night);
+    --sidebar-bg: var(--paper);
+    --sidebar-fg: var(--ink);
+    --sidebar-non-existant: var(--steel);
+    --sidebar-active: var(--night);
+    --sidebar-spacer: var(--steel);
+    --scrollbar: var(--steel);
+    --icons: var(--muted);
+    --icons-hover: var(--night);
+    --links: var(--night);
+    --inline-code-color: var(--claw-deep);
+    --theme-popup-bg: #FFFFFF;
+    --theme-popup-border: var(--mist);
+    --theme-hover: var(--paper);
+    --quote-bg: var(--paper);
+    --quote-border: var(--mist);
+    --warning-border: var(--claw);
+    --table-border-color: var(--mist);
+    --table-header-bg: var(--paper);
+    --table-alternate-bg: #FBFBFB;
+    --searchbar-border-color: var(--mist);
+    --searchbar-bg: #FFFFFF;
+    --searchbar-fg: var(--night);
+    --searchbar-shadow-color: transparent;
+    --searchresults-header-fg: var(--muted);
+    --searchresults-border-color: var(--mist);
+    --searchresults-li-bg: var(--paper);
+    --search-mark-bg: rgba(232, 133, 66, 0.35);
+
+    --code-bg: var(--paper);
+    --code-border: var(--mist);
+    --inline-code-bg: #F1F2F2;
+    --link-underline: var(--claw);
 }
 
-.rust .light {
-    --links: #FF6B35;
+.coal, .navy, .ayu {
+    --bg: var(--night);
+    --fg: var(--paper);
+    --sidebar-bg: #1B1C1C;
+    --sidebar-fg: var(--mist);
+    --sidebar-non-existant: var(--muted);
+    --sidebar-active: var(--paper);
+    --sidebar-spacer: var(--ink);
+    --scrollbar: var(--ink);
+    --icons: var(--steel);
+    --icons-hover: var(--paper);
+    --links: var(--paper);
+    --inline-code-color: var(--claw);
+    --theme-popup-bg: var(--night);
+    --theme-popup-border: var(--ink);
+    --theme-hover: var(--ink);
+    --quote-bg: #1B1C1C;
+    --quote-border: var(--ink);
+    --warning-border: var(--claw);
+    --table-border-color: var(--ink);
+    --table-header-bg: #1B1C1C;
+    --table-alternate-bg: #171818;
+    --searchbar-border-color: var(--ink);
+    --searchbar-bg: #1B1C1C;
+    --searchbar-fg: var(--paper);
+    --searchbar-shadow-color: transparent;
+    --searchresults-header-fg: var(--steel);
+    --searchresults-border-color: var(--ink);
+    --searchresults-li-bg: #1B1C1C;
+    --search-mark-bg: rgba(232, 133, 66, 0.4);
+
+    --code-bg: #1B1C1C;
+    --code-border: #26282A;
+    --inline-code-bg: #2A2C2D;
+    --link-underline: var(--claw);
 }
 
-.navy .light {
-    --links: #FF6B35;
+/* Type */
+
+html, body {
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
 }
 
-.ayu .light {
-    --links: #FF6B35;
+.content {
+    font-size: 1.7rem;
+    line-height: 1.6;
 }
 
-/* Code block styling */
-.hljs {
-    border-radius: 6px;
-    padding: 1em;
+.content h1, .content h2, .content h3, .content h4 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    color: var(--fg);
 }
 
-/* Improve inline code readability */
-:not(pre) > .hljs {
-    padding: 0.2em 0.4em;
-    border-radius: 3px;
-    white-space: nowrap;
-}
+.content h1 { font-size: 2.4em; margin: 0.4em 0 0.6em; }
+.content h2 { font-size: 1.6em; margin: 1.8em 0 0.6em; }
+.content h3 { font-size: 1.25em; margin: 1.5em 0 0.5em; }
+.content h4 { font-size: 1.05em; margin: 1.3em 0 0.4em; }
 
-/* Improve table styling */
-table {
-    border-collapse: collapse;
-    margin: 1em 0;
-    width: 100%;
-}
+.content h1:first-child,
+.content h2:first-child { margin-top: 0.2em; }
 
-table th,
-table td {
-    border: 1px solid var(--table-border-color);
-    padding: 0.5em 1em;
-    text-align: left;
-}
+/* Heading anchors stay the heading's colour */
+.content a.header:link,
+.content a.header:visited { color: var(--fg); text-decoration: none; }
 
-table th {
-    background-color: var(--table-header-bg);
-    font-weight: bold;
-}
-
-/* Add some spacing around headings */
-h1, h2, h3, h4, h5, h6 {
-    margin-top: 1.5em;
-    margin-bottom: 0.5em;
-}
-
-h1:first-child,
-h2:first-child,
-h3:first-child {
-    margin-top: 0;
-}
-
-/* Improve callouts/admonitions */
-.warning,
-.info,
-.note {
-    padding: 1em;
-    margin: 1em 0;
-    border-left: 4px solid;
-    border-radius: 0 4px 4px 0;
-}
-
-.warning {
-    background-color: #FEF2F2;
-    border-color: #F87171;
-    color: #7F1D1D;
-}
-
-.info {
-    background-color: #EFF6FF;
-    border-color: #60A5FA;
-    color: #1E3A8A;
-}
-
-.note {
-    background-color: #F0FDF4;
-    border-color: #4ADE80;
-    color: #14532D;
-}
-
-/* Navigation improvements */
-.nav-chapters {
-    padding: 0;
-}
-
-.nav-chapters li {
-    margin: 0;
-}
-
-.nav-chapters a {
-    display: block;
-    padding: 0.5em 1em;
-    text-decoration: none;
-    border-radius: 4px;
-    margin: 0.2em 0;
-}
-
-.nav-chapters a:hover {
-    background-color: var(--sidebar-bg);
-}
-
-.nav-chapters .active {
-    background-color: var(--sidebar-active) !important;
-    color: var(--sidebar-active-color) !important;
-}
-
-/* Improve search styling */
-#searchresults {
-    border-radius: 6px;
-}
-
-#searchresults .result-name {
-    font-weight: bold;
+/* Links: text in the foreground colour, an orange hairline beneath */
+.content a:link,
+.content a:visited {
     color: var(--links);
+    text-decoration: underline;
+    text-decoration-color: var(--link-underline);
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 3px;
+}
+.content a:hover { text-decoration-thickness: 2.5px; }
+
+.menu-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.02em;
 }
 
-/* Footer improvements */
-.nav-wrapper {
-    margin-top: 2em;
-    padding-top: 1em;
-    border-top: 1px solid var(--table-border-color);
+/* The top bar's brand: logo and wordmark, linking to the landing page */
+/* Held to the bar's height: a taller title grows the bar, and the menu
+   toggle (a label, not a button) then sits higher than the other icons. */
+.menu-title {
+    height: var(--menu-bar-height);
+}
+.menu-title a.brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: var(--menu-bar-height);
+    vertical-align: top;
+    color: var(--fg);
+    text-decoration: none;
+    font-size: 2.2rem;
+}
+.menu-title a.brand img { height: 30px; }
+.menu-title a.brand b { font-weight: 600; color: var(--claw); }
+.coal .menu-title a.brand img,
+.navy .menu-title a.brand img,
+.ayu .menu-title a.brand img {
+    mix-blend-mode: normal;
+    background: var(--paper);
+    border-radius: 6px;
+    padding: 2px;
 }
 
-/* Mobile responsiveness */
+/* Code */
+
+code, pre, .hljs { font-family: var(--font-mono); }
+
+.content pre {
+    border-radius: var(--radius);
+}
+
+.content pre > code,
+.content pre > .hljs,
+.content pre .hljs {
+    background: var(--code-bg);
+    border: 1px solid var(--code-border);
+    border-radius: var(--radius);
+    padding: 1.1em 1.3em;
+}
+
+.content :not(pre) > code {
+    background: var(--inline-code-bg);
+    color: var(--inline-code-color);
+    border-radius: 4px;
+    padding: 0.1em 0.35em;
+}
+
+/* Syntax colours, as on the landing page: keywords in reflectapi's orange,
+   strings green, types slate blue, comments and attributes grey. */
+
+.light .hljs, .rust .hljs { color: var(--night); }
+.light .hljs-keyword, .rust .hljs-keyword,
+.light .hljs-selector-tag, .rust .hljs-selector-tag,
+.light .hljs-literal, .rust .hljs-literal { color: #A8501A; font-weight: 500; }
+.light .hljs-number, .rust .hljs-number { color: #A8501A; }
+.light .hljs-string, .rust .hljs-string,
+.light .hljs-regexp, .rust .hljs-regexp,
+.light .hljs-addition, .rust .hljs-addition { color: #1E7B3A; }
+.light .hljs-type, .rust .hljs-type,
+.light .hljs-built_in, .rust .hljs-built_in,
+.light .hljs-class .hljs-title, .rust .hljs-class .hljs-title,
+.light .hljs-title.class_, .rust .hljs-title.class_ { color: #3E5C8A; }
+.light .hljs-title, .rust .hljs-title,
+.light .hljs-section, .rust .hljs-section,
+.light .hljs-function .hljs-title, .rust .hljs-function .hljs-title { color: var(--night); font-weight: 500; }
+.light .hljs-attr, .rust .hljs-attr,
+.light .hljs-attribute, .rust .hljs-attribute,
+.light .hljs-variable, .rust .hljs-variable,
+.light .hljs-symbol, .rust .hljs-symbol,
+.light .hljs-property, .rust .hljs-property { color: var(--ink); }
+.light .hljs-meta, .rust .hljs-meta { color: var(--muted); }
+.light .hljs-comment, .rust .hljs-comment,
+.light .hljs-quote, .rust .hljs-quote { color: #8B8D8E; font-style: italic; }
+.light .hljs-deletion, .rust .hljs-deletion { color: #A8501A; }
+
+.coal .hljs, .navy .hljs, .ayu .hljs { color: var(--paper); }
+.coal .hljs-keyword, .navy .hljs-keyword, .ayu .hljs-keyword,
+.coal .hljs-selector-tag, .navy .hljs-selector-tag, .ayu .hljs-selector-tag,
+.coal .hljs-literal, .navy .hljs-literal, .ayu .hljs-literal { color: var(--claw); font-weight: 500; }
+.coal .hljs-number, .navy .hljs-number, .ayu .hljs-number { color: var(--claw); }
+.coal .hljs-string, .navy .hljs-string, .ayu .hljs-string,
+.coal .hljs-regexp, .navy .hljs-regexp, .ayu .hljs-regexp,
+.coal .hljs-addition, .navy .hljs-addition, .ayu .hljs-addition { color: #8FCB9B; }
+.coal .hljs-type, .navy .hljs-type, .ayu .hljs-type,
+.coal .hljs-built_in, .navy .hljs-built_in, .ayu .hljs-built_in,
+.coal .hljs-class .hljs-title, .navy .hljs-class .hljs-title, .ayu .hljs-class .hljs-title,
+.coal .hljs-title.class_, .navy .hljs-title.class_, .ayu .hljs-title.class_ { color: #9DB4D8; }
+.coal .hljs-title, .navy .hljs-title, .ayu .hljs-title,
+.coal .hljs-section, .navy .hljs-section, .ayu .hljs-section,
+.coal .hljs-function .hljs-title, .navy .hljs-function .hljs-title, .ayu .hljs-function .hljs-title { color: var(--paper); font-weight: 500; }
+.coal .hljs-attr, .navy .hljs-attr, .ayu .hljs-attr,
+.coal .hljs-attribute, .navy .hljs-attribute, .ayu .hljs-attribute,
+.coal .hljs-variable, .navy .hljs-variable, .ayu .hljs-variable,
+.coal .hljs-symbol, .navy .hljs-symbol, .ayu .hljs-symbol,
+.coal .hljs-property, .navy .hljs-property, .ayu .hljs-property { color: var(--mist); }
+.coal .hljs-meta, .navy .hljs-meta, .ayu .hljs-meta { color: var(--steel); }
+.coal .hljs-comment, .navy .hljs-comment, .ayu .hljs-comment,
+.coal .hljs-quote, .navy .hljs-quote, .ayu .hljs-quote { color: #8B8D8E; font-style: italic; }
+.coal .hljs-deletion, .navy .hljs-deletion, .ayu .hljs-deletion { color: var(--claw); }
+
+/* Tables */
+
+.content table {
+    border-collapse: collapse;
+    margin: 1.2em 0;
+    width: 100%;
+    font-size: 0.92em;
+}
+
+.content table th,
+.content table td {
+    border: 1px solid var(--table-border-color);
+    padding: 0.5em 0.9em;
+    text-align: left;
+    vertical-align: top;
+}
+
+.content table thead th {
+    background-color: var(--table-header-bg);
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-size: 0.85em;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+/* Quotes */
+
+.content blockquote {
+    border-radius: var(--radius);
+    border: none;
+    border-left: 3px solid var(--claw);
+    padding: 0.6em 1.2em;
+}
+
+/* Sidebar: mono section labels, the current page marked by an orange bar */
+
+.sidebar {
+    font-size: 1.5rem;
+    border-right: 1px solid var(--code-border);
+}
+
+.chapter li.part-title {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-size: 0.8em;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 1.6em 0 0.4em;
+}
+
+.chapter li a.active {
+    font-weight: 600;
+    box-shadow: inset 3px 0 0 var(--claw);
+    padding-left: 10px;
+    margin-left: -13px;
+}
+
+/* Previous / next */
+
+.nav-chapters { border-radius: var(--radius); background: transparent; }
+.nav-chapters:hover { background-color: var(--theme-hover); }
+
+/* Mermaid diagrams sit on the page, not in a code box */
+
+.content pre.mermaid {
+    background: transparent;
+    text-align: center;
+}
+
 @media only screen and (max-width: 768px) {
-    .content {
-        margin-left: 0;
-    }
-    
-    .nav-chapters {
-        border-right: none;
-    }
+    .content { font-size: 1.6rem; }
+    .content h1 { font-size: 2em; }
 }
