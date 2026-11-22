@@ -1,19 +1,19 @@
 # Integrating Other Servers
 
 Any HTTP server can serve a reflectapi API through
-`reflectapi::dispatch::Dispatcher`. It needs only the `builder` feature, and it
+[`reflectapi::dispatch::Dispatcher`](https://docs.rs/reflectapi/latest/reflectapi/dispatch/struct.Dispatcher.html). It needs only the `builder` feature, and it
 is what the [axum](./axum.md) and [Worker](./workers.md) integrations are built
 on. This page is the contract an integration implements.
 
 ## Build modes
 
 A server needs the routes; the schema is for generating clients and
-documentation. `Builder<S, M>` takes a build mode:
+documentation. [`Builder<S, M>`](https://docs.rs/reflectapi/latest/reflectapi/struct.Builder.html) takes a build mode:
 
-| Mode | `build()` returns | Use |
+| Mode | [`build()`](https://docs.rs/reflectapi/latest/reflectapi/struct.Builder.html#method.build) returns | Use |
 |---|---|---|
-| `WithSchema` (default) | `(Schema, Vec<Router<S>>)` | Build step: write the schema, generate clients, check them in CI. A server that also serves its schema |
-| `DispatchOnly` | `Vec<Router<S>>` | Serving. Only request-headers types are reflected, for the header names, so startup does almost no schema work and the reflection code of every other type is not linked |
+| [`WithSchema`](https://docs.rs/reflectapi/latest/reflectapi/struct.WithSchema.html) (default) | `(Schema, Vec<Router<S>>)` | Build step: write the schema, generate clients, check them in CI. A server that also serves its schema |
+| [`DispatchOnly`](https://docs.rs/reflectapi/latest/reflectapi/struct.DispatchOnly.html) | `Vec<Router<S>>` | Serving. Only request-headers types are reflected, for the header names, so startup does almost no schema work and the reflection code of every other type is not linked |
 
 Write the definition once, generic over the mode, starting from
 `Builder::default()` (`Builder::new()` is always `WithSchema`):
@@ -71,7 +71,7 @@ the same way:
 
 - Pass all request headers; the dispatcher forwards to each handler only the
   headers it declares, flattened ones included
-  ([Request Headers](../clients/README.md#request-headers)), plus
+  ([Request Headers](../clients/index.md#request-headers)), plus
   `content-type` and `traceparent`.
 - Pass the complete body. Enforce a body size limit before dispatching.
 - The state is cloned into every call: make it cheap to clone (`Arc`, handles).
@@ -87,7 +87,7 @@ server sets when it writes the body (axum does, and so do Worker runtimes).
 - Frame the items with `sse_frames`, and send each frame as soon as it
   arrives: do not buffer the response. An item is an `Event<String>`: the
   serialized value, and the event id if the route gave the item one by
-  wrapping it in `reflectapi::Event`; `sse_event`, which `sse_frames` applies
+  wrapping it in [`reflectapi::Event`](https://docs.rs/reflectapi/latest/reflectapi/struct.Event.html); `sse_event`, which `sse_frames` applies
   to each item, writes the id as the standard SSE `id:` field.
 - An `Err` item is a value that failed to serialize: log it and end the
   response.

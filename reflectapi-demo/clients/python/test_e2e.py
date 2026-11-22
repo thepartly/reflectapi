@@ -15,6 +15,7 @@ from tests.package_imports import (
     MyapiModelKindDog as PetKindDog,
     MyapiModelKindCat as PetKindCat,
     MyapiProtoHeaders as Headers,
+    MyapiProtoPetsListRequest as PetsListRequest,
 )
 from tests.model_helpers import aggressive_behavior, calm_behavior
 
@@ -56,7 +57,9 @@ async def test_e2e():
     # Test 3: List pets
     print("\nTesting pet listing...")
     try:
-        list_response = await client.pets.list(limit=10, headers=headers)
+        list_response = await client.pets.list(
+            data=PetsListRequest(limit=10), headers=headers
+        )
         pets = list_response.value
         print(f"✓ Listed {len(pets.items)} pets")
         for pet in pets.items:

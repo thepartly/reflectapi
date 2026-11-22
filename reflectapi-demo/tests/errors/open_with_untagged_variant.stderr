@@ -1,4 +1,7 @@
 error: #[reflectapi(open)] requires a tagged enum without untagged variants
+
+         = help: see https://thepartly.github.io/reflectapi/getting-started/attributes.html
+
  --> tests/errors/open_with_untagged_variant.rs:3:6
   |
 3 | enum Value {

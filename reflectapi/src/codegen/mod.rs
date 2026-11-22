@@ -1,3 +1,27 @@
+//! Generating clients and OpenAPI from a schema in Rust code (feature
+//! `codegen`), as the `reflectapi codegen` CLI does.
+//!
+//! Each target has a module with a `Config` and a `generate` function:
+//! [`typescript`], [`rust`], [`python`] and [`openapi`].
+//!
+//! ```rust
+//! # #[cfg(feature = "builder")]
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! let (schema, _routers) = reflectapi::Builder::<()>::new().name("My API").build()?;
+//!
+//! let rust: String = reflectapi::codegen::rust::generate(schema.clone(), &Default::default())?;
+//! // File name to contents: `generated.ts` and `generated.transport.ts`.
+//! let typescript = reflectapi::codegen::typescript::generate(schema, &Default::default())?;
+//! # let _ = (rust, typescript);
+//! # Ok(())
+//! # }
+//! # #[cfg(not(feature = "builder"))]
+//! # fn main() {}
+//! ```
+//!
+//! Generate at build time, from a test or a binary, and commit the output; see
+//! [Generate the schema and clients at build time](https://thepartly.github.io/reflectapi/serving/workers.html#generate-the-schema-and-clients-at-build-time).
+
 mod format;
 pub mod openapi;
 pub mod python;
@@ -16,6 +40,9 @@ use std::{
 };
 
 use self::format::format_with;
+
+/// The guide's page on generated clients, named in every generated file's header.
+pub(crate) const CLIENTS_GUIDE: &str = "https://thepartly.github.io/reflectapi/clients/";
 
 /// Validate client enum policies, including schemas loaded directly from JSON.
 pub(super) fn validate_response_enums(schema: &crate::Schema) -> anyhow::Result<()> {

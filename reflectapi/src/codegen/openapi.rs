@@ -20,6 +20,7 @@ use InlineOrRef::Inline;
 use reflectapi_schema::{Instantiate, Substitute};
 use serde::Serialize;
 
+/// Options for [`generate`] and [`generate_spec`].
 #[derive(Debug, Default)]
 pub struct Config {
     /// This list of tags is used to control the ordering in documentation.
@@ -32,27 +33,32 @@ pub struct Config {
 }
 
 impl Config {
+    /// Tags, with descriptions, in the order documentation lists them.
     pub fn tags(&mut self, tags: Vec<Tag>) -> &mut Self {
         self.tags = tags;
         self
     }
 
+    /// Generates only the routes with one of these tags; empty for all.
     pub fn include_tags(&mut self, tags: BTreeSet<String>) -> &mut Self {
         self.include_tags = tags;
         self
     }
 
+    /// Leaves out the routes with one of these tags.
     pub fn exclude_tags(&mut self, tags: BTreeSet<String>) -> &mut Self {
         self.exclude_tags = tags;
         self
     }
 }
 
+/// Generates the OpenAPI 3.1 document as JSON.
 pub fn generate(schema: &crate::Schema, config: &Config) -> anyhow::Result<String> {
     let spec = generate_spec(schema, config);
     Ok(serde_json::to_string_pretty(&spec)?)
 }
 
+/// Generates the OpenAPI 3.1 document, to serialize or serve.
 pub fn generate_spec(schema: &crate::Schema, config: &Config) -> Spec {
     let mut schema = schema.clone();
     schema.strip_hidden_fields();
@@ -68,6 +74,8 @@ impl From<&crate::Schema> for Spec {
     }
 }
 
+/// An OpenAPI 3.1 document. Serialize it as JSON, for example to serve it
+/// from an endpoint; `Spec::from(&schema)` uses the default [`Config`].
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[non_exhaustive]
 pub struct Spec {
@@ -80,6 +88,7 @@ pub struct Spec {
     pub components: Components,
 }
 
+/// A tag and its description, for [`Config::tags`].
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[non_exhaustive]
 pub struct Tag {
@@ -104,6 +113,7 @@ impl Tag {
     }
 }
 
+#[doc(hidden)]
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 #[non_exhaustive]
@@ -113,12 +123,14 @@ pub struct Info {
     pub version: String,
 }
 
+#[doc(hidden)]
 #[derive(Debug, Clone, PartialEq, Default, Serialize)]
 #[non_exhaustive]
 pub struct Components {
     schemas: BTreeMap<String, Schema>,
 }
 
+#[doc(hidden)]
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[non_exhaustive]
 pub struct PathItem {
@@ -128,6 +140,7 @@ pub struct PathItem {
     post: Operation,
 }
 
+#[doc(hidden)]
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 #[non_exhaustive]
@@ -150,6 +163,7 @@ fn is_false(b: &bool) -> bool {
     !*b
 }
 
+#[doc(hidden)]
 /// `deprecated: true` and, beside it, the release as `x-deprecated-in` and the
 /// dates as `x-deprecated-since` and `x-sunset` (the extension oasdiff reads
 /// as the earliest removal date).
@@ -177,6 +191,7 @@ impl From<Option<crate::Deprecation<'_>>> for Deprecation {
     }
 }
 
+#[doc(hidden)]
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[non_exhaustive]
 pub struct Parameter {
@@ -197,6 +212,7 @@ enum In {
     Header,
 }
 
+#[doc(hidden)]
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[non_exhaustive]
 pub struct RequestBody {
@@ -204,6 +220,7 @@ pub struct RequestBody {
     required: bool,
 }
 
+#[doc(hidden)]
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[non_exhaustive]
 pub struct Response {
@@ -214,6 +231,7 @@ pub struct Response {
     content: BTreeMap<String, MediaType>,
 }
 
+#[doc(hidden)]
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[non_exhaustive]
 pub struct Header {
@@ -224,12 +242,14 @@ pub struct Header {
     deprecation: Deprecation,
 }
 
+#[doc(hidden)]
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[non_exhaustive]
 pub struct MediaType {
     schema: InlineOrRef<Schema>,
 }
 
+#[doc(hidden)]
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 #[non_exhaustive]
@@ -255,6 +275,7 @@ impl StringFormat {
     }
 }
 
+#[doc(hidden)]
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(tag = "type")]
 #[serde(rename_all = "camelCase")]
@@ -303,6 +324,7 @@ pub enum Type {
     Null,
 }
 
+#[doc(hidden)]
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct Property {
@@ -357,6 +379,7 @@ impl serde::Serialize for Property {
     }
 }
 
+#[doc(hidden)]
 #[derive(Clone, PartialEq, Serialize)]
 #[serde(untagged)]
 #[serde(rename_all = "camelCase")]
@@ -395,6 +418,7 @@ pub enum Schema {
     },
 }
 
+#[doc(hidden)]
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct DeprecatedSchema {
@@ -466,6 +490,7 @@ impl Schema {
     }
 }
 
+#[doc(hidden)]
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 #[non_exhaustive]
@@ -474,6 +499,7 @@ pub struct Discriminator {
     pub property_name: String,
 }
 
+#[doc(hidden)]
 #[derive(Clone, Debug, Serialize, PartialEq)]
 #[non_exhaustive]
 pub struct FlatSchema {
@@ -505,6 +531,7 @@ impl FlatSchema {
     }
 }
 
+#[doc(hidden)]
 #[derive(Clone, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum InlineOrRef<T> {
@@ -521,6 +548,7 @@ impl<T: fmt::Debug> fmt::Debug for InlineOrRef<T> {
     }
 }
 
+#[doc(hidden)]
 #[derive(Clone, PartialEq, Serialize)]
 #[non_exhaustive]
 pub struct Ref<T> {

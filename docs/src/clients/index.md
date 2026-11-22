@@ -8,9 +8,24 @@
 |--------|--------|-------|
 | TypeScript | Stable | Two generated files: API surface + transport contract |
 | Rust | Stable | Single generated file |
-| Python | Experimental | Package-style output with real namespace submodules |
+| Python | Stable | Package-style output with real namespace submodules |
 
-OpenAPI generation is also supported by the CLI, but it is documented separately as an API description format rather than a client library.
+The same schema also produces an OpenAPI 3.1 document, which describes the
+API rather than calling it:
+
+```bash
+reflectapi codegen --language openapi --schema reflectapi.json --output openapi/
+```
+
+`reflectapi doc open reflectapi.json` serves that document with Redoc at
+`http://localhost:8080`, and a server can build and serve it itself; see
+[The schema](../serving/axum.md#the-schema). The document describes the
+currently declared wire shapes, so it does not include the unknown case that
+generated clients add for [open enums](#handling-unfamiliar-enum-variants).
+Use the generated clients where one exists for your language, and the OpenAPI
+document for other languages, documentation and tools that read OpenAPI.
+`--include-tags` and `--exclude-tags` currently filter the OpenAPI output
+only; see [Tags and partial clients](../concepts/organising.md#tags-and-partial-clients).
 
 ## Workflow
 
@@ -21,11 +36,11 @@ OpenAPI generation is also supported by the CLI, but it is documented separately
 
 The CLI defaults to `reflectapi.json` if `--schema` is omitted. The demo project uses that filename. If your application writes a different filename such as `reflectapi-schema.json`, pass that path explicitly.
 
-```bash
-# Create output directories first. TypeScript and Rust write a single file
-# unless the output path already exists as a directory or ends with a slash.
-mkdir -p clients/typescript clients/python clients/rust
+`--output` is a directory, created if needed, unless its last part is the
+name of a generated file, such as `generated.ts`: then the file is written
+there, with any sibling files beside it.
 
+```bash
 # Generate TypeScript client -> clients/typescript/generated.ts
 #                          and clients/typescript/generated.transport.ts
 cargo run --bin reflectapi -- codegen \
@@ -83,7 +98,7 @@ with `Request()`, or sent as null with `Request(value=None)`. Generated fields
 with known non-nullable primitive or container types reject explicit null.
 Opaque aliases and custom codecs may require server-side validation.
 
-Rust named optional nullable request fields use `reflectapi::Option<T>`:
+Rust named optional nullable request fields use [`reflectapi::Option<T>`](https://docs.rs/reflectapi/latest/reflectapi/enum.Option.html):
 `Undefined` omits the key, `None` sends null, and `Some(value)` sends the value.
 After regenerating, update affected field initializers that previously used
 `std::option::Option<T>`. Output-only nullable fields keep their existing types.
@@ -153,6 +168,12 @@ After regenerating, update affected field initializers that previously used
   the imported top-level type and exposes its own type under a disambiguated,
   namespace-prefixed name (`nomatches.NomatchesIfConflictOnUpdate`). This keeps
   one Python class per logical type so `model.<X>` resolves consistently.
+- Raises `ApplicationError` for a route's error; see
+  [Errors](../concepts/errors.md#python).
+- Groups routes at every `.` of their name, as TypeScript and Rust do:
+  `orders.items.list` is `client.orders.items.list`. Paths from earlier
+  releases, which split a name at its first `_`, remain as deprecated aliases
+  that warn when used.
 - Uses `reflectapi_runtime` for client base classes and runtime helpers.
   Install the `reflectapi-runtime` release that matches the CLI that
   generated the client: generated code can call helpers an older runtime
@@ -169,11 +190,11 @@ After regenerating, update affected field initializers that previously used
 ### Rust
 
 - Generates typed async client methods.
-- Integrates with `reflectapi::rt::Client`. The transport carries the
+- Integrates with [`reflectapi::rt::Client`](https://docs.rs/reflectapi/latest/reflectapi/rt/trait.Client.html). The transport carries the
   base URL (`Client::base_url`); the per-request `Request` DTO carries
   only `path`, `headers`, and `body` — same shape as TypeScript and
   Python.
-- Built-in transports: `reflectapi::rt::ReqwestClient` (a thin wrapper
+- Built-in transports: [`reflectapi::rt::ReqwestClient`](https://docs.rs/reflectapi/latest/reflectapi/rt/struct.ReqwestClient.html) (a thin wrapper
   around `reqwest::Client` + base URL) and the type alias
   `ReqwestMiddlewareClient` for `reqwest_middleware::ClientWithMiddleware`.
 - Generated `Interface<C>` exposes:
@@ -258,7 +279,7 @@ representation restrictions and migration requirements.
 
 ## Streaming Endpoints
 
-Endpoints registered with `Builder::stream_route` produce a stream of items
+Endpoints registered with [`Builder::stream_route`](https://docs.rs/reflectapi/latest/reflectapi/struct.Builder.html#method.stream_route) produce a stream of items
 rather than a single response. The wire format is Server-Sent Events: each
 item is sent as a `data: <json>\n\n` event. Errors raised before the stream
 opens are returned as a normal HTTP 4xx/5xx response, not as SSE events.
@@ -268,7 +289,7 @@ lines (see [Serving with axum](../serving/axum.md#keep-idle-streams-open));
 every generated client ignores them.
 
 A stream can give its events ids, so that it can be resumed: the handler
-yields each item wrapped in `reflectapi::Event`, usually with an id the item
+yields each item wrapped in [`reflectapi::Event`](https://docs.rs/reflectapi/latest/reflectapi/struct.Event.html), usually with an id the item
 already carries, and the event is sent with the standard SSE `id:` field
 before its `data:`. A route that declares the `last-event-id` request header
 gets the id of the last event the client received, when the client, or a
@@ -292,7 +313,7 @@ async fn pets_events(
 }
 ```
 
-The id is a `reflectapi::EventId`. Integers and `uuid::Uuid` convert to one
+The id is a [`reflectapi::EventId`](https://docs.rs/reflectapi/latest/reflectapi/struct.EventId.html). Integers and `uuid::Uuid` convert to one
 as is; a string goes through `EventId::new`, which returns an error if it
 contains a line break or NUL, as such an id cannot be sent. Generated clients
 read the ids but do not yet send `Last-Event-ID` when they reconnect.
@@ -300,7 +321,7 @@ read the ids but do not yet send `Last-Event-ID` when they reconnect.
 | Output | Streaming client surface |
 |--------|--------------------------|
 | TypeScript | Method returns `Promise<Result<AsyncIterable<Item>, Err<Error>>>`; consume with `for await`. |
-| Rust | Method returns `reflectapi::rt::StreamResponse<Item, AppError, NetError>`. The outer `Result` reports init failures (application or network); inner items report per-item transport/decode failures only — application errors cannot occur after the stream is open. Requires the `rt-sse` Cargo feature on the `reflectapi` dependency. |
+| Rust | Method returns [`reflectapi::rt::StreamResponse<Item, AppError, NetError>`](https://docs.rs/reflectapi/latest/reflectapi/rt/type.StreamResponse.html). The outer `Result` reports init failures (application or network); inner items report per-item transport/decode failures only — application errors cannot occur after the stream is open. Requires the `rt-sse` Cargo feature on the `reflectapi` dependency. |
 | Python | Method returns `AsyncApiStream[Item]` on the async client and `ApiStream[Item]` on the sync client: iterators that also expose the response's `metadata` and declared `headers` once iteration starts. Init 4xx/5xx raise `ApplicationError` (with the typed `error_model` if declared); per-event problems raise `NetworkError` / `TimeoutError` / `ValidationError` and terminate the iterator without a leaked socket. |
 | OpenAPI | Operation is described with `text/event-stream` response content. |
 
@@ -415,7 +436,7 @@ declare its own, whether added before or after the call, including the routes
 of builders merged in with `nest` or `extend` that have no declaration of their
 own. Routes that already declare response headers keep them. Use
 `RouteBuilder::response_headers` to declare a different set for one route. As
-with routes, call `rename_types` after declaring response headers so the rename
+with routes, call [`rename_types`](https://docs.rs/reflectapi/latest/reflectapi/struct.Builder.html#method.rename_types) after declaring response headers so the rename
 applies to the headers type.
 
 A header that appears more than once is read as its values joined with `, `.

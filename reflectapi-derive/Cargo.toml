@@ -1,16 +1,16 @@
 [package]
 name = "reflectapi-derive"
-version = "0.25.2"
+version = "0.26.0"
 edition = "2021"
 
-license = "Apache-2.0"
+license = "MIT OR Apache-2.0"
 description = "Derive macros for reflectapi"
 repository = "https://github.com/thepartly/reflectapi"
-homepage = "https://github.com/thepartly/reflectapi"
+homepage = "https://thepartly.github.io/reflectapi/"
 documentation = "https://docs.rs/reflectapi-derive"
 readme = "README.md"
 
-keywords = ["derive", "macro", "reflectapi", "reflection"]
+keywords = ["derive", "macro", "reflection", "codegen", "api"]
 categories = ["web-programming", "development-tools", "api-bindings"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -22,7 +22,7 @@ workspace = true
 proc-macro = true
 
 [dependencies]
-reflectapi-schema = { path = '../reflectapi-schema', version = "0.25.2" }
+reflectapi-schema = { path = '../reflectapi-schema', version = "0.26.0" }
 
 proc-macro2 = "1.0"
 quote = "1.0"

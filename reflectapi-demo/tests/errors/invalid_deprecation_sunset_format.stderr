@@ -1,4 +1,7 @@
 error: `sunset`: invalid date `2026-02-30`, expected a calendar date as YYYY-MM-DD
+
+         = help: see https://thepartly.github.io/reflectapi/getting-started/attributes.html
+
  --> tests/errors/invalid_deprecation_sunset_format.rs:4:27
   |
 4 |     #[reflectapi(sunset = "2026-02-30")]

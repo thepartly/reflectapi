@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "author": "",
-  "license": "ISC",
+  "license": "MIT OR Apache-2.0",
   "type": "commonjs",
   "main": "build/index.js",
   "scripts": {
