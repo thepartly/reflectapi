@@ -673,11 +673,9 @@ fn python_flattened_enum_keeps_release_and_date_deprecation() {
 
     let files = reflectapi::codegen::python::generate_files(
         schema,
-        &reflectapi::codegen::python::Config {
-            package_name: "enum_client".into(),
-            format: false,
-            ..Default::default()
-        },
+        reflectapi::codegen::python::Config::default()
+            .package_name("enum_client")
+            .format(false),
     )
     .unwrap();
     let output = &files["enum_compatibility/fixtures/output/__init__.py"];
@@ -798,14 +796,13 @@ fn write_generated_clients() {
     }
     for (filename, source) in reflectapi::codegen::python::generate_files(
         schema,
-        &reflectapi::codegen::python::Config {
-            package_name: "enum_client".into(),
-            generate_async: true,
-            generate_sync: true,
-            generate_testing: false,
-            format: false,
-            base_url: None,
-        },
+        reflectapi::codegen::python::Config::default()
+            .package_name("enum_client")
+            .generate_async(true)
+            .generate_sync(true)
+            .generate_testing(false)
+            .format(false)
+            .base_url(None),
     )
     .unwrap()
     {
