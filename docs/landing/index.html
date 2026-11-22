@@ -101,18 +101,8 @@
   /* Top bar */
   header.top { border-bottom: 1px solid var(--mist); }
   header.top .wrap { display: flex; align-items: center; justify-content: space-between; height: 72px; }
-  .wordmark {
-    font-family: var(--font-display);
-    font-weight: 600;
-    font-size: 26px;
-    letter-spacing: -.02em;
-    color: var(--night);
-    text-decoration: none;
-  }
-  .wordmark { display: inline-flex; align-items: center; gap: 10px; }
-  .wordmark img { height: 34px; mix-blend-mode: multiply; }
-  .wordmark b { font-weight: 600; }
-  .wordmark span { color: var(--claw); }
+  .wordmark { display: inline-flex; }
+  .wordmark img { height: 34px; }
   nav { display: flex; gap: 28px; }
   nav a { text-decoration: none; color: var(--ink); }
   nav a:hover { color: var(--night); text-decoration: underline; }
@@ -286,7 +276,7 @@
 
 <header class="top">
   <div class="wrap">
-    <a class="wordmark" href="./"><img src="reflectapi-logo.png" alt=""><b>reflect<span>api</span></b></a>
+    <a class="wordmark" href="./"><img src="reflectapi-wordmark.svg" alt="reflectapi"></a>
     <nav>
       <a href="introduction.html">Guide</a>
       <a class="wide" href="https://docs.rs/reflectapi">API reference</a>
@@ -756,7 +746,7 @@ api = <span class="fn">AsyncClient</span>(<span class="st">"https://api.example.
 <footer>
   <div class="wrap">
     <div class="footer-main">
-    <a class="wordmark" href="#top"><img src="reflectapi-logo.png" alt=""><b>reflect<span>api</span></b></a>
+    <a class="wordmark" href="#top"><img src="reflectapi-wordmark.svg" alt="reflectapi"></a>
     <nav>
       <a href="introduction.html">Guide</a>
       <a href="https://docs.rs/reflectapi">API reference</a>
@@ -764,6 +754,7 @@ api = <span class="fn">AsyncClient</span>(<span class="st">"https://api.example.
       <a href="https://github.com/thepartly/reflectapi/tree/main/reflectapi-demo">Full example</a>
       <a href="https://github.com/thepartly/reflectapi">GitHub</a>
       <a href="llms.txt">llms.txt</a>
+      <a href="https://github.com/thepartly/reflectapi#license">MIT or Apache-2.0</a>
     </nav>
     </div>
     <a class="partly" href="https://partly.com">

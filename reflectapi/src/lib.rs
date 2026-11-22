@@ -63,6 +63,10 @@
 //!
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
+#![doc(
+    html_logo_url = "https://thepartly.github.io/reflectapi/reflectapi-logo.png",
+    html_favicon_url = "https://thepartly.github.io/reflectapi/reflectapi-logo.png"
+)]
 
 mod empty;
 mod impls;

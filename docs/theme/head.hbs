@@ -14,8 +14,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Oxanium:wght@600&display=swap">
 {{!--
-  The top bar shows reflectapi's logo and wordmark, linking to the landing
-  page, in place of the book's title; and the theme
+  The top bar shows reflectapi's wordmark (light and dark images; custom.css
+  shows the one for the theme), linking to the landing page, in place of the
+  book's title; and the theme
   menu offers two themes: Light, and Dark (mdBook's "coal"). A first visit
   follows the system setting (default-theme and preferred-dark-theme in
   book.toml). custom.css styles the other mdBook themes as one of the two,
@@ -36,7 +37,8 @@
       link.className = "brand";
       link.title = "reflectapi home";
       link.innerHTML =
-        '<img src="{{ path_to_root }}reflectapi-logo.png" alt=""><span>reflect<b>api</b></span>';
+        '<img class="light-logo" src="{{ path_to_root }}reflectapi-wordmark.svg" alt="reflectapi">' +
+        '<img class="dark-logo" src="{{ path_to_root }}reflectapi-wordmark-dark.svg" alt="reflectapi">';
       title.replaceChildren(link);
     }
   });

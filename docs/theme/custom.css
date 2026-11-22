@@ -150,7 +150,7 @@ html, body {
     letter-spacing: -0.02em;
 }
 
-/* The top bar's brand: logo and wordmark, linking to the landing page */
+/* The top bar's brand: the wordmark image, linking to the landing page */
 /* Held to the bar's height: a taller title grows the bar, and the menu
    toggle (a label, not a button) then sits higher than the other icons. */
 .menu-title {
@@ -159,23 +159,17 @@ html, body {
 .menu-title a.brand {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
     height: var(--menu-bar-height);
     vertical-align: top;
-    color: var(--fg);
-    text-decoration: none;
-    font-size: 2.2rem;
 }
 .menu-title a.brand img { height: 30px; }
-.menu-title a.brand b { font-weight: 600; color: var(--claw); }
-.coal .menu-title a.brand img,
-.navy .menu-title a.brand img,
-.ayu .menu-title a.brand img {
-    mix-blend-mode: normal;
-    background: var(--paper);
-    border-radius: 6px;
-    padding: 2px;
-}
+.menu-title a.brand .dark-logo,
+.coal .menu-title a.brand .light-logo,
+.navy .menu-title a.brand .light-logo,
+.ayu .menu-title a.brand .light-logo { display: none; }
+.coal .menu-title a.brand .dark-logo,
+.navy .menu-title a.brand .dark-logo,
+.ayu .menu-title a.brand .dark-logo { display: block; }
 
 /* Code */
 
