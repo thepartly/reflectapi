@@ -6,8 +6,7 @@ mod symbol;
 mod tokenizable_schema;
 
 /// The guide's page on the `#[reflectapi(...)]` attributes, named in errors.
-const ATTRIBUTES_GUIDE: &str =
-    "https://reflectapi.rs/getting-started/attributes.html";
+const ATTRIBUTES_GUIDE: &str = "https://reflectapi.rs/getting-started/attributes.html";
 
 /// The guide's section on a route's error, named in `StatusCode` errors.
 const ROUTE_ERROR_GUIDE: &str =
