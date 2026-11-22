@@ -247,29 +247,24 @@ where
         // Respond in the same format as the request
         response_headers.insert("content-type", content_type.into());
 
-        let mut headers_as_json_map = serde_json::Map::new();
-        let mut current_header_name = None;
+        let mut request_headers = Vec::new();
         for (header_name, header_value) in handler_input.headers.drain() {
-            // `drain` names a header once, followed by its remaining values.
-            if let Some(header_name) = header_name {
-                current_header_name = Some(header_name);
-            }
-            let Some(header_name) = current_header_name.clone() else {
+            // `drain` names a header with its first value; its later values
+            // come without a name, and a route reads only the first.
+            let Some(header_name) = header_name else {
                 continue;
             };
-
             if header_name == "traceparent" {
-                response_headers.insert("traceparent", header_value.clone());
+                response_headers.insert("traceparent", header_value);
             } else {
-                headers_as_json_map.insert(
+                request_headers.push((
                     header_name.to_string(),
-                    serde_json::Value::String(header_value.to_str().unwrap_or_default().to_owned()),
-                );
+                    header_value.to_str().unwrap_or_default().to_owned(),
+                ));
             }
         }
-        let headers_as_json = serde_json::Value::Object(headers_as_json_map);
 
-        let input_headers = serde_json::from_value::<H>(headers_as_json);
+        let input_headers = super::headers::from_headers::<H>(&request_headers);
         let input_headers = match input_headers {
             Ok(r) => r,
             Err(err) => {

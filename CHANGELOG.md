@@ -6,6 +6,7 @@ The user guide moves to [thepartly.github.io/reflectapi](https://thepartly.githu
 
 ### Added
 
+- **A request headers type can have number, `bool` and `char` fields**, such as `limit: u32` for `x-limit: 25`: each header value is parsed when its field asks for one, where every value was a JSON string and such a field failed with `400`. A value that doesn't parse is a `400` saying what was expected. Fields inside a `#[serde(flatten)]` field are still read as strings, as serde buffers them untyped. A header sent more than once is now read as its first value, as documented, where its last value won.
 - **`#[reflectapi(distinct)]`** keeps a newtype, such as `struct UserId(Uuid)`, a type of its own in generated clients, as Rust does, so one ID can't be passed where another of the same wire type is expected. The wire is unchanged.
   - **TypeScript:** a branded type with a constructor of the same name.
   - **Rust client:** a newtype rather than a type alias.

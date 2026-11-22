@@ -329,7 +329,9 @@ read the ids but do not yet send `Last-Event-ID` when they reconnect.
 
 A route reads request headers through its third argument, a struct whose
 fields' serde names are the header names. Its handler is given only those
-headers. A `#[serde(flatten)]` field gives its type's fields as headers too,
+headers. A field can be a string, a number, a `bool`, a unit-variant enum, or
+a type read from a string such as a UUID or a timestamp; see
+[Headers](../concepts/wire.md#headers). A `#[serde(flatten)]` field gives its type's fields as headers too,
 at any depth, so headers that several routes read can be declared once and
 flattened into each route's own. The flattened type must be a struct with
 named fields, possibly in an `Option` or a `Box`; the builder refuses any

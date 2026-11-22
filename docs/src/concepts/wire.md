@@ -89,10 +89,14 @@ lowercase form.
 
 - A field that is not an `Option` is a required header. Without it, the
   request is refused with `400` before the handler runs.
-- Each value is passed to the field's type as a string, so a field must be a
-  string on the wire: `String`, a unit-variant enum, or a type such as
-  `uuid::Uuid` or `chrono::DateTime`. A number or `bool` field fails with
-  `400` whenever its header is sent.
+- Each value is text, given to the field's type as a string and parsed when
+  the field is a number, a `bool` or a `char`. So a field can be a `String`,
+  a number, a `bool`, a unit-variant enum, or a type read from a string such
+  as `uuid::Uuid` or `chrono::DateTime`. A value that doesn't parse is
+  refused with `400`, saying what was expected.
+- Inside a `#[serde(flatten)]` field values stay strings, because serde
+  buffers a flattened field's values before it knows their types: a number
+  or `bool` there fails with `400`.
 - If a header appears more than once, the first value is read.
 - The handler is given only the headers it declares. Others, such as
   cookies or a proxy's headers, are dropped before it runs.
