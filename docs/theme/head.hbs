@@ -1,0 +1,83 @@
+{{!--
+  Added to the <head> of every page of the book.
+
+  To verify the site in Google Search Console (URL-prefix property
+  https://thepartly.github.io/reflectapi/), paste the verification tag it
+  gives below, for example:
+
+  <meta name="google-site-verification" content="...">
+
+  Bing Webmaster Tools can import the site from Search Console instead.
+--}}
+<link rel="sitemap" type="application/xml" href="{{ path_to_root }}sitemap.xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Oxanium:wght@600&display=swap">
+{{!--
+  The top bar shows reflectapi's wordmark (light and dark images; custom.css
+  shows the one for the theme), linking to the landing page, in place of the
+  book's title; and the theme
+  menu offers two themes: Light, and Dark (mdBook's "coal"). A first visit
+  follows the system setting (default-theme and preferred-dark-theme in
+  book.toml). custom.css styles the other mdBook themes as one of the two,
+  for readers who chose one before.
+--}}
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    for (const id of ["default_theme", "rust", "navy", "ayu"]) {
+      document.getElementById(id)?.closest("li")?.remove();
+    }
+    const dark = document.getElementById("coal");
+    if (dark) dark.textContent = "Dark";
+
+    const title = document.querySelector(".menu-title");
+    if (title) {
+      const link = document.createElement("a");
+      link.href = "{{ path_to_root }}index.html";
+      link.className = "brand";
+      link.title = "reflectapi home";
+      link.innerHTML =
+        '<img class="light-logo" src="{{ path_to_root }}reflectapi-wordmark.svg" alt="reflectapi">' +
+        '<img class="dark-logo" src="{{ path_to_root }}reflectapi-wordmark-dark.svg" alt="reflectapi">';
+      title.replaceChildren(link);
+    }
+  });
+</script>
+{{!--
+  Renders ```mermaid code blocks as diagrams, in the book's silver palette,
+  light or dark to match the book's theme. A module script runs after the page is
+  parsed, so the code blocks exist by then.
+--}}
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+
+  const dark = ["coal", "navy", "ayu"].some((theme) =>
+    document.documentElement.classList.contains(theme),
+  );
+  const font = '"Geist", "Helvetica Neue", Arial, sans-serif';
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: "base",
+    themeVariables: dark
+      ? { darkMode: true, background: "#131414", primaryColor: "#1B1C1C",
+          primaryTextColor: "#F7F7F7", primaryBorderColor: "#6E6F70",
+          lineColor: "#B2B5B6", secondaryColor: "#494B4D",
+          tertiaryColor: "#1B1C1C", edgeLabelBackground: "#131414", fontFamily: font }
+      : { background: "#FFFFFF", primaryColor: "#F7F7F7",
+          primaryTextColor: "#131414", primaryBorderColor: "#B2B5B6",
+          lineColor: "#6E6F70", secondaryColor: "#FFFFFF",
+          tertiaryColor: "#F7F7F7", edgeLabelBackground: "#FFFFFF", fontFamily: font },
+  });
+
+  const diagrams = [];
+  for (const code of document.querySelectorAll("pre > code.language-mermaid")) {
+    const diagram = document.createElement("pre");
+    diagram.className = "mermaid";
+    diagram.textContent = code.textContent;
+    code.parentElement.replaceWith(diagram);
+    diagrams.push(diagram);
+  }
+  if (diagrams.length > 0) {
+    await mermaid.run({ nodes: diagrams });
+  }
+</script>

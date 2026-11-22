@@ -1,4 +1,7 @@
 error: #[reflectapi(distinct)] applies to a newtype struct, `struct Id(Uuid)`, or a #[serde(transparent)] struct with one field
+
+         = help: see https://thepartly.github.io/reflectapi/getting-started/attributes.html
+
  --> tests/errors/distinct_on_named_struct.rs:3:8
   |
 3 | struct Point {

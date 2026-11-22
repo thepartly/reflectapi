@@ -1,17 +1,17 @@
 [package]
 name = "reflectapi-cli"
-version = "0.25.2"
+version = "0.26.0"
 edition = "2021"
 default-run = "reflectapi"
 
-license = "Apache-2.0"
+license = "MIT OR Apache-2.0"
 description = "CLI for reflectapi"
-homepage = "https://github.com/thepartly/reflectapi"
+homepage = "https://thepartly.github.io/reflectapi/"
 documentation = "https://docs.rs/reflectapi-cli"
 repository = "https://github.com/thepartly/reflectapi"
 readme = "README.md"
 
-keywords = ["reflectapi", "reflection", "cli", "codegen", "restapi-client"]
+keywords = ["cli", "codegen", "typescript", "python", "openapi"]
 categories = ["web-programming", "development-tools", "api-bindings"]
 
 # `cargo binstall reflectapi-cli` downloads the archive the release workflow
@@ -30,7 +30,7 @@ doc = false
 workspace = true
 
 [dependencies]
-reflectapi = { path = "../reflectapi", version = "0.25.2", features = ["codegen"] }
+reflectapi = { path = "../reflectapi", version = "0.26.0", features = ["codegen"] }
 rouille = "3"
 
 clap = { version = "4.5.3", features = ["derive"] }
