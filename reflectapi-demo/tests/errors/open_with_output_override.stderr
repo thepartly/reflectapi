@@ -1,4 +1,7 @@
 error: #[reflectapi(open)] cannot be combined with an output type override
+
+         = help: see https://thepartly.github.io/reflectapi/getting-started/attributes.html
+
  --> tests/errors/open_with_output_override.rs:3:6
   |
 3 | enum Value {

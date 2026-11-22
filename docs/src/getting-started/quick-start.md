@@ -1,24 +1,13 @@
 # Quick Start
 
-This guide will have you up and running with `reflectapi` in under 5 minutes.
+Build a small API in Rust, serve it with axum, and call it from a generated
+TypeScript client.
 
-## Prerequisites
-
-- Rust 1.78.0 or later
-- Basic familiarity with Rust and web APIs
-
-## Create a New Project
+## Create a project
 
 ```bash
 cargo new my-api
 cd my-api
-```
-
-## Add Dependencies
-
-Add the dependencies used by this example:
-
-```bash
 cargo add reflectapi --features builder,axum
 cargo add serde --features derive
 cargo add serde_json
@@ -26,16 +15,17 @@ cargo add tokio --features full
 cargo add axum
 ```
 
-## Define Your API
+[Installation](./installation.md) lists the other crate features.
 
-Replace the contents of `src/main.rs`:
+## Define the API
 
-```rust,ignore
-// This is a complete example for src/main.rs
+Replace `src/main.rs`:
 
+```rust,no_run
 use reflectapi::{Builder, Input, Output};
 use serde::{Deserialize, Serialize};
 
+/// A user of the system.
 #[derive(Serialize, Output)]
 struct User {
     id: u32,
@@ -49,127 +39,98 @@ struct CreateUserRequest {
     email: String,
 }
 
-// Handler functions need specific signatures for reflectapi
-async fn create_user(_state: (), req: CreateUserRequest, _headers: ()) -> User {
-    // In a real app, you'd save to a database
-    User { 
-        id: 1, 
-        name: req.name, 
-        email: req.email 
-    }
+async fn create_user(_state: (), req: CreateUserRequest, _headers: reflectapi::Empty) -> User {
+    User { id: 1, name: req.name, email: req.email }
 }
 
-async fn get_user(_state: (), id: u32, _headers: ()) -> Option<User> {
-    // In a real app, you'd query a database
-    if id == 1 {
-        Some(User {
-            id: 1,
-            name: "Alice".to_string(),
-            email: "alice@example.com".to_string(),
-        })
-    } else {
-        None
-    }
+async fn get_user(_state: (), id: u32, _headers: reflectapi::Empty) -> Option<User> {
+    (id == 1).then(|| User {
+        id: 1,
+        name: "Alice".to_string(),
+        email: "alice@example.com".to_string(),
+    })
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Build the API schema
-    let builder = Builder::new()
+    let (schema, routers) = Builder::new()
         .name("User API")
         .description("A simple user management API")
         .route(create_user, |route| {
-            route
-                .name("users.create")
-                .description("Create a new user")
+            route.name("users.create").description("Create a new user")
         })
         .route(get_user, |route| {
-            route
-                .name("users.get")
-                .description("Get a user by ID")
-        });
+            route.name("users.get").description("Get a user by ID")
+        })
+        .build()?;
 
-    let (schema, routers) = builder.build()?;
-    
-    // Save schema for client generation
-    let schema_json = serde_json::to_string_pretty(&schema)?;
-    std::fs::write("reflectapi.json", schema_json)?;
+    // The schema is what clients are generated from.
+    std::fs::write("reflectapi.json", serde_json::to_string_pretty(&schema)?)?;
 
-    println!("✅ API schema generated at reflectapi.json");
-    
-    // Start the HTTP server
-    let app_state = (); // No state needed for this example
-    let axum_app = reflectapi::axum::into_router(
-        app_state,
+    let app = reflectapi::axum::into_router(
+        (),
         routers,
         reflectapi::axum::RouterSettings::default(),
-        |_name, r| r,
+        |_name, router| router,
     );
-    
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
-    println!("🚀 Server running on http://0.0.0.0:3000");
-    println!("📖 Ready to generate clients!");
-    
-    axum::serve(listener, axum_app).await?;
-    
+    axum::serve(listener, app).await?;
     Ok(())
 }
 ```
 
-## Run Your API Server
+- A type the server returns derives `Serialize` and [`Output`](https://docs.rs/reflectapi/latest/reflectapi/trait.Output.html); a type it
+  accepts derives `Deserialize` and [`Input`](https://docs.rs/reflectapi/latest/reflectapi/trait.Input.html). A type used both ways derives
+  all four.
+- A handler takes the application state, the request input and the request
+  headers. [`reflectapi::Empty`](https://docs.rs/reflectapi/latest/reflectapi/struct.Empty.html) means the route reads no headers.
+- Doc comments on types and fields, and each route's `description`, are
+  carried into the generated clients.
 
-`User` is returned by the server, so it derives `Serialize` and `Output`.
-`CreateUserRequest` is accepted by the server, so it derives `Deserialize` and
-`Input`. A type used in both directions needs both pairs.
+[How it works](../concepts/how-it-works.md) explains these pieces.
 
-For response enums that may gain variants over time, see
-[enum evolution](./attributes.md#enum-evolution).
+## Run it
 
 ```bash
 cargo run
 ```
 
-You should see:
-```text
-✅ API schema generated at reflectapi.json
-🚀 Server running on http://0.0.0.0:3000
-📖 Ready to generate clients!
-```
-
-🎉 **Congratulations!** You now have a running API server and generated client-ready schema.
-
-## Generate a Client
-
-First, install the CLI:
+The server writes `reflectapi.json` and listens on port 3000. Each route is a
+`POST` to its name:
 
 ```bash
-cargo install reflectapi-cli
+curl -X POST localhost:3000/users.get -H 'content-type: application/json' -d '1'
 ```
 
-This installs the `reflectapi` binary. Then generate a TypeScript client:
+[On the Wire](../concepts/wire.md) describes requests and responses in full.
+
+## Generate a TypeScript client
 
 ```bash
+cargo binstall reflectapi-cli   # or: cargo install reflectapi-cli
 mkdir -p clients/typescript
 reflectapi codegen --language typescript --schema reflectapi.json --output clients/typescript/
 ```
 
-## Use Your Generated Client
-
-The generated TypeScript client will be fully typed:
+## Call the API
 
 ```typescript
 import { client } from "./clients/typescript/generated";
 
-const c = client('http://localhost:3000');
+const c = client("http://localhost:3000");
 
-// Create a user. Generated methods take typed input and typed headers.
-const created = await c.users.create({
-  name: 'Bob',
-  email: 'bob@example.com'
-}, {});
-
+const created = await c.users.create({ name: "Bob", email: "bob@example.com" }, {});
 if (created.is_ok()) {
   console.log(created.unwrap_ok());
 }
 ```
-That's it!
+
+The client's types follow the Rust ones: change a field in Rust, regenerate,
+and the TypeScript compiler points at every call that needs updating.
+
+## Next
+
+- [Generate a Python client](../guides/python-client.md), or see
+  [Generated clients](../clients/index.md) for all three languages.
+- [Errors](../concepts/errors.md): give a route a typed error.
+- [Serving with axum](../serving/axum.md): state, middleware and streaming.
