@@ -32,8 +32,10 @@ fn python_string_literal(text: &str) -> String {
     format!("{quote}{body}{quote}")
 }
 
-/// Configuration for Python client generation
+/// Options for [`generate_files`]. Build one from `Config::default()` and its
+/// setters: fields may be added in any release.
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct Config {
     /// Package name for the generated client
     pub package_name: String,
@@ -49,6 +51,44 @@ pub struct Config {
     pub format: bool,
     /// Base URL for the API (optional)
     pub base_url: Option<String>,
+}
+
+impl Config {
+    /// The package name, `api_client` by default.
+    pub fn package_name(&mut self, package_name: impl Into<String>) -> &mut Self {
+        self.package_name = package_name.into();
+        self
+    }
+
+    /// Whether to generate the async client, `true` by default.
+    pub fn generate_async(&mut self, generate_async: bool) -> &mut Self {
+        self.generate_async = generate_async;
+        self
+    }
+
+    /// Whether to generate the sync client, `true` by default.
+    pub fn generate_sync(&mut self, generate_sync: bool) -> &mut Self {
+        self.generate_sync = generate_sync;
+        self
+    }
+
+    /// Whether to generate testing utilities, `false` by default.
+    pub fn generate_testing(&mut self, generate_testing: bool) -> &mut Self {
+        self.generate_testing = generate_testing;
+        self
+    }
+
+    /// Whether to format the output with ruff, `true` by default.
+    pub fn format(&mut self, format: bool) -> &mut Self {
+        self.format = format;
+        self
+    }
+
+    /// The base URL the client uses when given none, unset by default.
+    pub fn base_url(&mut self, base_url: Option<String>) -> &mut Self {
+        self.base_url = base_url;
+        self
+    }
 }
 
 impl Default for Config {

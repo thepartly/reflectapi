@@ -558,14 +558,13 @@ fn write_conformance_fixture() {
 
     for (filename, source) in reflectapi::codegen::python::generate_files(
         schema,
-        &reflectapi::codegen::python::Config {
-            package_name: "conformance_client".into(),
-            generate_async: true,
-            generate_sync: true,
-            generate_testing: false,
-            format: false,
-            base_url: None,
-        },
+        reflectapi::codegen::python::Config::default()
+            .package_name("conformance_client")
+            .generate_async(true)
+            .generate_sync(true)
+            .generate_testing(false)
+            .format(false)
+            .base_url(None),
     )
     .unwrap()
     {

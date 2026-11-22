@@ -155,14 +155,13 @@ fn write_python_client() {
     let (schema, _) = builder().build().unwrap();
     let files = reflectapi::codegen::python::generate_files(
         schema,
-        &reflectapi::codegen::python::Config {
-            package_name: "codegen_coverage_client".into(),
-            generate_async: true,
-            generate_sync: true,
-            generate_testing: false,
-            format: true,
-            base_url: None,
-        },
+        reflectapi::codegen::python::Config::default()
+            .package_name("codegen_coverage_client")
+            .generate_async(true)
+            .generate_sync(true)
+            .generate_testing(false)
+            .format(true)
+            .base_url(None),
     )
     .unwrap();
 

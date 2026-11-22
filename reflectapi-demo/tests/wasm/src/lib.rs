@@ -92,10 +92,8 @@ fn generate_files(request: &[u8]) -> Result<BTreeMap<String, String>, String> {
             }
             reflectapi::codegen::python::generate_files(
                 schema,
-                &reflectapi::codegen::python::Config {
-                    format,
-                    ..Default::default()
-                },
+                reflectapi::codegen::python::Config::default()
+                    .format(format),
             )
         }
         Target::Openapi => reflectapi::codegen::openapi::generate(&schema, &Default::default())

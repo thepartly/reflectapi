@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Breaking
+
+- **`reflectapi::codegen::python::Config` is `#[non_exhaustive]`**, so options can be added in any release. Build it from `Config::default()` and its new setters, as the TypeScript and Rust configs are: `Config::default().package_name("api_client").format(false)`. A struct literal no longer compiles.
+
 ### Added
 
 - **`#[reflectapi(distinct)]`** keeps a newtype, such as `struct UserId(Uuid)`, a type of its own in generated clients, as Rust does, so one ID can't be passed where another of the same wire type is expected. The wire is unchanged.

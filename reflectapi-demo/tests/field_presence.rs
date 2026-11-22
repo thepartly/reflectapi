@@ -289,14 +289,13 @@ fn write_null_contract_client() {
     }
     for (filename, source) in reflectapi::codegen::python::generate_files(
         null_contract_schema(),
-        &reflectapi::codegen::python::Config {
-            package_name: "null_contract_client".into(),
-            generate_async: true,
-            generate_sync: true,
-            generate_testing: false,
-            format: false,
-            base_url: None,
-        },
+        reflectapi::codegen::python::Config::default()
+            .package_name("null_contract_client")
+            .generate_async(true)
+            .generate_sync(true)
+            .generate_testing(false)
+            .format(false)
+            .base_url(None),
     )
     .unwrap()
     {
@@ -366,10 +365,7 @@ fn explicit_schema_requiredness_is_authoritative() {
         .any(|line| line.trim_start().starts_with("plain:")));
     let python = reflectapi::codegen::python::generate_files(
         schema,
-        &reflectapi::codegen::python::Config {
-            format: false,
-            ..Default::default()
-        },
+        reflectapi::codegen::python::Config::default().format(false),
     )
     .unwrap();
     assert!(!python
@@ -412,14 +408,13 @@ fn write_generated_clients() {
     }
     for (filename, source) in reflectapi::codegen::python::generate_files(
         schema,
-        &reflectapi::codegen::python::Config {
-            package_name: "presence_client".into(),
-            generate_async: true,
-            generate_sync: true,
-            generate_testing: false,
-            format: false,
-            base_url: None,
-        },
+        reflectapi::codegen::python::Config::default()
+            .package_name("presence_client")
+            .generate_async(true)
+            .generate_sync(true)
+            .generate_testing(false)
+            .format(false)
+            .base_url(None),
     )
     .unwrap()
     {
