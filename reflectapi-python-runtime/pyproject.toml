@@ -1,22 +1,22 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [project]
 name = "reflectapi-runtime"
-version = "0.25.2"
+version = "0.26.0"
 description = "Runtime library for ReflectAPI Python clients"
 readme = "README.md"
 requires-python = ">=3.12"
-license = {text = "MIT"}
+license = "MIT OR Apache-2.0"
+license-files = ["LICENSE-APACHE", "LICENSE-MIT"]
 authors = [
     {name = "Partly"}
 ]
 keywords = ["api", "client", "codegen", "rest", "http"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -53,9 +53,9 @@ test = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/thepartly/reflectapi"
+Homepage = "https://thepartly.github.io/reflectapi/"
 Repository = "https://github.com/thepartly/reflectapi"
-Documentation = "https://docs.rs/reflectapi/latest/reflectapi/"
+Documentation = "https://thepartly.github.io/reflectapi/clients/"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/reflectapi_runtime"]

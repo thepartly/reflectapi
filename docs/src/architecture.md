@@ -19,7 +19,7 @@ The workspace is split accordingly:
 
 ## Reflection Model
 
-Reflection starts from the `Input` and `Output` traits in `reflectapi/src/traits.rs`. Derived implementations and hand-written impls register types into a `Typespace` and return `TypeReference`s that point at those definitions.
+Reflection starts from the [`Input`](https://docs.rs/reflectapi/latest/reflectapi/trait.Input.html) and [`Output`](https://docs.rs/reflectapi/latest/reflectapi/trait.Output.html) traits in `reflectapi/src/traits.rs`. Derived implementations and hand-written impls register types into a `Typespace` and return `TypeReference`s that point at those definitions.
 
 The top-level `Schema` in `reflectapi-schema/src/lib.rs` contains:
 
@@ -130,9 +130,9 @@ The OpenAPI backend in `reflectapi/src/codegen/openapi.rs` walks the raw schema 
 
 ReflectAPI includes special API-facing types whose semantics matter to codegen:
 
-- `reflectapi::Option<T>`: three-state optional value for PATCH-like APIs
-- `reflectapi::Empty`: explicit empty request/response body type
-- `reflectapi::Infallible`: explicit “no error payload” type
+- [`reflectapi::Option<T>`](https://docs.rs/reflectapi/latest/reflectapi/enum.Option.html): three-state optional value for PATCH-like APIs
+- [`reflectapi::Empty`](https://docs.rs/reflectapi/latest/reflectapi/struct.Empty.html): explicit empty request/response body type
+- [`reflectapi::Infallible`](https://docs.rs/reflectapi/latest/reflectapi/enum.Infallible.html): explicit “no error payload” type
 
 The Python backend treats these as runtime-provided abstractions rather than generated models.
 Generated Python clients use real package modules for reflected namespaces; the

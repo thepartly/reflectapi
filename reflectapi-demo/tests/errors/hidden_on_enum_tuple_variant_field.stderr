@@ -1,4 +1,7 @@
 error: `hidden` cannot be used on unnamed (tuple) fields because removing a positional element shifts indices and breaks wire compatibility in generated clients
+
+         = help: see https://thepartly.github.io/reflectapi/getting-started/attributes.html
+
  --> tests/errors/hidden_on_enum_tuple_variant_field.rs:4:9
   |
 4 |         #[reflectapi(hidden)]

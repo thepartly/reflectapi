@@ -1,4 +1,7 @@
 error: expected `=`
+
+         = help: see https://thepartly.github.io/reflectapi/getting-started/attributes.html
+
  --> tests/errors/invalid_reflect_attribute_path.rs:3:29
   |
 3 |     #[reflectapi(output_type)]
