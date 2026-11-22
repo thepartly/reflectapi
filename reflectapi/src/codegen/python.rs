@@ -1,3 +1,6 @@
+//! Python client generation: [`generate_files`] writes a package whose
+//! client calls the API through the `reflectapi-runtime` Python package.
+
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::sync::LazyLock;
 
@@ -32,7 +35,7 @@ fn python_string_literal(text: &str) -> String {
     format!("{quote}{body}{quote}")
 }
 
-/// Configuration for Python client generation
+/// Options for [`generate_files`].
 #[derive(Debug, Clone)]
 pub struct Config {
     /// Package name for the generated client
@@ -1806,7 +1809,7 @@ fn validate_type_ref(
     }
 }
 
-/// Generate Python client code from a schema
+/// Generates the Python client package: each file's path and contents.
 pub fn generate_files(schema: Schema, config: &Config) -> anyhow::Result<BTreeMap<String, String>> {
     let generation = build_python_generation(schema, config)?;
     render_package_files(generation, config)
@@ -2518,6 +2521,8 @@ fn legacy_python_route_path(name: &str, top_level_name: &str) -> Vec<String> {
     }
 }
 
+/// The client as one module's source; for tests of the generator.
+#[doc(hidden)]
 pub fn generate(schema: Schema, config: &Config) -> anyhow::Result<String> {
     let generation = build_python_generation(schema, config)?;
     let mut generated_code = Vec::new();
@@ -6948,6 +6953,7 @@ fn sanitize_description(desc: &str) -> String {
     sanitized
 }
 
+#[doc(hidden)]
 pub mod templates {
     use std::collections::{BTreeMap, HashSet};
     use std::fmt::Write;
