@@ -23,6 +23,7 @@ Reflection starts from the [`Input`](https://docs.rs/reflectapi/latest/reflectap
 
 The top-level `Schema` in `reflectapi-schema/src/lib.rs` contains:
 
+- `format_version`: the JSON format it's written in, `SCHEMA_FORMAT_VERSION` when written. A reader refuses a newer one; see the constant for when a change needs a new version.
 - `functions`: endpoint definitions
 - `input_types`: types seen in request positions
 - `output_types`: types seen in response positions

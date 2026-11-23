@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added
+
+- **The schema JSON records its format version**, as `"format_version": 1`, its first key. A reader accepts any format up to its own and refuses a newer one with an error that says to upgrade `reflectapi-cli`, where it used to ignore what it didn't know and generate a client that was silently wrong. A schema written before this release has no version and reads as format 1. Within a format, changes are additive: anything an older reader would get wrong by ignoring it, such as a new route kind, needs a new format. `Schema` gains the public field `format_version`, and the crate exports `SCHEMA_FORMAT_VERSION` and `SchemaFormat`, which reads and checks only the version, wherever its key is in the JSON. ([#246](https://github.com/thepartly/reflectapi/issues/246))
+
 ### Changed
 
 - **The user guide is at [reflectapi.rs](https://reflectapi.rs/).** The derives' compile errors, generated clients' headers, the crates' homepages and docs.rs link there. Links to thepartly.github.io/reflectapi redirect to the same page.

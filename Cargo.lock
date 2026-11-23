@@ -1762,6 +1762,7 @@ version = "0.26.0"
 dependencies = [
  "glob",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
