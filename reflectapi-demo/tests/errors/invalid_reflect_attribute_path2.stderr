@@ -1,6 +1,6 @@
 error: failed to parse type reference path: ""
 
-         = help: see https://thepartly.github.io/reflectapi/getting-started/attributes.html
+         = help: see https://reflectapi.rs/getting-started/attributes.html
 
  --> tests/errors/invalid_reflect_attribute_path2.rs:3:32
   |

@@ -5,7 +5,7 @@ edition = "2021"
 
 license = "MIT OR Apache-2.0"
 description = "A library for defining and serializing/deserializing ReflectAPI schemas"
-homepage = "https://thepartly.github.io/reflectapi/"
+homepage = "https://reflectapi.rs/"
 documentation = "https://docs.rs/reflectapi-schema"
 repository = "https://github.com/thepartly/reflectapi"
 readme = "README.md"

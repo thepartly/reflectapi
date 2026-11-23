@@ -493,6 +493,54 @@ impl Typespace {
         self.types_map.borrow().contains_key(name)
     }
 
+    /// Removes each type that has the same name as an earlier one and is
+    /// equal to it, and returns the names that still name more than one type:
+    /// different types under one name, which a rename can produce. A generated
+    /// client would keep only one of them.
+    pub fn dedup_types(&mut self) -> Vec<String> {
+        let mut kept: Vec<Type> = Vec::with_capacity(self.types.len());
+        let mut kept_by_name: HashMap<String, Vec<usize>> = HashMap::new();
+        for ty in std::mem::take(&mut self.types) {
+            let same_name = kept_by_name.entry(ty.name().to_string()).or_default();
+            if !same_name.iter().any(|&index| kept[index] == ty) {
+                same_name.push(kept.len());
+                kept.push(ty);
+            }
+        }
+        self.types = kept;
+        self.invalidate_types_map();
+
+        let mut seen = BTreeSet::new();
+        let mut conflicting = BTreeSet::new();
+        for ty in &self.types {
+            if !seen.insert(ty.name()) {
+                conflicting.insert(ty.name().to_string());
+            }
+        }
+        conflicting.into_iter().collect()
+    }
+
+    /// The names of types both typespaces have, where `other`'s type equals
+    /// none of this typespace's types of that name. [`Typespace::extend`]
+    /// would keep this typespace's type for each.
+    pub fn conflicting_types(&self, other: &Typespace) -> Vec<String> {
+        let mut conflicting: Vec<String> = other
+            .types
+            .iter()
+            .filter(|ty| {
+                let mut same_name = self.types.iter().filter(|t| t.name() == ty.name());
+                same_name.clone().next().is_some() && same_name.all(|existing| existing != *ty)
+            })
+            .map(|ty| ty.name().to_string())
+            .collect();
+        conflicting.sort();
+        conflicting.dedup();
+        conflicting
+    }
+
+    /// Adds `other`'s types. Where both have a type of the same name, this
+    /// typespace's is kept, even if they differ: see
+    /// [`Typespace::conflicting_types`].
     pub fn extend(&mut self, other: Self) {
         self.ensure_types_map();
         for ty in other.types {

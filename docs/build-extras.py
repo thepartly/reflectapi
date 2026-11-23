@@ -19,7 +19,7 @@ import sys
 from pathlib import Path
 from xml.sax.saxutils import escape
 
-SITE = "https://thepartly.github.io/reflectapi/"
+SITE = "https://reflectapi.rs/"
 SUMMARY_LINE = re.compile(r"^\s*- \[(?P<title>[^\]]+)\]\((?P<path>[^)]+\.md)\)")
 SECTION_LINE = re.compile(r"^# (?P<title>.+)$")
 

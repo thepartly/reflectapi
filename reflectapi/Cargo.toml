@@ -5,7 +5,7 @@ edition = "2021"
 
 license = "MIT OR Apache-2.0"
 description = "Define your web API in Rust, generate typed TypeScript, Python and Rust clients. Serve it with Axum, Cloudflare Workers or any HTTP server."
-homepage = "https://thepartly.github.io/reflectapi/"
+homepage = "https://reflectapi.rs/"
 documentation = "https://docs.rs/reflectapi"
 repository = "https://github.com/thepartly/reflectapi"
 readme = "README.md"

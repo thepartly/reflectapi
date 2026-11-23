@@ -1,6 +1,6 @@
 error: unknown reflect field attribute `unknown_attributes`
 
-         = help: see https://thepartly.github.io/reflectapi/getting-started/attributes.html
+         = help: see https://reflectapi.rs/getting-started/attributes.html
 
  --> tests/errors/invalid_reflect_attributes.rs:3:18
   |

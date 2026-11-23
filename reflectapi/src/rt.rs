@@ -6,8 +6,8 @@
 //! for other HTTP clients, middleware, or tests. Streaming routes (feature
 //! `rt-sse`) return a [`StreamResponse`].
 //!
-//! See [Generated clients](https://thepartly.github.io/reflectapi/clients/#rust)
-//! and [Errors](https://thepartly.github.io/reflectapi/concepts/errors.html) in
+//! See [Generated clients](https://reflectapi.rs/clients/#rust)
+//! and [Errors](https://reflectapi.rs/concepts/errors.html) in
 //! the guide.
 
 use std::{future::Future, pin::Pin};
