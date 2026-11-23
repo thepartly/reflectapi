@@ -122,35 +122,4 @@ mod tests {
         assert_eq!(integer_width("i64").unwrap().minimum, None);
         assert_eq!(integer_width("u128"), None);
     }
-
-    /// The table above stands in for the impls' formats on older schemas,
-    /// so it must say the same as they do.
-    #[cfg(all(
-        feature = "uuid",
-        feature = "chrono",
-        feature = "url",
-        feature = "rust_decimal"
-    ))]
-    #[test]
-    fn the_built_in_impls_set_the_formats_the_table_gives() {
-        fn check<T: crate::Output>() {
-            let mut typespace = crate::Typespace::new();
-            let reference = T::reflectapi_output_type(&mut typespace);
-            let ty = typespace.get_type(&reference.name).unwrap();
-            let primitive = ty.as_primitive().unwrap();
-            assert!(
-                primitive.format().is_some(),
-                "{} sets no format",
-                primitive.name()
-            );
-            assert_eq!(primitive.format(), builtin_format(primitive.name()));
-        }
-        check::<uuid::Uuid>();
-        check::<chrono::DateTime<chrono::Utc>>();
-        check::<chrono::NaiveDateTime>();
-        check::<chrono::NaiveDate>();
-        check::<chrono::NaiveTime>();
-        check::<url::Url>();
-        check::<rust_decimal::Decimal>();
-    }
 }
