@@ -119,7 +119,7 @@ fn an_override_of_a_type_split_into_input_and_output_replaces_both() {
     for split in ["input", "output"] {
         let check = format!(
             "\"reflectapi_demo::tests::type_overrides::{split}::Order\": \
-             __TypeOverride<reflectapi_demo.tests.type_overrides.{split}.Order, \
+             __TypeOverride<__wire.reflectapi_demo.tests.type_overrides.{split}.Order, \
              Readonly<reflectapi_demo.tests.type_overrides.output.Order>>;"
         );
         assert!(generated.contains(&check), "{generated}");
@@ -139,4 +139,37 @@ fn an_override_of_a_type_split_into_input_and_output_replaces_both() {
         error.contains("reflectapi_demo.tests.type_overrides.output.Order'."),
         "{error}"
     );
+}
+
+#[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+struct Line {
+    product: uuid::Uuid,
+    quantity: u32,
+}
+
+#[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+struct Basket {
+    lines: Vec<Line>,
+}
+
+/// Each override is checked against its type as it is on the wire, not as
+/// other overrides have narrowed it: `Line`'s override has a plain string
+/// `product`, which a branded `uuid::Uuid` override doesn't change.
+#[test]
+fn an_override_is_checked_against_its_type_without_other_overrides() {
+    let files = generate(
+        super::into_schema::<Basket>(),
+        Config::default()
+            .format(true)
+            .typecheck(true)
+            .type_override("uuid::Uuid", "string & { readonly uuid: unique symbol }")
+            .type_override(
+                "reflectapi_demo::tests::type_overrides::Line",
+                "{ product: string; quantity: number }",
+            ),
+    )
+    .unwrap();
+    insta::assert_snapshot!(reflectapi::codegen::strip_boilerplate(
+        &files["generated.ts"]
+    ));
 }

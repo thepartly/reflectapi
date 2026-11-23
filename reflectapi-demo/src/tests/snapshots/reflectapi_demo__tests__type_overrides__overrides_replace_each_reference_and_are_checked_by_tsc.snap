@@ -84,19 +84,51 @@ export namespace uuid {
   export type Uuid = string;
 }
 
+/** The overridden types as they are on the wire, for the checks below. */
+export namespace __wire {
+  export namespace chrono {
+    /**
+     * DateTime at a given timezone (RFC3339 format)
+     *
+     * A string, format `date-time`.
+     */
+    export type DateTime = string;
+  }
+
+  export namespace reflectapi_demo {
+    export namespace tests {
+      export namespace type_overrides {
+        export interface Money {
+          amount: string;
+          currency: string;
+        }
+      }
+    }
+  }
+
+  export namespace uuid {
+    /**
+     * UUID value type
+     *
+     * A string, format `uuid`.
+     */
+    export type Uuid = string;
+  }
+}
+
 /** Each type override must be assignable to the schema type it replaces. */
 type __TypeOverride<Wire, T extends Wire> = T;
 export type __TypeOverrides = {
   "chrono::DateTime": __TypeOverride<
-    chrono.DateTime,
+    __wire.chrono.DateTime,
     string & { readonly instant: unique symbol }
   >;
   "reflectapi_demo::tests::type_overrides::Money": __TypeOverride<
-    reflectapi_demo.tests.type_overrides.Money,
+    __wire.reflectapi_demo.tests.type_overrides.Money,
     Readonly<{ amount: `${number}`; currency: "NZD" | "AUD" }>
   >;
   "uuid::Uuid": __TypeOverride<
-    uuid.Uuid,
+    __wire.uuid.Uuid,
     `${string}-${string}-${string}-${string}-${string}`
   >;
 };

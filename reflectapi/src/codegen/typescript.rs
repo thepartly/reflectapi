@@ -98,6 +98,38 @@ struct TypeNames<'a> {
     overrides: &'a BTreeMap<String, TypeOverride>,
 }
 
+/// Each named type's definition. A type that's a TypeScript built-in, such as
+/// `u8`'s `number`, has none. Without `constructors`, a distinct type is
+/// rendered without its constructor, so the definitions declare no values.
+fn render_types(
+    schema: &crate::Schema,
+    type_names: impl IntoIterator<Item = String>,
+    names: &TypeNames<'_>,
+    constructors: bool,
+) -> anyhow::Result<HashMap<String, String>> {
+    let mut rendered_types = HashMap::new();
+    for original_type_name in type_names {
+        let type_def = schema.get_type(&original_type_name).context(format!(
+            "internal error: failed to get consolidated type definition for type: {original_type_name}"
+        ))?;
+        if let Some(primitive) = format_alias(type_def) {
+            rendered_types.insert(original_type_name, render_format_alias(primitive));
+            continue;
+        }
+        if names.implemented.contains_key(&original_type_name) {
+            continue;
+        }
+        if type_def.as_primitive().is_some() {
+            continue;
+        }
+        rendered_types.insert(
+            original_type_name,
+            render_type(type_def, schema, names, constructors)?,
+        );
+    }
+    Ok(rendered_types)
+}
+
 /// Generates the TypeScript client: each file's name and contents.
 pub fn generate(
     mut schema: crate::Schema,
@@ -117,23 +149,8 @@ pub fn generate(
         overrides: &overrides,
     };
 
-    let mut rendered_types = HashMap::new();
-    for original_type_name in schema.consolidate_types() {
-        let type_def = schema.get_type(&original_type_name).context(format!(
-            "internal error: failed to get consolidated type definition for type: {original_type_name}"
-        ))?;
-        if let Some(primitive) = format_alias(type_def) {
-            rendered_types.insert(original_type_name, render_format_alias(primitive));
-            continue;
-        }
-        if names.implemented.contains_key(&original_type_name) {
-            continue;
-        }
-        if type_def.as_primitive().is_some() {
-            continue;
-        }
-        rendered_types.insert(original_type_name, render_type(type_def, &schema, &names)?);
-    }
+    let type_names = schema.consolidate_types();
+    let rendered_types = render_types(&schema, type_names, &names, true)?;
 
     for function in schema.functions() {
         if let Some(type_ref) = function.response_headers() {
@@ -208,7 +225,7 @@ pub fn generate(
             &overrides,
             &schema,
             &wire_names,
-        ));
+        )?);
     }
 
     if needs_decoders {
@@ -1560,6 +1577,7 @@ fn render_type(
     type_def: &crate::Type,
     schema: &crate::Schema,
     names: &TypeNames<'_>,
+    constructors: bool,
 ) -> Result<String, anyhow::Error> {
     let type_name = type_to_ts_name(type_def);
 
@@ -1571,6 +1589,7 @@ fn render_type(
                     struct_def,
                     &type_name,
                     &type_ref_to_ts_ref(&field_type_ref, schema, names),
+                    constructors,
                 )
             } else if struct_def.is_alias() {
                 let field_type_ref = struct_def.fields.iter().next().unwrap().type_ref.clone();
@@ -1819,16 +1838,26 @@ fn type_params_to_ts_name(type_params: std::slice::Iter<'_, crate::TypeParameter
 
 /// `#[reflectapi(distinct)]`: the type, which only the wrapped value converts
 /// to by way of its constructor, and the constructor, a value of the same name.
-fn render_distinct(struct_def: &crate::Struct, type_name: &str, wrapped: &str) -> String {
+fn render_distinct(
+    struct_def: &crate::Struct,
+    type_name: &str,
+    wrapped: &str,
+    constructor: bool,
+) -> String {
     let name = type_name.split('<').next().unwrap_or(type_name);
     let generics = type_params_to_ts_name(struct_def.parameters());
     let description = doc_to_ts_comments(&struct_def.description, None, 0);
-    format!(
-        "\n{description}export type {type_name} = __Distinct<{wrapped}, \"{rust_name}\">;\n\
-         /** `{name}`'s constructor: marks the value it wraps as one. */\n\
-         export const {name} = {generics}(value: {wrapped}): {type_name} => value as {type_name};",
+    let mut out = format!(
+        "\n{description}export type {type_name} = __Distinct<{wrapped}, \"{rust_name}\">;",
         rust_name = struct_def.name,
-    )
+    );
+    if constructor {
+        out.push_str(&format!(
+            "\n/** `{name}`'s constructor: marks the value it wraps as one. */\n\
+             export const {name} = {generics}(value: {wrapped}): {type_name} => value as {type_name};"
+        ));
+    }
+    out
 }
 
 /// A primitive written as a string with a format, such as `uuid::Uuid` or
@@ -1885,22 +1914,46 @@ fn resolve_type_overrides(
 
 /// `tsc` checks that each override is assignable to the type it replaces, as
 /// that type is on the wire, so a request sends what the server reads.
+///
+/// The wire types are the overridden types, and every type they reach, rendered
+/// again without overrides in the namespace `__wire`. A reference such as
+/// `myapp.Inner` inside `__wire` resolves to `__wire.myapp.Inner`, so an
+/// override is checked against its type's wire shape, not one that other
+/// overrides have already narrowed.
 fn render_type_override_checks(
     overrides: &BTreeMap<String, TypeOverride>,
     schema: &crate::Schema,
     wire_names: &TypeNames<'_>,
-) -> String {
+) -> anyhow::Result<String> {
+    let wire_types = render_types(
+        schema,
+        reachable_types(schema, overrides.keys()),
+        wire_names,
+        false,
+    )?;
+    let in_wire_namespace = wire_types.keys().cloned().collect::<BTreeSet<_>>();
+    let mut wire_module =
+        modules_from_rendered_types(in_wire_namespace.iter().cloned().collect(), wire_types);
+    wire_module.name = "__wire".into();
+
     let mut out = String::from(
-        "\n/** Each type override must be assignable to the schema type it replaces. */\n\
+        "\n/** The overridden types as they are on the wire, for the checks below. */",
+    );
+    out.push_str(&wire_module.render());
+    out.push_str(
+        "\n\n/** Each type override must be assignable to the schema type it replaces. */\n\
          type __TypeOverride<Wire, T extends Wire> = T;\n\
          export type __TypeOverrides = {\n",
     );
     for (name, type_override) in overrides {
-        let wire = type_ref_to_ts_ref(
+        let mut wire = type_ref_to_ts_ref(
             &crate::TypeReference::new(name.clone(), vec![]),
             schema,
             wire_names,
         );
+        if in_wire_namespace.contains(name) {
+            wire = format!("__wire.{wire}");
+        }
         out.push_str(&format!(
             "  {}: __TypeOverride<{wire}, {}>;\n",
             serde_json::to_string(name).expect("a string serializes"),
@@ -1908,7 +1961,44 @@ fn render_type_override_checks(
         ));
     }
     out.push_str("};");
-    out
+    Ok(out)
+}
+
+/// The schema types the named types reach: themselves, and the types of their
+/// fields, variants, type arguments and fallbacks, transitively.
+fn reachable_types<'a>(
+    schema: &crate::Schema,
+    roots: impl IntoIterator<Item = &'a String>,
+) -> BTreeSet<String> {
+    let mut reached = BTreeSet::new();
+    let mut pending = roots
+        .into_iter()
+        .map(|name| crate::TypeReference::new(name.clone(), vec![]))
+        .collect::<Vec<_>>();
+    while let Some(reference) = pending.pop() {
+        pending.extend(reference.arguments.iter().cloned());
+        // A type parameter, such as `T`, names no type.
+        let Some(type_def) = schema.get_type(&reference.name) else {
+            continue;
+        };
+        if !reached.insert(reference.name.clone()) {
+            continue;
+        }
+        match type_def {
+            crate::Type::Struct(strukt) => {
+                pending.extend(strukt.fields.iter().map(|f| f.type_ref.clone()));
+            }
+            crate::Type::Enum(enm) => {
+                for variant in &enm.variants {
+                    pending.extend(variant.fields.iter().map(|f| f.type_ref.clone()));
+                }
+            }
+            crate::Type::Primitive(primitive) => {
+                pending.extend(primitive.fallback.clone());
+            }
+        }
+    }
+    reached
 }
 
 /// `export type Uuid = string;`, documented with the type's description and
