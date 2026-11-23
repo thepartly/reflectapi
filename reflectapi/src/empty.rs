@@ -1,5 +1,15 @@
 #[derive(
-    Debug, Default, Clone, PartialEq, Eq, Ord, PartialOrd, serde::Deserialize, serde::Serialize,
+    Debug,
+    Default,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Ord,
+    PartialOrd,
+    Hash,
+    serde::Deserialize,
+    serde::Serialize,
 )]
 pub struct Empty {}
 

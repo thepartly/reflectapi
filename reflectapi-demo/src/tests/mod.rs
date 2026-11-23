@@ -4,6 +4,7 @@ mod basic;
 mod enums;
 mod generics;
 mod namespace;
+mod raw;
 mod serde;
 mod type_overrides;
 

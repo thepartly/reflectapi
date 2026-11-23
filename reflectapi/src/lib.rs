@@ -55,7 +55,10 @@
 //!   schema and the [`Router`]s.
 //! - Serving: [`axum`] (feature `axum`) or [`dispatch`] for any other server.
 //! - Types with meaning to clients: [`Option`] (absent, null or a value),
-//!   [`Empty`], [`Infallible`].
+//!   [`Empty`], [`Infallible`], [`Bounded`] (a length limit).
+//! - [`Raw`] (feature `json`): a value kept as the JSON it arrived as.
+//! - [`Encoded`] (feature `json`): a typed value encoded into a string, for
+//!   clients to pass back without reading, such as a cursor.
 //! - Generating clients: the `reflectapi` CLI (`cargo binstall reflectapi-cli`),
 //!   or `reflectapi::codegen` (feature `codegen`).
 //! - The complete example: the
@@ -68,11 +71,18 @@
     html_favicon_url = "https://reflectapi.rs/reflectapi-logo.png"
 )]
 
+mod bounded;
 mod empty;
+#[cfg(feature = "json")]
+mod encoded;
 mod impls;
 mod infallible;
 mod option;
+#[cfg(feature = "json")]
+mod raw;
 mod traits;
+#[cfg(feature = "json")]
+mod transcode;
 mod validation;
 
 #[cfg(feature = "rt")]
@@ -97,9 +107,14 @@ pub use self::builder::{
 };
 #[cfg(feature = "builder")]
 use self::builder::{Handler, HandlerCallback};
+pub use bounded::{Bounded, BoundedMax, BoundsError, Length};
 pub use empty::*;
+#[cfg(feature = "json")]
+pub use encoded::Encoded;
 pub use infallible::*;
 pub use option::*;
+#[cfg(feature = "json")]
+pub use raw::Raw;
 #[cfg(feature = "builder")]
 pub use reflectapi_derive::StatusCode;
 pub use reflectapi_derive::{Input, Output};

@@ -77,7 +77,7 @@ assert_eq!(page.parameters().map(|p| p.name()).collect::<Vec<_>>(), ["T"]);
 | `String`, `char`, `PathBuf`; `&'static str` as output only | `string` |
 | `Option<T>` | `T \| null` |
 | `Vec<T>`, `HashSet<T>`, `BTreeSet<T>` | `Array<T>` |
-| `[T; N]` | `FixedSizeArray<T, N>`, an array of length `N` |
+| `[T; N]` | `FixedSizeArray<T, N>`, an array of length `N`; see [Lengths](#lengths) |
 | `HashMap<K, V>`, `BTreeMap<K, V>` | `Record<K, V>` |
 | tuples of 1 to 12 elements | `[A, B, ...]` |
 | `()` | `null` |
@@ -104,7 +104,7 @@ Enable a feature of the `reflectapi` crate to use the types of another crate:
 | `uuid` | `uuid::Uuid` | `string` |
 | `url` | `url::Url` | `string` |
 | `rust_decimal` | `rust_decimal::Decimal` | `string` |
-| `json` | `serde_json::Value`; `serde_json::Map` as a map | `any` |
+| `json` | `serde_json::Value`; `serde_json::Map` as a map; [`reflectapi::Raw<T>`](#raw-json) as the `T`; [`reflectapi::Encoded<T>`](#encoded-values) as a string | `any`; the `T`'s type; `string` |
 | `indexmap` | `IndexMap<K, V>`, `IndexSet<T>`, as maps and sets | `Record<K, V>`, `Array<T>` |
 
 ```bash
@@ -271,6 +271,97 @@ is the error type of a route that can't fail. See
 assert_eq!(serde_json::to_string(&reflectapi::Empty {}).unwrap(), "{}");
 assert_eq!(serde_json::to_string(&()).unwrap(), "null");
 ```
+
+## Lengths
+
+[`reflectapi::Bounded<T, MIN, MAX>`](https://docs.rs/reflectapi/latest/reflectapi/struct.Bounded.html)
+is a string or collection whose length is within `MIN..=MAX`, inclusive.
+`BoundedMax<T, MAX>` sets only the upper bound. On the wire it is the `T` it
+wraps. A request with another length fails to deserialize, so it's rejected
+with HTTP 400 before the handler runs. Strings count characters (Unicode code
+points, not bytes); collections count entries.
+
+```rust
+use reflectapi::{Bounded, BoundedMax};
+
+#[derive(serde::Deserialize, reflectapi::Input)]
+struct TagPet {
+    /// Up to 50 tags, each 1 to 32 characters long.
+    tags: BoundedMax<Vec<Bounded<String, 1, 32>>, 50>,
+}
+
+assert!(serde_json::from_str::<TagPet>(r#"{"tags":["friendly"]}"#).is_ok());
+assert!(serde_json::from_str::<TagPet>(r#"{"tags":[""]}"#).is_err());
+```
+
+The generated clients check the bounds too, so a request with another length
+fails before it is sent:
+
+- **TypeScript**: the field's type is `Bounded<Array<Bounded<string, 1, 32>>, 0, 50>`,
+  a type of its own that a plain array or string doesn't fit. Make one with
+  `bounded(value, MIN, MAX)`, which checks the length and throws a
+  `BoundsError`, or `bounded.try(value, MIN, MAX)`, which returns a `Result`.
+  The bounds must be the field's: other bounds don't compile. Values from a
+  response already have the type.
+
+  ```ts
+  import { bounded } from "./generated";
+
+  const tag = bounded("friendly", 1, 32);
+  await client.pets.tag({ tags: bounded([tag], 0, 50) }, {});
+  ```
+
+- **Python**: the field is `Annotated[list[Annotated[str, Field(min_length=1, max_length=32)]], Field(max_length=50)]`,
+  so building the model raises `pydantic.ValidationError`.
+- **Rust**: the field is `reflectapi::Bounded` itself: build it with
+  `Bounded::new(value)?` or `try_from`, or `Bounded::from_array` for a length
+  checked at compile time.
+- **OpenAPI**: `minLength`/`maxLength` for strings, `minItems`/`maxItems` for
+  arrays and sets, `minProperties`/`maxProperties` for maps.
+
+A fixed-size array, `[T; N]`, has a length too: exactly `N`. The server and
+the Rust client enforce it. In TypeScript, an array literal of the right
+length fits `FixedSizeArray<T, N>` as it is, and an array built at runtime
+goes through `fixedSizeArray(items, N)` (or `fixedSizeArray.try`), which checks
+it. Python gets `Field(min_length=N, max_length=N)`, OpenAPI
+`minItems`/`maxItems`.
+
+## Raw JSON
+
+[`reflectapi::Raw<T>`](https://docs.rs/reflectapi/latest/reflectapi/struct.Raw.html),
+with the `json` feature, is a `T` kept as the JSON it arrived as. The schema
+and the clients see a `T`; the server keeps the text, so it can store or
+forward the value unchanged, read a few fields with `peek` or decode it with
+`decode`. Fields and enum variants the server's own types don't know survive.
+
+With a MessagePack request or response the value is converted to and from
+JSON text: key order and every field survive, but the text isn't kept byte
+for byte, and a value JSON can't represent, such as binary data or NaN, is an
+error.
+
+## Encoded values
+
+[`reflectapi::Encoded<T>`](https://docs.rs/reflectapi/latest/reflectapi/struct.Encoded.html),
+with the `json` feature, is a typed value encoded into a string, for clients
+to store and send back without reading it, such as a page cursor. The server works with the typed `T`; the
+wire, the schema and the clients see a `string`: `T` as JSON, then base64url
+without padding.
+
+```rust
+use reflectapi::Encoded;
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct Cursor {
+    after_id: u64,
+}
+
+let cursor = Encoded(Cursor { after_id: 42 });
+assert_eq!(serde_json::to_string(&cursor).unwrap(), r#""eyJhZnRlcl9pZCI6NDJ9""#);
+```
+
+It is encoded, not secret: anyone can decode the string and send back a
+changed one. Check what you decode as you would any other input, and don't
+put in it anything the client mustn't see.
 
 ## Types reflectapi doesn't know
 

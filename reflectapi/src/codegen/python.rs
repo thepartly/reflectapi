@@ -6634,6 +6634,35 @@ fn type_ref_to_python_type(
         return Ok(type_ref.name.clone());
     }
 
+    // A length range (`reflectapi::Bounded<T, MIN, MAX>`, a fixed-size array):
+    // the collection with Pydantic's length checks, so building a request with
+    // another length fails before it is sent. `len(str)` counts code points,
+    // as Rust counts chars.
+    if let Some(bounds) = super::schema::length_bounds(type_ref) {
+        // A fixed-size array is the collection itself: render its fallback.
+        let collection = match bounds.inner {
+            Some(inner) => Some(inner.clone()),
+            None => type_ref
+                .fallback_once(schema.input_types())
+                .or_else(|| type_ref.fallback_once(schema.output_types())),
+        };
+        if let Some(collection) = collection {
+            let rendered = type_ref_to_python_type(
+                &collection,
+                schema,
+                implemented_types,
+                class_names,
+                active_generics,
+                used_type_vars,
+            )?;
+            // Pydantic rejects length constraints on a type it can't measure.
+            return Ok(match bounds.kind {
+                Some(_) => bounded_python_type(&rendered, bounds.min, bounds.max),
+                None => rendered,
+            });
+        }
+    }
+
     // 1. FIRST: Check if this type has a direct mapping to a built-in Python type
     if let Some(python_type) = implemented_types.get(&type_ref.name) {
         if type_ref.arguments.is_empty() {
@@ -6796,6 +6825,17 @@ fn type_ref_to_python_type(
 }
 
 // Wrapper for backwards compatibility - doesn't track TypeVars
+/// `Annotated[inner, Field(min_length=MIN, max_length=MAX)]`, leaving out a
+/// zero `min_length`.
+fn bounded_python_type(inner: &str, min: u64, max: u64) -> String {
+    let mut limits = Vec::new();
+    if min != 0 {
+        limits.push(format!("min_length={min}"));
+    }
+    limits.push(format!("max_length={max}"));
+    format!("Annotated[{inner}, Field({})]", limits.join(", "))
+}
+
 fn type_ref_to_python_type_simple(
     type_ref: &TypeReference,
     schema: &Schema,

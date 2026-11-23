@@ -146,11 +146,19 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
         ],
         "properties": {
           "_f_array": {
-            "description": "Fixed-size Array",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/u8"
-            }
+            "allOf": [
+              {
+                "description": "Fixed-size Array",
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/u8"
+                }
+              },
+              {
+                "minItems": 3,
+                "maxItems": 3
+              }
+            ]
           },
           "_f_bool": {
             "$ref": "#/components/schemas/bool"
@@ -616,11 +624,19 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
         ],
         "properties": {
           "_f_array": {
-            "description": "Fixed-size Array",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/u8"
-            }
+            "allOf": [
+              {
+                "description": "Fixed-size Array",
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/u8"
+                }
+              },
+              {
+                "minItems": 3,
+                "maxItems": 3
+              }
+            ]
           },
           "_f_bool": {
             "$ref": "#/components/schemas/bool"

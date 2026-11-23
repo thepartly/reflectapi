@@ -940,6 +940,7 @@ version = "0.26.0"
 dependencies = [
  "anyhow",
  "axum",
+ "base64 0.22.1",
  "bytes",
  "check_keyword",
  "chrono",

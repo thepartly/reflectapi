@@ -1,0 +1,306 @@
+---
+source: reflectapi-demo/src/tests/basic.rs
+expression: schema
+---
+{
+  "format_version": 1,
+  "name": "",
+  "functions": [
+    {
+      "name": "inout_test",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::basic::input::TestStructWithBounded"
+      },
+      "output_kind": "complete",
+      "output_type": {
+        "name": "reflectapi_demo::tests::basic::output::TestStructWithBounded"
+      },
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "primitive",
+        "name": "reflectapi::Bounded",
+        "description": "A string or collection whose length is within MIN..=MAX, inclusive: characters for strings, entries for collections. A request with another length is rejected with HTTP 400.",
+        "parameters": [
+          {
+            "name": "T"
+          },
+          {
+            "name": "MIN"
+          },
+          {
+            "name": "MAX"
+          }
+        ],
+        "fallback": {
+          "name": "T"
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::basic::input::TestStructWithBounded",
+        "fields": {
+          "named": [
+            {
+              "name": "_tags",
+              "type": {
+                "name": "reflectapi::Bounded",
+                "arguments": [
+                  {
+                    "name": "std::vec::Vec",
+                    "arguments": [
+                      {
+                        "name": "reflectapi::Bounded",
+                        "arguments": [
+                          {
+                            "name": "std::string::String"
+                          },
+                          {
+                            "name": "1"
+                          },
+                          {
+                            "name": "32"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name": "0"
+                  },
+                  {
+                    "name": "50"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "name": "_note",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "reflectapi::Bounded",
+                    "arguments": [
+                      {
+                        "name": "std::string::String"
+                      },
+                      {
+                        "name": "0"
+                      },
+                      {
+                        "name": "280"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "std::option::Option",
+        "description": "Optional nullable type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "representation": "none",
+        "variants": [
+          {
+            "name": "None",
+            "description": "The value is not provided, i.e. null",
+            "fields": "none"
+          },
+          {
+            "name": "Some",
+            "description": "The value is provided and set to some value",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "std::vec::Vec",
+        "description": "Expandable array type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ]
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "primitive",
+        "name": "reflectapi::Bounded",
+        "description": "A string or collection whose length is within MIN..=MAX, inclusive: characters for strings, entries for collections. A request with another length is rejected with HTTP 400.",
+        "parameters": [
+          {
+            "name": "T"
+          },
+          {
+            "name": "MIN"
+          },
+          {
+            "name": "MAX"
+          }
+        ],
+        "fallback": {
+          "name": "T"
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::basic::output::TestStructWithBounded",
+        "fields": {
+          "named": [
+            {
+              "name": "_tags",
+              "type": {
+                "name": "reflectapi::Bounded",
+                "arguments": [
+                  {
+                    "name": "std::vec::Vec",
+                    "arguments": [
+                      {
+                        "name": "reflectapi::Bounded",
+                        "arguments": [
+                          {
+                            "name": "std::string::String"
+                          },
+                          {
+                            "name": "1"
+                          },
+                          {
+                            "name": "32"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name": "0"
+                  },
+                  {
+                    "name": "50"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "name": "_note",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "reflectapi::Bounded",
+                    "arguments": [
+                      {
+                        "name": "std::string::String"
+                      },
+                      {
+                        "name": "0"
+                      },
+                      {
+                        "name": "280"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "std::option::Option",
+        "description": "Optional nullable type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "representation": "none",
+        "variants": [
+          {
+            "name": "None",
+            "description": "The value is not provided, i.e. null",
+            "fields": "none"
+          },
+          {
+            "name": "Some",
+            "description": "The value is provided and set to some value",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "std::vec::Vec",
+        "description": "Expandable array type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ]
+      }
+    ]
+  }
+}

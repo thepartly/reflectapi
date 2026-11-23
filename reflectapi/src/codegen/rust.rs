@@ -2068,25 +2068,22 @@ fn __resolve_type_ref(
         }
     }
 
-    let mut implementation = implemented_types.get(type_ref.name.as_str()).cloned()?;
-    for (type_def_param, type_ref_param) in type_def.parameters().zip(type_ref.arguments.iter()) {
-        if implementation.contains(type_def_param.name.as_str()) {
-            implementation = implementation.replacen(
-                type_def_param.name.as_str(),
-                __type_ref_to_ts_ref(
-                    type_ref_param,
-                    schema,
-                    implemented_types,
-                    type_name_depth,
-                    parent,
-                )
-                .as_str(),
-                1,
-            );
-        }
-    }
+    let implementation = implemented_types.get(type_ref.name.as_str())?;
+    let arguments = type_def
+        .parameters()
+        .zip(type_ref.arguments.iter())
+        .map(|(param, argument)| {
+            (
+                param.name.as_str(),
+                __type_ref_to_ts_ref(argument, schema, implemented_types, type_name_depth, parent),
+            )
+        })
+        .collect::<Vec<_>>();
 
-    Some(implementation)
+    Some(super::substitute_type_parameters(
+        implementation,
+        &arguments,
+    ))
 }
 
 fn __doc_to_ts_comments(doc: &str, offset: u8) -> String {

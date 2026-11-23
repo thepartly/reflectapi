@@ -35,6 +35,7 @@ futures-util = "0.3"
 
 # optional 3rd party dependencies for implementing schema builder
 serde_json = { version = "1.0.114", optional = true }
+base64 = { version = "0.22", optional = true }
 bytes = { version = "1.5.0", optional = true }
 http = { version = "1.1.0", optional = true }
 mime = { version = "0.3.17", optional = true }
@@ -96,7 +97,7 @@ codegen = [
 ]
 rt = ["dep:http", "dep:serde_json", "dep:bytes", "dep:url"]
 glob = ["reflectapi-schema/glob"]
-json = ["dep:serde_json"]
+json = ["dep:serde_json", "serde_json/raw_value", "dep:base64"]
 indexmap = ["dep:indexmap"]
 reqwest = ["dep:reqwest"]
 reqwest-middleware = ["dep:reqwest-middleware", "reqwest"]

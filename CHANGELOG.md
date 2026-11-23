@@ -6,6 +6,15 @@
 
 - **A TypeScript client can choose its own type for a schema type**, such as a UUID type from a package it already uses: `typescript::Config::type_override("uuid::Uuid", r#"import("@acme/ids").Uuid"#)`, or `--typescript-type 'uuid::Uuid=import("@acme/ids").Uuid'` on the CLI. Every reference to the type uses it. `generated.ts` checks that each override is assignable to the type it replaces, as that type is on the wire, so `tsc` refuses one a request would send as something else, such as a `Date` for a timestamp string. Responses aren't converted: a response's value is the JSON value, typed as the override. Overriding a type the schema doesn't have, or one with type parameters, is an error. See [TypeScript types chosen by the client](https://reflectapi.rs/concepts/types.html#typescript-types-chosen-by-the-client). ([#240](https://github.com/thepartly/reflectapi/issues/240))
 - **The schema JSON records its format version**, as `"format_version": 1`, its first key. A reader accepts any format up to its own and refuses a newer one with an error that says to upgrade `reflectapi-cli`, where it used to ignore what it didn't know and generate a client that was silently wrong. A schema written before this release has no version and reads as format 1. Within a format, changes are additive: anything an older reader would get wrong by ignoring it, such as a new route kind, needs a new format. `Schema` gains the public field `format_version`, and the crate exports `SCHEMA_FORMAT_VERSION` and `SchemaFormat`, which reads and checks only the version, wherever its key is in the JSON. ([#246](https://github.com/thepartly/reflectapi/issues/246))
+- **`reflectapi::Bounded<T, MIN, MAX>`**, and `BoundedMax<T, MAX>` for an upper bound only: a string or collection whose length is within `MIN..=MAX`. A request with another length fails to deserialize, so it's rejected with HTTP 400 before the handler runs. Strings count characters, collections count entries. Every generated client checks the bounds before sending. See [Lengths](https://reflectapi.rs/concepts/types.html#lengths).
+  - **TypeScript:** a type of its own, made with `bounded(value, MIN, MAX)`, which throws a `BoundsError`, or `bounded.try`, which returns a `Result`. A plain value or other bounds don't compile.
+  - **Python:** Pydantic `min_length`/`max_length` on the field.
+  - **Rust client:** `reflectapi::Bounded` itself.
+  - **OpenAPI:** `minLength`/`maxLength`, `minItems`/`maxItems` or `minProperties`/`maxProperties`.
+- **`reflectapi::Raw<T>`** (feature `json`): a `T` kept as the JSON it arrived as, so the server can store or forward it unchanged, read a few fields with `peek` or decode it with `decode`. The schema and clients see a `T`. With MessagePack the value is converted to and from JSON text, keeping key order and every field.
+- **`reflectapi::Encoded<T>`** (feature `json`): a typed value encoded into a string, for clients to pass back without reading, such as a page cursor: a typed `T` on the server, a string (JSON, then base64url) on the wire. Encoded, not secret. See [Encoded values](https://reflectapi.rs/concepts/types.html#encoded-values).
+- **`reflectapi::Empty` is `Copy` and `Hash`**, so an enum holding it can derive both.
+- **Fixed-size arrays are checked in every client**: `[T; N]` gets `Field(min_length=N, max_length=N)` in Python and `minItems`/`maxItems` in OpenAPI, and the TypeScript client has `fixedSizeArray(items, N)` (and `fixedSizeArray.try`) to check an array built at runtime, instead of an unchecked cast.
 
 ### Changed
 
@@ -23,6 +32,7 @@
 ### Fixed
 
 - **Two different types under one name are a build error, where clients silently kept one.** If `rename_types` or `glob_rename_types` mapped two different types onto one name, `build()` succeeded, and every generated client kept only one of them. Which one depended on route order, so routes using the other got the wrong shape. The same happened when `nest` or `extend` merged builders with different types of the same name. `build()` now merges copies of one definition and fails on different types, naming the type and whether it's a request or response type. `Typespace` gains `dedup_types` and `conflicting_types`. ([#181](https://github.com/thepartly/reflectapi/issues/181))
+- **TypeScript and Rust codegen fill a built-in type's parameters in one pass**, so a parameter's name is no longer found inside an argument already filled in, such as `N` inside a type named `Node` in `FixedSizeArray<T, N>`.
 
 ## 0.26.0
 
