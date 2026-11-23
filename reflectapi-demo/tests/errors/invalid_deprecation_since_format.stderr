@@ -1,6 +1,6 @@
 error: `deprecated_since`: invalid date `2026-1-01`, expected a calendar date as YYYY-MM-DD
 
-         = help: see https://thepartly.github.io/reflectapi/getting-started/attributes.html
+         = help: see https://reflectapi.rs/getting-started/attributes.html
 
  --> tests/errors/invalid_deprecation_since_format.rs:4:37
   |

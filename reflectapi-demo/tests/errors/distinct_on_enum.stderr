@@ -1,6 +1,6 @@
 error: #[reflectapi(distinct)] applies to a newtype struct, `struct Id(Uuid)`, or a #[serde(transparent)] struct with one field
 
-         = help: see https://thepartly.github.io/reflectapi/getting-started/attributes.html
+         = help: see https://reflectapi.rs/getting-started/attributes.html
 
  --> tests/errors/distinct_on_enum.rs:3:6
   |

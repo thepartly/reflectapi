@@ -1,6 +1,6 @@
 error: deprecation dates require `#[deprecated]` on the same item
 
-         = help: see https://thepartly.github.io/reflectapi/getting-started/attributes.html
+         = help: see https://reflectapi.rs/getting-started/attributes.html
 
  --> tests/errors/invalid_deprecation_sunset_without_deprecated.rs:3:37
   |

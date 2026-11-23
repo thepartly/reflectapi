@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added
+
+- **The schema JSON records its format version**, as `"format_version": 1`, its first key. A reader accepts any format up to its own and refuses a newer one with an error that says to upgrade `reflectapi-cli`, where it used to ignore what it didn't know and generate a client that was silently wrong. A schema written before this release has no version and reads as format 1. Within a format, changes are additive: anything an older reader would get wrong by ignoring it, such as a new route kind, needs a new format. `Schema` gains the public field `format_version`, and the crate exports `SCHEMA_FORMAT_VERSION` and `SchemaFormat`, which reads and checks only the version, wherever its key is in the JSON. ([#246](https://github.com/thepartly/reflectapi/issues/246))
+
 ### Changed
 
 - **Breaking: the public schema and codegen structs are `#[non_exhaustive]`, so adding a field to one is no longer a breaking change.** Most recent releases broke only because a struct such as `Primitive` gained a field. Build these types with their constructors and set the public fields you need, instead of a struct literal or `..Default::default()`. For example, `let mut field = Field::new(name, type_ref); field.required = true;`, or `let mut config = python::Config::default(); config.format = false;`.
@@ -13,6 +17,11 @@
   - **Removed:** the unused `reflectapi::codegen::Config`.
 
   ([#247](https://github.com/thepartly/reflectapi/issues/247))
+- **The user guide is at [reflectapi.rs](https://reflectapi.rs/).** The derives' compile errors, generated clients' headers, the crates' homepages and docs.rs link there. Links to thepartly.github.io/reflectapi redirect to the same page.
+
+### Fixed
+
+- **Two different types under one name are a build error, where clients silently kept one.** If `rename_types` or `glob_rename_types` mapped two different types onto one name, `build()` succeeded, and every generated client kept only one of them. Which one depended on route order, so routes using the other got the wrong shape. The same happened when `nest` or `extend` merged builders with different types of the same name. `build()` now merges copies of one definition and fails on different types, naming the type and whether it's a request or response type. `Typespace` gains `dedup_types` and `conflicting_types`. ([#181](https://github.com/thepartly/reflectapi/issues/181))
 
 ## 0.26.0
 

@@ -1,6 +1,6 @@
 error: variant `NotFound` gives its status twice: give one of `status = …` and `transparent`
 
-         = help: see https://thepartly.github.io/reflectapi/getting-started/attributes.html#a-routes-error
+         = help: see https://reflectapi.rs/getting-started/attributes.html#a-routes-error
   --> tests/errors/status_code_given_twice.rs:12:32
    |
 12 |     #[reflectapi(status = 404, transparent)]

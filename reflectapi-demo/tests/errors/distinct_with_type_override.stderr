@@ -1,6 +1,6 @@
 error: #[reflectapi(distinct)] cannot be combined with a type override; put it on the type the override names
 
-         = help: see https://thepartly.github.io/reflectapi/getting-started/attributes.html
+         = help: see https://reflectapi.rs/getting-started/attributes.html
 
  --> tests/errors/distinct_with_type_override.rs:7:8
   |

@@ -20,7 +20,7 @@
 //! ```
 //!
 //! Generate at build time, from a test or a binary, and commit the output; see
-//! [Generate the schema and clients at build time](https://thepartly.github.io/reflectapi/serving/workers.html#generate-the-schema-and-clients-at-build-time).
+//! [Generate the schema and clients at build time](https://reflectapi.rs/serving/workers.html#generate-the-schema-and-clients-at-build-time).
 
 mod format;
 pub mod openapi;
@@ -42,7 +42,7 @@ use std::{
 use self::format::format_with;
 
 /// The guide's page on generated clients, named in every generated file's header.
-pub(crate) const CLIENTS_GUIDE: &str = "https://thepartly.github.io/reflectapi/clients/";
+pub(crate) const CLIENTS_GUIDE: &str = "https://reflectapi.rs/clients/";
 
 /// Validate client enum policies, including schemas loaded directly from JSON.
 pub(super) fn validate_response_enums(schema: &crate::Schema) -> anyhow::Result<()> {

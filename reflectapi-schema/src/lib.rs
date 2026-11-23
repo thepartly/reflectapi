@@ -47,9 +47,42 @@ use std::{
     ops::{ControlFlow, Index},
 };
 
+/// The schema JSON format version this crate writes, and the newest it reads.
+///
+/// A server writes its schema with one release of reflectapi and a client
+/// project often generates code from it with another, so the JSON records the
+/// format it was written in. A reader accepts any version up to its own and
+/// refuses a newer one, rather than generating a client that's silently wrong.
+///
+/// Within a version, changes are additive: an older reader may ignore them
+/// and still generate a client that makes the same requests and accepts the
+/// same responses, with the same method, path, headers and body. A new
+/// description, deprecation, `format` or `distinct` is additive, since it
+/// only refines types and docs. A change that an older reader would get wrong
+/// by ignoring it bumps the version. Examples are a new route kind, a new
+/// variant of a schema enum, a field that changes the wire shape of a type,
+/// as `untagged` or `open` do, and a field that changes how a route is called,
+/// such as an HTTP method. Removing or renaming a field, or changing what a
+/// missing field means, bumps it too.
+pub const SCHEMA_FORMAT_VERSION: u32 = 1;
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[non_exhaustive]
 pub struct Schema {
+    /// The JSON format this schema is written in: see [`SCHEMA_FORMAT_VERSION`].
+    /// It's the first key written, so a reader refuses a newer format before
+    /// it parses anything it might not understand. A schema without one is
+    /// format 1, the format from before versions were recorded.
+    ///
+    /// A schema built in code starts at the current format. One that was read
+    /// keeps the format it was read with, so code that gives it something
+    /// newer formats introduced must raise this to match.
+    #[serde(
+        default = "format_version::unrecorded",
+        deserialize_with = "format_version::deserialize"
+    )]
+    pub format_version: u32,
+
     pub name: String,
 
     #[serde(skip_serializing_if = "String::is_empty", default)]
@@ -65,6 +98,58 @@ pub struct Schema {
     pub output_types: Typespace,
 }
 
+/// Just a schema's `format_version`, read without the rest of the schema.
+///
+/// [`Schema`]'s own check fires as it reads `format_version`, so it reports a
+/// newer format only if that key comes before anything it can't parse, as it
+/// does in JSON reflectapi writes. Reading the JSON into this first checks
+/// the version wherever the key is, since the other keys are skipped unread:
+///
+/// ```
+/// # let json = r#"{"name": "api", "format_version": 1}"#;
+/// let _: reflectapi_schema::SchemaFormat = serde_json::from_str(json)?;
+/// let schema: reflectapi_schema::Schema = serde_json::from_str(json)?;
+/// # Ok::<(), serde_json::Error>(())
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Deserialize)]
+#[non_exhaustive]
+pub struct SchemaFormat {
+    /// The schema's format version, checked: see [`SCHEMA_FORMAT_VERSION`].
+    #[serde(
+        default = "format_version::unrecorded",
+        deserialize_with = "format_version::deserialize"
+    )]
+    pub format_version: u32,
+}
+
+mod format_version {
+    use super::SCHEMA_FORMAT_VERSION;
+
+    pub(super) fn unrecorded() -> u32 {
+        1
+    }
+
+    pub(super) fn deserialize<'de, D: serde::Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<u32, D::Error> {
+        let version = <u32 as serde::Deserialize>::deserialize(deserializer)?;
+        if version == 0 {
+            return Err(serde::de::Error::custom(
+                "this schema is in format version 0, which doesn't exist: versions start at 1",
+            ));
+        }
+        if version > SCHEMA_FORMAT_VERSION {
+            return Err(serde::de::Error::custom(format!(
+                "this schema is in format version {version}, but reflectapi-schema {} reads \
+                 formats up to {SCHEMA_FORMAT_VERSION}: upgrade reflectapi-cli, or the \
+                 reflectapi crate reading the schema, to at least the release that wrote it",
+                env!("CARGO_PKG_VERSION"),
+            )));
+        }
+        Ok(version)
+    }
+}
+
 impl Default for Schema {
     fn default() -> Self {
         Self::new()
@@ -74,6 +159,7 @@ impl Default for Schema {
 impl Schema {
     pub fn new() -> Self {
         Schema {
+            format_version: SCHEMA_FORMAT_VERSION,
             name: String::new(),
             description: String::new(),
             functions: Vec::new(),
@@ -112,12 +198,14 @@ impl Schema {
 
     pub fn extend(&mut self, other: Self) {
         let Self {
+            format_version,
             functions,
             input_types,
             output_types,
             name: _,
             description: _,
         } = other;
+        self.format_version = self.format_version.max(format_version);
         self.functions.extend(functions);
         self.input_types.extend(input_types);
         self.output_types.extend(output_types);
@@ -428,6 +516,54 @@ impl Typespace {
         self.types_map.borrow().contains_key(name)
     }
 
+    /// Removes each type that has the same name as an earlier one and is
+    /// equal to it, and returns the names that still name more than one type:
+    /// different types under one name, which a rename can produce. A generated
+    /// client would keep only one of them.
+    pub fn dedup_types(&mut self) -> Vec<String> {
+        let mut kept: Vec<Type> = Vec::with_capacity(self.types.len());
+        let mut kept_by_name: HashMap<String, Vec<usize>> = HashMap::new();
+        for ty in std::mem::take(&mut self.types) {
+            let same_name = kept_by_name.entry(ty.name().to_string()).or_default();
+            if !same_name.iter().any(|&index| kept[index] == ty) {
+                same_name.push(kept.len());
+                kept.push(ty);
+            }
+        }
+        self.types = kept;
+        self.invalidate_types_map();
+
+        let mut seen = BTreeSet::new();
+        let mut conflicting = BTreeSet::new();
+        for ty in &self.types {
+            if !seen.insert(ty.name()) {
+                conflicting.insert(ty.name().to_string());
+            }
+        }
+        conflicting.into_iter().collect()
+    }
+
+    /// The names of types both typespaces have, where `other`'s type equals
+    /// none of this typespace's types of that name. [`Typespace::extend`]
+    /// would keep this typespace's type for each.
+    pub fn conflicting_types(&self, other: &Typespace) -> Vec<String> {
+        let mut conflicting: Vec<String> = other
+            .types
+            .iter()
+            .filter(|ty| {
+                let mut same_name = self.types.iter().filter(|t| t.name() == ty.name());
+                same_name.clone().next().is_some() && same_name.all(|existing| existing != *ty)
+            })
+            .map(|ty| ty.name().to_string())
+            .collect();
+        conflicting.sort();
+        conflicting.dedup();
+        conflicting
+    }
+
+    /// Adds `other`'s types. Where both have a type of the same name, this
+    /// typespace's is kept, even if they differ: see
+    /// [`Typespace::conflicting_types`].
     pub fn extend(&mut self, other: Self) {
         self.ensure_types_map();
         for ty in other.types {

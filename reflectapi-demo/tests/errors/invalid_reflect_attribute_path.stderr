@@ -1,6 +1,6 @@
 error: expected `=`
 
-         = help: see https://thepartly.github.io/reflectapi/getting-started/attributes.html
+         = help: see https://reflectapi.rs/getting-started/attributes.html
 
  --> tests/errors/invalid_reflect_attribute_path.rs:3:29
   |

@@ -20,8 +20,8 @@
 //! route that is quiet for long periods can wrap its frames in
 //! [`keep_alive`] with the host runtime's timer.
 //!
-//! See [Integrating Other Servers](https://thepartly.github.io/reflectapi/serving/other-servers.html)
-//! and [Serving with celld and Cloudflare Workers](https://thepartly.github.io/reflectapi/serving/workers.html).
+//! See [Integrating Other Servers](https://reflectapi.rs/serving/other-servers.html)
+//! and [Serving with celld and Cloudflare Workers](https://reflectapi.rs/serving/workers.html).
 
 use std::{collections::HashMap, fmt, future::Future, pin::Pin, time::Duration};
 
