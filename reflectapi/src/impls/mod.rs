@@ -23,7 +23,6 @@ mod indexmap;
 /// primitives carried one, so it must give the same formats they set.
 #[cfg(all(
     test,
-    any(feature = "builder", feature = "codegen"),
     feature = "uuid",
     feature = "chrono",
     feature = "url",
@@ -44,7 +43,10 @@ mod tests {
             );
             let mut older = primitive.clone();
             older.format = None;
-            assert_eq!(crate::wire::format::wire_format(&older), primitive.format());
+            assert_eq!(
+                reflectapi_schema::wire::format::wire_format(&older),
+                primitive.format()
+            );
         }
         check::<uuid::Uuid>();
         check::<chrono::DateTime<chrono::Utc>>();
