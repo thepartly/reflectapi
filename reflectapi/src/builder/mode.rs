@@ -69,53 +69,52 @@ impl BuildMode for WithSchema {
         let input_headers = H::reflectapi_input_type(&mut schema.input_types);
         let input_header_names = header_names(&schema.input_types, &input_headers)?;
 
-        schema.functions.push(Function {
-            name: route.name.clone(),
-            path: route.path.clone(),
-            deprecation_note: route.deprecation_note.clone(),
-            deprecated_in: route.deprecated_in.clone(),
-            deprecated_since: route.deprecated_since.clone(),
-            sunset: route.sunset.clone(),
-            description: route.description.clone(),
-            input_type: if input_type.name == "reflectapi::Empty" {
-                None
-            } else {
-                Some(input_type)
-            },
-            output_type: if is_stream {
-                OutputType::Stream {
-                    item_type: output_type,
-                }
-            } else {
-                OutputType::Complete {
-                    output_type: if output_type.name == "reflectapi::Empty" {
-                        None
-                    } else {
-                        Some(output_type)
-                    },
-                }
-            },
-            error_type: if error_type.name == "reflectapi::Infallible" {
-                None
-            } else {
-                Some(error_type)
-            },
-            response_headers: route
-                .response_headers
-                .map(|reflect_output_type| reflect_output_type(&mut schema.output_types)),
-            input_headers: if input_header_names.is_empty() {
-                None
-            } else {
-                Some(input_headers)
-            },
-            serialization: vec![
-                crate::SerializationMode::Json,
-                #[cfg(feature = "msgpack")]
-                crate::SerializationMode::Msgpack,
-            ],
-            readonly: route.readonly,
-            tags: route.tags.clone(),
-        });
+        let mut function = Function::new(route.name.clone());
+        function.path = route.path.clone();
+        function.deprecation_note = route.deprecation_note.clone();
+        function.deprecated_in = route.deprecated_in.clone();
+        function.deprecated_since = route.deprecated_since.clone();
+        function.sunset = route.sunset.clone();
+        function.description = route.description.clone();
+        function.input_type = if input_type.name == "reflectapi::Empty" {
+            None
+        } else {
+            Some(input_type)
+        };
+        function.output_type = if is_stream {
+            OutputType::Stream {
+                item_type: output_type,
+            }
+        } else {
+            OutputType::Complete {
+                output_type: if output_type.name == "reflectapi::Empty" {
+                    None
+                } else {
+                    Some(output_type)
+                },
+            }
+        };
+        function.error_type = if error_type.name == "reflectapi::Infallible" {
+            None
+        } else {
+            Some(error_type)
+        };
+        function.response_headers = route
+            .response_headers
+            .map(|reflect_output_type| reflect_output_type(&mut schema.output_types));
+        function.input_headers = if input_header_names.is_empty() {
+            None
+        } else {
+            Some(input_headers)
+        };
+        function.serialization = vec![
+            crate::SerializationMode::Json,
+            #[cfg(feature = "msgpack")]
+            crate::SerializationMode::Msgpack,
+        ];
+        function.readonly = route.readonly;
+        function.tags = route.tags.clone();
+        schema.functions.push(function);
 
         Ok(input_header_names)
     }

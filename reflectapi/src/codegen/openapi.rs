@@ -77,6 +77,7 @@ impl From<&crate::Schema> for Spec {
 /// An OpenAPI 3.1 document. Serialize it as JSON, for example to serve it
 /// from an endpoint; `Spec::from(&schema)` uses the default [`Config`].
 #[derive(Debug, Clone, PartialEq, Serialize)]
+#[non_exhaustive]
 pub struct Spec {
     pub openapi: String,
     #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -89,6 +90,7 @@ pub struct Spec {
 
 /// A tag and its description, for [`Config::tags`].
 #[derive(Debug, Clone, PartialEq, Serialize)]
+#[non_exhaustive]
 pub struct Tag {
     pub name: String,
     #[serde(skip_serializing_if = "String::is_empty")]
@@ -114,6 +116,7 @@ impl Tag {
 #[doc(hidden)]
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct Info {
     pub title: String,
     pub description: String,
@@ -122,12 +125,14 @@ pub struct Info {
 
 #[doc(hidden)]
 #[derive(Debug, Clone, PartialEq, Default, Serialize)]
+#[non_exhaustive]
 pub struct Components {
     schemas: BTreeMap<String, Schema>,
 }
 
 #[doc(hidden)]
 #[derive(Debug, Clone, PartialEq, Serialize)]
+#[non_exhaustive]
 pub struct PathItem {
     description: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -138,6 +143,7 @@ pub struct PathItem {
 #[doc(hidden)]
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct Operation {
     operation_id: String,
     #[serde(skip_serializing_if = "BTreeSet::is_empty")]
@@ -162,6 +168,7 @@ fn is_false(b: &bool) -> bool {
 /// dates as `x-deprecated-since` and `x-sunset` (the extension oasdiff reads
 /// as the earliest removal date).
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]
+#[non_exhaustive]
 pub struct Deprecation {
     #[serde(skip_serializing_if = "is_false")]
     pub deprecated: bool,
@@ -186,6 +193,7 @@ impl From<Option<crate::Deprecation<'_>>> for Deprecation {
 
 #[doc(hidden)]
 #[derive(Debug, Clone, PartialEq, Serialize)]
+#[non_exhaustive]
 pub struct Parameter {
     name: String,
     #[serde(rename = "in")]
@@ -206,6 +214,7 @@ enum In {
 
 #[doc(hidden)]
 #[derive(Debug, Clone, PartialEq, Serialize)]
+#[non_exhaustive]
 pub struct RequestBody {
     content: BTreeMap<String, MediaType>,
     required: bool,
@@ -213,6 +222,7 @@ pub struct RequestBody {
 
 #[doc(hidden)]
 #[derive(Debug, Clone, PartialEq, Serialize)]
+#[non_exhaustive]
 pub struct Response {
     description: String,
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
@@ -223,6 +233,7 @@ pub struct Response {
 
 #[doc(hidden)]
 #[derive(Debug, Clone, PartialEq, Serialize)]
+#[non_exhaustive]
 pub struct Header {
     schema: InlineOrRef<Schema>,
     #[serde(skip_serializing_if = "String::is_empty")]
@@ -233,6 +244,7 @@ pub struct Header {
 
 #[doc(hidden)]
 #[derive(Debug, Clone, PartialEq, Serialize)]
+#[non_exhaustive]
 pub struct MediaType {
     schema: InlineOrRef<Schema>,
 }
@@ -240,6 +252,7 @@ pub struct MediaType {
 #[doc(hidden)]
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
+#[non_exhaustive]
 pub enum StringFormat {
     /// full-date notation as defined by RFC 3339, section 5.6, for example, 2017-07-21
     Date,
@@ -266,6 +279,7 @@ impl StringFormat {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(tag = "type")]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub enum Type {
     Boolean,
     Integer {
@@ -312,6 +326,7 @@ pub enum Type {
 
 #[doc(hidden)]
 #[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
 pub struct Property {
     // This `description` overrides the description of the type.
     description: String,
@@ -368,6 +383,7 @@ impl serde::Serialize for Property {
 #[derive(Clone, PartialEq, Serialize)]
 #[serde(untagged)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub enum Schema {
     AllOf {
         /// Names an enum variant's branch, so diff tools pair it by name rather than by content.
@@ -404,6 +420,7 @@ pub enum Schema {
 
 #[doc(hidden)]
 #[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
 pub struct DeprecatedSchema {
     pub schema: Box<InlineOrRef<Schema>>,
     pub deprecation: Deprecation,
@@ -476,6 +493,7 @@ impl Schema {
 #[doc(hidden)]
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct Discriminator {
     /// Defines a discriminator property name which must be found within all composite objects.
     pub property_name: String,
@@ -483,6 +501,7 @@ pub struct Discriminator {
 
 #[doc(hidden)]
 #[derive(Clone, Debug, Serialize, PartialEq)]
+#[non_exhaustive]
 pub struct FlatSchema {
     #[serde(skip_serializing_if = "String::is_empty")]
     pub description: String,
@@ -531,6 +550,7 @@ impl<T: fmt::Debug> fmt::Debug for InlineOrRef<T> {
 
 #[doc(hidden)]
 #[derive(Clone, PartialEq, Serialize)]
+#[non_exhaustive]
 pub struct Ref<T> {
     #[serde(rename = "$ref")]
     pub ref_path: String,
@@ -904,14 +924,12 @@ impl Converter<'_> {
                 // HACK: string type is often used as a fallback type.
                 static STRING_TYPE: OnceLock<crate::Type> = OnceLock::new();
                 return STRING_TYPE.get_or_init(|| {
-                    crate::Type::Primitive(crate::Primitive {
-                        name: "std::string::String".into(),
-                        description: "UTF-8 encoded string".into(),
-                        parameters: vec![],
-                        fallback: None,
-                        format: None,
-                        codegen_config: Default::default(),
-                    })
+                    crate::Type::Primitive(crate::Primitive::new(
+                        "std::string::String".into(),
+                        "UTF-8 encoded string".into(),
+                        vec![],
+                        None,
+                    ))
                 });
             };
 
@@ -1136,16 +1154,11 @@ impl Converter<'_> {
         let type_ref =
             crate::TypeReference::new(variant.name().to_owned(), type_ref.arguments.clone());
 
-        let strukt = crate::Struct {
-            name: variant.name().to_owned(),
-            serde_name: variant.serde_name.to_owned(),
-            description: sanitize_description(variant.description()),
-            parameters: vec![],
-            fields: variant.fields.clone(),
-            transparent: false,
-            distinct: false,
-            codegen_config: adt.codegen_config.clone(),
-        };
+        let mut strukt = crate::Struct::new(variant.name());
+        strukt.serde_name = variant.serde_name.to_owned();
+        strukt.description = sanitize_description(variant.description());
+        strukt.fields = variant.fields.clone();
+        strukt.codegen_config = adt.codegen_config.clone();
 
         let repr = match variant.untagged {
             true => &crate::Representation::None,
@@ -1708,21 +1721,19 @@ Trailing docs."##
 
         let mut strukt = crate::Struct::new("tier1::ContextWithDiagrams");
         strukt.description = json_schema_doc().to_owned();
-        strukt.fields = reflectapi_schema::Fields::Named(vec![crate::Field {
-            description: json_schema_doc().to_owned(),
-            required: true,
-            ..crate::Field::new("name".to_owned(), "std::string::String".into())
-        }]);
+        let mut field = crate::Field::new("name".to_owned(), "std::string::String".into());
+        field.description = json_schema_doc().to_owned();
+        field.required = true;
+        strukt.fields = reflectapi_schema::Fields::Named(vec![field]);
         schema.input_types.insert_type(strukt.clone().into());
         schema.output_types.insert_type(strukt.into());
-        schema.functions.push(crate::Function {
-            description: json_schema_doc().to_owned(),
-            input_type: Some("tier1::ContextWithDiagrams".into()),
-            output_type: crate::OutputType::Complete {
-                output_type: Some("tier1::ContextWithDiagrams".into()),
-            },
-            ..crate::Function::new("test".to_owned())
-        });
+        let mut function = crate::Function::new("test".to_owned());
+        function.description = json_schema_doc().to_owned();
+        function.input_type = Some("tier1::ContextWithDiagrams".into());
+        function.output_type = crate::OutputType::Complete {
+            output_type: Some("tier1::ContextWithDiagrams".into()),
+        };
+        schema.functions.push(function);
 
         let spec_json = serde_json::to_string(&Spec::from(&schema)).unwrap();
 
@@ -1805,12 +1816,11 @@ Trailing docs."##
             ),
         ];
         for (name, output) in outputs {
-            schema.functions.push(crate::Function {
-                output_type: crate::OutputType::Complete {
-                    output_type: Some(output),
-                },
-                ..crate::Function::new(name.to_owned())
-            });
+            let mut function = crate::Function::new(name.to_owned());
+            function.output_type = crate::OutputType::Complete {
+                output_type: Some(output),
+            };
+            schema.functions.push(function);
         }
 
         let spec = serde_json::to_value(Spec::from(&schema)).unwrap();

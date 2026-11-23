@@ -95,13 +95,11 @@ fn generate_files(request: &[u8]) -> Result<BTreeMap<String, String>, String> {
             if typecheck {
                 return Err("typecheck isn't available for Python".to_owned());
             }
-            reflectapi::codegen::python::generate_files(
-                schema,
-                &reflectapi::codegen::python::Config {
-                    format,
-                    ..Default::default()
-                },
-            )
+            reflectapi::codegen::python::generate_files(schema, &{
+                let mut config = reflectapi::codegen::python::Config::default();
+                config.format = format;
+                config
+            })
         }
         Target::Openapi => reflectapi::codegen::openapi::generate(&schema, &Default::default())
             .map(|spec| [("openapi.json".to_owned(), spec)].into()),

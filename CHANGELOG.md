@@ -8,6 +8,15 @@
 
 ### Changed
 
+- **Breaking: the public schema and codegen structs are `#[non_exhaustive]`, so adding a field to one is no longer a breaking change.** Most recent releases broke only because a struct such as `Primitive` gained a field. Build these types with their constructors and set the public fields you need, instead of a struct literal or `..Default::default()`. For example, `let mut field = Field::new(name, type_ref); field.required = true;`, or `let mut config = python::Config::default(); config.format = false;`.
+  - **`reflectapi-schema`:** `Schema`, `Function`, `TypeReference`, `TypeParameter`, `Primitive`, `Struct`, `Field`, `Enum`, `Variant`, `Deprecation` and the codegen configs, and the error `InvalidDeprecationDate`.
+  - **`reflectapi`:** `codegen::python::Config`, every OpenAPI spec type (`openapi::Spec`, `Tag` and the rest), `BuildError`, `ValidationError` and `ValidationPointer`.
+  - **Still exhaustive:** the enums that describe the wire (`Type`, `Fields`, `Representation`, `OutputType`, `SerializationMode`). A new variant of one changes what a client sends or accepts, so code that matches on it should have to handle it.
+  - **Patterns and matches:** a pattern destructuring one of these structs needs a trailing `..`, and a `match` on `BuildError`, `ValidationPointer`, `InvalidDeprecationDate` or an OpenAPI enum such as `openapi::Type` needs a wildcard arm. `openapi::InlineOrRef` stays exhaustive: it's the two-way choice between an inline schema and a `$ref`.
+  - **Generated code:** the derive now builds schema types with constructors, so it keeps compiling when a field is added.
+  - **Removed:** the unused `reflectapi::codegen::Config`.
+
+  ([#247](https://github.com/thepartly/reflectapi/issues/247))
 - **The user guide is at [reflectapi.rs](https://reflectapi.rs/).** The derives' compile errors, generated clients' headers, the crates' homepages and docs.rs link there. Links to thepartly.github.io/reflectapi redirect to the same page.
 
 ### Fixed

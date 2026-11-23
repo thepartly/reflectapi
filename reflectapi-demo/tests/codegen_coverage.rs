@@ -153,17 +153,16 @@ fn openapi_refs_resolve() {
 #[test]
 fn write_python_client() {
     let (schema, _) = builder().build().unwrap();
-    let files = reflectapi::codegen::python::generate_files(
-        schema,
-        &reflectapi::codegen::python::Config {
-            package_name: "codegen_coverage_client".into(),
-            generate_async: true,
-            generate_sync: true,
-            generate_testing: false,
-            format: true,
-            base_url: None,
-        },
-    )
+    let files = reflectapi::codegen::python::generate_files(schema, &{
+        let mut config = reflectapi::codegen::python::Config::default();
+        config.package_name = "codegen_coverage_client".into();
+        config.generate_async = true;
+        config.generate_sync = true;
+        config.generate_testing = false;
+        config.format = true;
+        config.base_url = None;
+        config
+    })
     .unwrap();
 
     let out_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))

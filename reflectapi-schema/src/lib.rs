@@ -1,3 +1,25 @@
+//! The schema a reflectapi server describes itself with, and the JSON it's
+//! written to.
+//!
+//! # Compatibility
+//!
+//! The schema's structs, such as [`Struct`], [`Field`] and [`Function`], are
+//! `#[non_exhaustive]`, so a release can add a field to one without breaking
+//! code that uses it. Build one with its constructor and set the public fields
+//! you need:
+//!
+//! ```
+//! let mut field = reflectapi_schema::Field::new("id".into(), "u64".into());
+//! field.required = true;
+//! let mut point = reflectapi_schema::Struct::new("geo::Point");
+//! point.fields = reflectapi_schema::Fields::Named(vec![field]);
+//! ```
+//!
+//! The enums that describe the wire, such as [`Type`], [`Fields`],
+//! [`Representation`], [`OutputType`] and [`SerializationMode`], stay
+//! exhaustive. A new variant of one changes what a client must send or accept,
+//! so code that matches on it should have to handle it.
+
 mod codegen;
 mod deprecation;
 mod internal;
@@ -45,6 +67,7 @@ use std::{
 pub const SCHEMA_FORMAT_VERSION: u32 = 1;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[non_exhaustive]
 pub struct Schema {
     /// The JSON format this schema is written in: see [`SCHEMA_FORMAT_VERSION`].
     /// It's the first key written, so a reader refuses a newer format before
@@ -571,6 +594,7 @@ impl Typespace {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[non_exhaustive]
 pub struct Function {
     /// Includes entity and action, for example: users.login
     pub name: String,
@@ -737,6 +761,7 @@ pub enum SerializationMode {
 #[derive(
     Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord,
 )]
+#[non_exhaustive]
 pub struct TypeReference {
     pub name: String,
     /**
@@ -794,6 +819,7 @@ impl From<String> for TypeReference {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[non_exhaustive]
 pub struct TypeParameter {
     pub name: String,
     #[serde(skip_serializing_if = "String::is_empty", default)]
@@ -956,6 +982,7 @@ impl Type {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub struct Primitive {
     pub name: String,
     #[serde(skip_serializing_if = "String::is_empty", default)]
@@ -1093,6 +1120,7 @@ impl From<Primitive> for Type {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Struct {
     /// Name of a struct, should be a valid Rust struct name identifier
     pub name: String,
@@ -1295,6 +1323,7 @@ impl IntoIterator for Fields {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Eq)]
+#[non_exhaustive]
 pub struct Field {
     /// Field name, should be a valid Rust field name identifier
     pub name: String,
@@ -1532,6 +1561,7 @@ fn is_false(b: &bool) -> bool {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Enum {
     pub name: String,
     #[serde(skip_serializing_if = "String::is_empty", default)]
@@ -1611,6 +1641,7 @@ impl From<Enum> for Type {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Variant {
     pub name: String,
     #[serde(skip_serializing_if = "String::is_empty", default)]

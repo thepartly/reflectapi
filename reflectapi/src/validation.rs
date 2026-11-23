@@ -1,6 +1,7 @@
 use std::fmt;
 
 #[derive(Debug)]
+#[non_exhaustive]
 pub struct ValidationError {
     pub pointer: ValidationPointer,
     pub message: String,
@@ -21,6 +22,7 @@ impl fmt::Display for ValidationError {
 impl std::error::Error for ValidationError {}
 
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum ValidationPointer {
     Field {
         type_name: String,

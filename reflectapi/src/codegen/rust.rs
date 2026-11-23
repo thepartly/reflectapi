@@ -140,10 +140,7 @@ fn types_referenced_by(
     };
 
     for type_name in type_names {
-        let _ = v.visit_type_ref(&mut TypeReference {
-            name: type_name.clone(),
-            arguments: vec![],
-        });
+        let _ = v.visit_type_ref(&mut TypeReference::new(type_name.clone(), vec![]));
     }
 
     v.out
