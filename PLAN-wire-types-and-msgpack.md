@@ -737,6 +737,10 @@ Tracked here until done. Sections above have the details.
 - [ ] Python client: opt-in MessagePack via `msgpack`
 - [ ] Optional: `Raw::peek` through sonic-rs's unchecked lookup behind a
   feature, falling back to serde_json on wasm without `simd128`
+- [ ] Next breaking release: remove the deprecated `StatusCode` and its
+  blanket `ResponseError` impl, so `Box<T>` forwards `ResponseError` (status
+  and headers) as `Arc<T>` does, and compiler errors stop mentioning
+  `StatusCode`
 
 ### `Bounded` in clients
 
@@ -766,7 +770,8 @@ agreeing the conventions module's scope.
 | Conflict resolution: `if` field enums (`IfExists*`, `IfNotExists*`), `InsertOrElse` and the other wrappers, match conditions | Conventions module. Two parallel versions exist (with and without match conditions): merge them first, and replace the `subenum`/`duplicate` macros with `macro_rules!` |
 | Lints that prevent codegen bugs: unit variants in untagged enums, two types renamed onto one name, repeated module segments | Core, as warnings first, then errors |
 | Style lints: tagged functions, `resource.verb` names from a verb list, snake_case variants, no `Enum`/`Struct` suffixes, path depth, error variant naming, internal endpoints tagged, description indentation | Conventions module, with the verb list and exceptions as settings |
-| An internal-error type that returns only a trace ID to clients and logs the rest | Keep downstream: it depends on OpenTelemetry, whose frequent breaking releases would force breaking releases of reflectapi |
+| Lint: internal error variants are skipped from the schema | Already covered: `#[derive(reflectapi::ResponseError)]` refuses, as it compiles, `500` on any variant but `InternalError`, any other `5xx`, and an `InternalError` that isn't `output_skip`. The docs now say to derive `ResponseError` and implement it by hand only for a type a `transparent` variant wraps. Drop the lint downstream once its error enums use the derive |
+| An internal-error type that returns only a trace ID to clients and logs the rest | Keep downstream, with its shape and contents left to apps: it depends on OpenTelemetry, whose frequent breaking releases would force breaking releases of reflectapi. With clients sending `traceparent`, its trace ID repeats the client's |
 
 Downstream migration, once ported: the downstream crate re-exports
 reflectapi's types; the schema name of its bounded type changes to

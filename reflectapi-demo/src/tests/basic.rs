@@ -916,8 +916,8 @@ enum ResponseHeadersTestError {
     Conflict,
 }
 
-impl reflectapi::StatusCode for ResponseHeadersTestError {
-    fn status_code(&self) -> http::StatusCode {
+impl reflectapi::ResponseError for ResponseHeadersTestError {
+    fn status(&self) -> http::StatusCode {
         http::StatusCode::CONFLICT
     }
 }

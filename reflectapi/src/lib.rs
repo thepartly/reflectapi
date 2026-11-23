@@ -50,7 +50,7 @@
 //! ## Where things are
 //!
 //! - Types: derive [`Input`] for what a route reads and [`Output`] for what it
-//!   returns, beside serde's derives. A route's error derives `StatusCode`.
+//!   returns, beside serde's derives. A route's error derives [`ResponseError`].
 //! - Routes: [`Builder`] (feature `builder`) registers handlers and builds the
 //!   schema and the [`Router`]s.
 //! - Serving: [`axum`] (feature `axum`) or [`dispatch`] for any other server.
@@ -101,9 +101,12 @@ pub mod dispatch;
 pub mod codegen;
 
 #[cfg(feature = "builder")]
+#[allow(deprecated)]
+pub use self::builder::StatusCode;
+#[cfg(feature = "builder")]
 pub use self::builder::{
     BuildError, BuildErrors, BuildMode, Builder, ContentType, DispatchOnly, Event, EventId,
-    IntoResult, InvalidEventId, RouteBuilder, Router, StatusCode, StreamItem, WithSchema,
+    IntoResult, InvalidEventId, ResponseError, RouteBuilder, Router, StreamItem, WithSchema,
 };
 #[cfg(feature = "builder")]
 use self::builder::{Handler, HandlerCallback};
@@ -116,7 +119,7 @@ pub use option::*;
 #[cfg(feature = "json")]
 pub use raw::Raw;
 #[cfg(feature = "builder")]
-pub use reflectapi_derive::StatusCode;
+pub use reflectapi_derive::ResponseError;
 pub use reflectapi_derive::{Input, Output};
 pub use traits::*;
 pub use validation::*;
@@ -132,4 +135,5 @@ pub use reflectapi_schema::*;
 #[cfg(feature = "builder")]
 pub mod __private {
     pub use http;
+    pub use serde;
 }

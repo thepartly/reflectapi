@@ -12,8 +12,8 @@ pub mod fixtures {
         Bird,
     }
 
-    impl reflectapi::StatusCode for OpenInternal {
-        fn status_code(&self) -> http::StatusCode {
+    impl reflectapi::ResponseError for OpenInternal {
+        fn status(&self) -> http::StatusCode {
             http::StatusCode::BAD_REQUEST
         }
     }

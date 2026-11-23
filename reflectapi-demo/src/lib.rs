@@ -72,22 +72,12 @@ pub fn api<M: reflectapi::BuildMode>() -> reflectapi::Builder<Arc<AppState>, M> 
         })
 }
 
-// Test for struct error returns.
-#[derive(Debug, serde::Serialize, reflectapi::Output)]
-struct HealthCheckFail {}
-
-impl reflectapi::StatusCode for HealthCheckFail {
-    fn status_code(&self) -> http::StatusCode {
-        http::StatusCode::INTERNAL_SERVER_ERROR
-    }
-}
-
 async fn health_check(
     _: Arc<AppState>,
     _request: reflectapi::Empty,
     _headers: reflectapi::Empty,
-) -> Result<reflectapi::Empty, HealthCheckFail> {
-    Ok(reflectapi::Empty {})
+) -> reflectapi::Empty {
+    reflectapi::Empty {}
 }
 
 #[derive(Debug)]
@@ -163,7 +153,7 @@ mod model {
 
 fn authorize<E: From<proto::UnauthorizedError>>(headers: proto::Headers) -> Result<(), E> {
     if headers.authorization.is_empty() {
-        return Err(E::from(proto::UnauthorizedError));
+        return Err(E::from(proto::UnauthorizedError::Unauthorized));
     }
     Ok(())
 }
@@ -314,24 +304,10 @@ async fn pets_cdc_events(
 }
 
 mod proto {
-    #[derive(serde::Serialize, reflectapi::Output)]
-    pub struct InternalError {
-        pub message: String,
-    }
-
-    impl reflectapi::StatusCode for InternalError {
-        fn status_code(&self) -> http::StatusCode {
-            http::StatusCode::INTERNAL_SERVER_ERROR
-        }
-    }
-
-    #[derive(Debug, serde::Serialize, reflectapi::Output)]
-    pub struct UnauthorizedError;
-
-    impl reflectapi::StatusCode for UnauthorizedError {
-        fn status_code(&self) -> http::StatusCode {
-            http::StatusCode::UNAUTHORIZED
-        }
+    #[derive(Debug, serde::Serialize, reflectapi::Output, reflectapi::ResponseError)]
+    pub enum UnauthorizedError {
+        #[reflectapi(status = 401)]
+        Unauthorized,
     }
 
     #[derive(serde::Deserialize, reflectapi::Input)]
@@ -372,23 +348,17 @@ mod proto {
         pub cursor: Option<String>,
     }
 
-    #[derive(serde::Serialize, reflectapi::Output)]
+    #[derive(serde::Serialize, reflectapi::Output, reflectapi::ResponseError)]
     #[serde(tag = "kind")]
     pub enum PetsListError {
+        #[reflectapi(status = 422)]
         InvalidCursor,
+        #[reflectapi(status = 401)]
         Unauthorized,
+        /// A failure the client can't act on; clients see it as a server error.
         #[allow(dead_code)]
-        Internal(InternalError),
-    }
-
-    impl reflectapi::StatusCode for PetsListError {
-        fn status_code(&self) -> http::StatusCode {
-            match self {
-                PetsListError::InvalidCursor => http::StatusCode::BAD_REQUEST,
-                PetsListError::Unauthorized => http::StatusCode::UNAUTHORIZED,
-                PetsListError::Internal(err) => err.status_code(),
-            }
-        }
+        #[reflectapi(output_skip, status = 500)]
+        InternalError { message: String },
     }
 
     impl From<UnauthorizedError> for PetsListError {
@@ -400,21 +370,14 @@ mod proto {
     #[derive(serde::Deserialize, reflectapi::Input)]
     pub struct PetsCreateRequest(pub crate::model::Pet);
 
-    #[derive(serde::Serialize, reflectapi::Output)]
+    #[derive(serde::Serialize, reflectapi::Output, reflectapi::ResponseError)]
     pub enum PetsCreateError {
+        #[reflectapi(status = 409)]
         Conflict,
+        #[reflectapi(status = 401)]
         NotAuthorized,
+        #[reflectapi(status = 422)]
         InvalidIdentity { message: String },
-    }
-
-    impl reflectapi::StatusCode for PetsCreateError {
-        fn status_code(&self) -> http::StatusCode {
-            match self {
-                PetsCreateError::Conflict => http::StatusCode::CONFLICT,
-                PetsCreateError::NotAuthorized => http::StatusCode::UNAUTHORIZED,
-                PetsCreateError::InvalidIdentity { .. } => http::StatusCode::UNPROCESSABLE_ENTITY,
-            }
-        }
     }
 
     impl From<UnauthorizedError> for PetsCreateError {
@@ -449,22 +412,15 @@ mod proto {
         ValidationA(ValidationA),
     }
 
-    #[derive(serde::Serialize, reflectapi::Output)]
+    #[derive(serde::Serialize, reflectapi::Output, reflectapi::ResponseError)]
     pub enum PetsUpdateError {
+        #[reflectapi(status = 404)]
         NotFound,
+        #[reflectapi(status = 401)]
         NotAuthorized,
         #[allow(dead_code)]
+        #[reflectapi(status = 422)]
         Validation(Vec<ValidationError>),
-    }
-
-    impl reflectapi::StatusCode for PetsUpdateError {
-        fn status_code(&self) -> http::StatusCode {
-            match self {
-                PetsUpdateError::NotFound => http::StatusCode::NOT_FOUND,
-                PetsUpdateError::NotAuthorized => http::StatusCode::UNAUTHORIZED,
-                PetsUpdateError::Validation(_) => http::StatusCode::UNPROCESSABLE_ENTITY,
-            }
-        }
     }
 
     impl From<UnauthorizedError> for PetsUpdateError {
@@ -479,19 +435,12 @@ mod proto {
         pub name: String,
     }
 
-    #[derive(serde::Serialize, reflectapi::Output)]
+    #[derive(serde::Serialize, reflectapi::Output, reflectapi::ResponseError)]
     pub enum PetsRemoveError {
+        #[reflectapi(status = 404)]
         NotFound,
+        #[reflectapi(status = 401)]
         NotAuthorized,
-    }
-
-    impl reflectapi::StatusCode for PetsRemoveError {
-        fn status_code(&self) -> http::StatusCode {
-            match self {
-                PetsRemoveError::NotFound => http::StatusCode::NOT_FOUND,
-                PetsRemoveError::NotAuthorized => http::StatusCode::UNAUTHORIZED,
-            }
-        }
     }
 
     impl From<UnauthorizedError> for PetsRemoveError {

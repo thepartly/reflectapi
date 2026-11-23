@@ -3,7 +3,6 @@
 # ruff: noqa: F401
 
 from api_client import AsyncClient, Client
-from api_client.myapi import HealthCheckFail as MyapiHealthCheckFail
 from api_client.myapi.model import (
     Behavior as MyapiModelBehavior,
     BehaviorAggressiveVariant as MyapiModelBehaviorAggressiveVariant,
@@ -17,12 +16,10 @@ from api_client.myapi.model.input import Pet as MyapiModelInputPet
 from api_client.myapi.model.output import Pet as MyapiModelOutputPet
 from api_client.myapi.proto import (
     Headers as MyapiProtoHeaders,
-    InternalError as MyapiProtoInternalError,
     Paginated as MyapiProtoPaginated,
     PetsCreateError as MyapiProtoPetsCreateError,
     PetsCreateErrorInvalidIdentityVariant as MyapiProtoPetsCreateErrorInvalidIdentityVariant,
     PetsListError as MyapiProtoPetsListError,
-    PetsListErrorInternal as MyapiProtoPetsListErrorInternal,
     PetsListErrorInvalidCursor as MyapiProtoPetsListErrorInvalidCursor,
     PetsListErrorUnauthorized as MyapiProtoPetsListErrorUnauthorized,
     PetsListRequest as MyapiProtoPetsListRequest,

@@ -8,12 +8,12 @@ server failures.
 ## A route's error
 
 The error type derives `Serialize` and [`Output`](https://docs.rs/reflectapi/latest/reflectapi/trait.Output.html), like any type the server
-returns, and implements [`StatusCode`](https://docs.rs/reflectapi/latest/reflectapi/trait.StatusCode.html),
-which gives the HTTP status of its response. For an enum, derive it and give
-each variant its status:
+returns, and implements [`ResponseError`](https://docs.rs/reflectapi/latest/reflectapi/trait.ResponseError.html),
+which gives the HTTP status of its response and the headers it adds. Make the
+error an enum, derive it, and give each variant its status:
 
 ```rust
-use reflectapi::{Builder, Input, Output, StatusCode};
+use reflectapi::{Builder, Input, Output, ResponseError};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Input)]
@@ -26,7 +26,7 @@ struct Pet {
     name: String,
 }
 
-#[derive(Serialize, Output, StatusCode)]
+#[derive(Serialize, Output, ResponseError)]
 enum PetsCreateError {
     /// A pet of that name exists.
     #[reflectapi(status = 409)]
@@ -72,10 +72,12 @@ assert_eq!(variants, ["Conflict", "InvalidName"]);
   output is: `{"Conflict":{"name":"Rex"}}`, or `"InvalidName"`.
 - `#[reflectapi(transparent)]` on a variant with one field answers with that
   field's status and headers, for an error type shared by several routes.
-- `StatusCode::response_headers` adds headers to the error's response, such
-  as `retry-after`.
-- A struct error, or any type the derive doesn't fit, implements
-  `StatusCode` by hand.
+- Derive `ResponseError` rather than implement it: the derive checks every
+  status as it compiles, and a hand-written impl isn't checked. A route's
+  error is an enum, even with one variant.
+- Implement it by hand only for a type a `transparent` variant wraps, such
+  as an app's own "try again after": `status` gives the status, and
+  `headers`, none by default, headers such as `retry-after`.
 
 The derive refuses, as it compiles, a status that a client would not read as
 the route's error: `1xx` to `3xx`; the `4xx` that reflectapi or the server
@@ -84,8 +86,8 @@ named `InternalError` that is `output_skip`. A client takes any `5xx` as the
 server's failure, so `InternalError` is left out of the schema: the server can
 still return it, and clients see it as a server failure, not a typed error.
 [A route's error](../getting-started/attributes.md#a-routes-error) has the
-full rules and an example of `transparent` with `response_headers`. A
-hand-written `impl StatusCode` isn't checked; if it gives `200`, reflectapi
+full rules and an example of `transparent` with `headers`. A hand-written
+impl isn't checked; if it gives `200`, reflectapi
 answers `500` instead.
 
 ## Routes that can't fail
@@ -116,7 +118,7 @@ assert!(schema.functions().all(|f| f.error_type.is_none()));
 ```
 
 Use [`reflectapi::Infallible`](https://docs.rs/reflectapi/latest/reflectapi/enum.Infallible.html),
-not `std::convert::Infallible`, which doesn't implement `StatusCode`. The
+not `std::convert::Infallible`, which doesn't implement `ResponseError`. The
 clients of such a route still report network and server failures, the same way
 as for other routes.
 

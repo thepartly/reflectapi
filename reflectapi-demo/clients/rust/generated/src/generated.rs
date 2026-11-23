@@ -66,10 +66,7 @@ pub mod interface {
             &self,
             input: reflectapi::Empty,
             headers: reflectapi::Empty,
-        ) -> Result<
-            reflectapi::Empty,
-            reflectapi::rt::Error<super::types::myapi::HealthCheckFail, C::Error>,
-        > {
+        ) -> Result<reflectapi::Empty, reflectapi::rt::Error<reflectapi::Empty, C::Error>> {
             reflectapi::rt::__request_impl(&self.client, "/health.check", input, headers).await
         }
     }
@@ -177,18 +174,6 @@ pub mod interface {
 }
 pub mod types {
     pub mod myapi {
-
-        #[derive(Debug, serde::Deserialize, serde::Serialize)]
-        pub struct HealthCheckFail {}
-
-        impl std::fmt::Display for HealthCheckFail {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                write!(f, "{}", reflectapi::rt::error_to_string(self))
-            }
-        }
-
-        impl std::error::Error for HealthCheckFail {}
-
         pub mod model {
 
             #[derive(Debug, serde::Deserialize, serde::Serialize)]
@@ -291,11 +276,6 @@ pub mod types {
                 pub authorization: std::string::String,
             }
 
-            #[derive(Debug, serde::Deserialize, serde::Serialize)]
-            pub struct InternalError {
-                pub message: std::string::String,
-            }
-
             #[derive(Debug, serde::Deserialize)]
             pub struct Paginated<T> {
                 /// slice of a collection
@@ -330,7 +310,6 @@ pub mod types {
             pub enum PetsListError {
                 InvalidCursor,
                 Unauthorized,
-                Internal(super::super::myapi::proto::InternalError),
             }
 
             impl std::fmt::Display for PetsListError {
@@ -428,11 +407,13 @@ pub mod types {
             }
 
             #[derive(Debug, serde::Deserialize, serde::Serialize)]
-            pub struct UnauthorizedError;
+            pub enum UnauthorizedError {
+                Unauthorized,
+            }
 
             impl std::fmt::Display for UnauthorizedError {
                 fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                    write!(f, "UnauthorizedError")
+                    write!(f, "{}", reflectapi::rt::error_to_string(self))
                 }
             }
 

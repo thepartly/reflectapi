@@ -29,7 +29,7 @@ pub const DERIVE: Symbol = Symbol("derive");
 
 pub const DISCRIMINANT: Symbol = Symbol("discriminant");
 
-// A variant's answer, read by the StatusCode derive.
+// A variant's answer, read by the ResponseError derive.
 pub const STATUS: Symbol = Symbol("status");
 pub const TRANSPARENT: Symbol = Symbol("transparent");
 

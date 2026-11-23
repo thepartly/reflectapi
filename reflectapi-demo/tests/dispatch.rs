@@ -585,8 +585,8 @@ mod waiting {
         pub reason: String,
     }
 
-    impl reflectapi::StatusCode for Refused {
-        fn status_code(&self) -> http::StatusCode {
+    impl reflectapi::ResponseError for Refused {
+        fn status(&self) -> http::StatusCode {
             http::StatusCode::CONFLICT
         }
     }

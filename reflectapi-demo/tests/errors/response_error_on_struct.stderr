@@ -1,0 +1,7 @@
+error: `#[derive(reflectapi::ResponseError)]` is for an error enum; give a struct its status and headers with `impl reflectapi::ResponseError`
+
+         = help: see https://reflectapi.rs/getting-started/attributes.html#a-routes-error
+ --> tests/errors/response_error_on_struct.rs:2:8
+  |
+2 | struct MyError {
+  |        ^^^^^^^

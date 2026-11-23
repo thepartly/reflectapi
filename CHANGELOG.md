@@ -18,6 +18,10 @@
 
 ### Changed
 
+- **Breaking: a route's error implements `ResponseError`, and its derive is `#[derive(reflectapi::ResponseError)]`.** `ResponseError` gives the response's `status()` and the `headers()` it adds, none by default, and has `Output` and `Serialize` as supertraits, so a handler's error is bound by `ResponseError` alone. To migrate:
+  - `#[derive(reflectapi::StatusCode)]` becomes `#[derive(reflectapi::ResponseError)]`, with the same attributes and checks.
+  - An `impl StatusCode` with `response_headers` becomes an `impl ResponseError` with `status` and `headers`.
+  - A boxed error, `Box<E>`, is a route's error only when `E` implements the deprecated `StatusCode`. An app boxing a derived error implements `ResponseError` for `Box<ItsError>` itself until `StatusCode` is removed; `Arc<E>` forwards `ResponseError` when `Arc<E>` is `Serialize` (serde's `rc` feature).
 - **Breaking: the public schema and codegen structs are `#[non_exhaustive]`, so adding a field to one is no longer a breaking change.** Most recent releases broke only because a struct such as `Primitive` gained a field. Build these types with their constructors and set the public fields you need, instead of a struct literal or `..Default::default()`. For example, `let mut field = Field::new(name, type_ref); field.required = true;`, or `let mut config = python::Config::default(); config.format = false;`.
   - **`reflectapi-schema`:** `Schema`, `Function`, `TypeReference`, `TypeParameter`, `Primitive`, `Struct`, `Field`, `Enum`, `Variant`, `Deprecation` and the codegen configs, and the error `InvalidDeprecationDate`.
   - **`reflectapi`:** `codegen::python::Config`, every OpenAPI spec type (`openapi::Spec`, `Tag` and the rest), `BuildError`, `ValidationError` and `ValidationPointer`.
@@ -28,6 +32,10 @@
 
   ([#247](https://github.com/thepartly/reflectapi/issues/247))
 - **The user guide is at [reflectapi.rs](https://reflectapi.rs/).** The derives' compile errors, generated clients' headers, the crates' homepages and docs.rs link there. Links to thepartly.github.io/reflectapi redirect to the same page.
+
+### Deprecated
+
+- **`StatusCode`**: implement `ResponseError` instead, renaming `status_code` to `status`. An `impl StatusCode` without `response_headers` still compiles, with a warning, and implements `ResponseError` with no headers. It goes in the next breaking release, and `Box<E>` then forwards `ResponseError`.
 
 ### Fixed
 

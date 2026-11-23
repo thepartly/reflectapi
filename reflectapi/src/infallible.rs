@@ -1,14 +1,11 @@
-#[cfg(feature = "builder")]
-use crate::StatusCode;
-
 #[derive(
     Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Hash, serde::Deserialize, serde::Serialize,
 )]
 pub enum Infallible {}
 
 #[cfg(feature = "builder")]
-impl StatusCode for Infallible {
-    fn status_code(&self) -> http::StatusCode {
+impl crate::ResponseError for Infallible {
+    fn status(&self) -> http::StatusCode {
         http::StatusCode::INTERNAL_SERVER_ERROR
     }
 }

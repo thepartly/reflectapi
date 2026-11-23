@@ -1003,7 +1003,7 @@ export namespace __definition {
       input: {},
       headers: {},
       options?: RequestOptions,
-    ) => AsyncResult<{}, myapi.HealthCheckFail, myapi.proto.ResponseHeaders>;
+    ) => AsyncResult<{}, {}, myapi.proto.ResponseHeaders>;
   }
 
   export interface PetsInterface {
@@ -1104,8 +1104,6 @@ export namespace chrono {
 }
 
 export namespace myapi {
-  export interface HealthCheckFail {}
-
   export namespace model {
     export type Behavior =
       | "Calm"
@@ -1216,10 +1214,6 @@ export namespace myapi {
       authorization: string;
     }
 
-    export interface InternalError {
-      message: string;
-    }
-
     export interface Paginated<T> {
       /**
        * slice of a collection
@@ -1244,8 +1238,7 @@ export namespace myapi {
 
     export type PetsListError =
       | { kind: "InvalidCursor" }
-      | { kind: "Unauthorized" }
-      | ({ kind: "Internal" } & myapi.proto.InternalError);
+      | { kind: "Unauthorized" };
 
     export interface PetsListRequest {
       limit?: number /* u8 */ | null;
@@ -1302,7 +1295,7 @@ export namespace myapi {
       "retry-after": string | null;
     }
 
-    export type UnauthorizedError = null;
+    export type UnauthorizedError = "Unauthorized";
 
     export interface ValidationA {
       message: string;
@@ -1319,6 +1312,11 @@ export namespace reflectapi {
    * Struct object with no fields
    */
   export interface Empty {}
+
+  /**
+   * Error object which is expected to be never returned
+   */
+  export interface Infallible {}
 }
 
 namespace __implementation {
@@ -1349,7 +1347,7 @@ namespace __implementation {
 
   function health__check(client: Client) {
     return (input: {}, headers: {}, options?: RequestOptions) =>
-      __request<{}, {}, {}, myapi.HealthCheckFail, myapi.proto.ResponseHeaders>(
+      __request<{}, {}, {}, {}, myapi.proto.ResponseHeaders>(
         client,
         "/health.check",
         input,

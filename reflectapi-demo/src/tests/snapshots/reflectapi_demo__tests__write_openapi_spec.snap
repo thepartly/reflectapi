@@ -59,7 +59,7 @@ expression: s
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/std.tuple.Tuple0"
+                  "$ref": "#/components/schemas/myapi.proto.UnauthorizedError"
                 }
               }
             }
@@ -296,7 +296,7 @@ expression: s
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/std.tuple.Tuple0"
+                  "$ref": "#/components/schemas/myapi.proto.UnauthorizedError"
                 }
               }
             }
@@ -777,18 +777,6 @@ expression: s
           }
         }
       },
-      "myapi.proto.InternalError": {
-        "type": "object",
-        "title": "myapi.proto.InternalError",
-        "required": [
-          "message"
-        ],
-        "properties": {
-          "message": {
-            "$ref": "#/components/schemas/std.string.String"
-          }
-        }
-      },
       "myapi.proto.PetsCreateError": {
         "oneOf": [
           {
@@ -843,22 +831,6 @@ expression: s
             "properties": {
               "kind": {
                 "const": "Unauthorized"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "title": "Internal",
-            "required": [
-              "kind",
-              "message"
-            ],
-            "properties": {
-              "kind": {
-                "const": "Internal"
-              },
-              "message": {
-                "$ref": "#/components/schemas/std.string.String"
               }
             }
           }
@@ -994,6 +966,13 @@ expression: s
           }
         }
       },
+      "myapi.proto.UnauthorizedError": {
+        "oneOf": [
+          {
+            "const": "Unauthorized"
+          }
+        ]
+      },
       "myapi.proto.ValidationA": {
         "type": "object",
         "title": "myapi.proto.ValidationA",
@@ -1025,10 +1004,6 @@ expression: s
       "std.string.String": {
         "description": "UTF-8 encoded string",
         "type": "string"
-      },
-      "std.tuple.Tuple0": {
-        "description": "Unit type",
-        "type": "null"
       },
       "u8": {
         "description": "8-bit unsigned integer",

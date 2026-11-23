@@ -1,8 +1,7 @@
-//! How a route's error is answered: `StatusCode::response_headers` and the
-//! `StatusCode` derive.
+//! How a route's error is answered: `ResponseError`, by hand and derived.
 
 use reflectapi::dispatch::{Dispatcher, Reply};
-use reflectapi::{DispatchOnly, StatusCode as _, WithSchema};
+use reflectapi::{DispatchOnly, ResponseError as _, WithSchema};
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
 
@@ -10,12 +9,12 @@ type TestResult = Result<(), Box<dyn std::error::Error>>;
 #[derive(Debug, serde::Serialize, reflectapi::Output)]
 pub struct Unauthorized {}
 
-impl reflectapi::StatusCode for Unauthorized {
-    fn status_code(&self) -> http::StatusCode {
+impl reflectapi::ResponseError for Unauthorized {
+    fn status(&self) -> http::StatusCode {
         http::StatusCode::UNAUTHORIZED
     }
 
-    fn response_headers(&self) -> http::HeaderMap {
+    fn headers(&self) -> http::HeaderMap {
         let mut headers = http::HeaderMap::new();
         headers.append("www-authenticate", http::HeaderValue::from_static("Basic"));
         headers.append("www-authenticate", http::HeaderValue::from_static("Bearer"));
@@ -31,19 +30,19 @@ pub struct RetryAfter {
     pub after_secs: u64,
 }
 
-impl reflectapi::StatusCode for RetryAfter {
-    fn status_code(&self) -> http::StatusCode {
+impl reflectapi::ResponseError for RetryAfter {
+    fn status(&self) -> http::StatusCode {
         http::StatusCode::TOO_MANY_REQUESTS
     }
 
-    fn response_headers(&self) -> http::HeaderMap {
+    fn headers(&self) -> http::HeaderMap {
         let mut headers = http::HeaderMap::new();
         headers.insert("retry-after", http::HeaderValue::from(self.after_secs));
         headers
     }
 }
 
-#[derive(Debug, serde::Serialize, reflectapi::Output, reflectapi::StatusCode)]
+#[derive(Debug, serde::Serialize, reflectapi::Output, reflectapi::ResponseError)]
 pub enum PetsInsertError {
     /// Its status and headers are the field's.
     #[reflectapi(transparent)]
@@ -60,8 +59,8 @@ pub enum PetsInsertError {
     InternalError,
 }
 
-/// A generic error: the derive bounds its field's type by `StatusCode`.
-#[derive(Debug, serde::Serialize, reflectapi::Output, reflectapi::StatusCode)]
+/// A generic error: the derive bounds its field's type by `ResponseError`.
+#[derive(Debug, serde::Serialize, reflectapi::Output, reflectapi::ResponseError)]
 pub enum Wrapped<E> {
     #[reflectapi(transparent)]
     Inner(E),
@@ -88,28 +87,28 @@ fn the_derive_gives_each_variant_its_status() {
         (PetsInsertError::InternalError, 500),
     ];
     for (error, status) in statuses {
-        assert_eq!(error.status_code().as_u16(), status, "{error:?}");
+        assert_eq!(error.status().as_u16(), status, "{error:?}");
     }
     assert_eq!(
         Wrapped::Inner(PetsInsertError::OwnerNotFound)
-            .status_code()
+            .status()
             .as_u16(),
         404
     );
-    assert_eq!(Wrapped::<PetsInsertError>::Gone.status_code().as_u16(), 410);
+    assert_eq!(Wrapped::<PetsInsertError>::Gone.status().as_u16(), 410);
 }
 
 #[test]
 fn the_derive_passes_a_transparent_fields_headers_on() {
-    let headers = PetsInsertError::TryAgain(RetryAfter { after_secs: 30 }).response_headers();
+    let headers = PetsInsertError::TryAgain(RetryAfter { after_secs: 30 }).headers();
     assert_eq!(
         headers.get("retry-after").map(|v| v.as_bytes()),
         Some(&b"30"[..])
     );
-    assert!(PetsInsertError::OwnerNotFound.response_headers().is_empty());
+    assert!(PetsInsertError::OwnerNotFound.headers().is_empty());
     assert_eq!(
         Wrapped::Inner(PetsInsertError::Unauthorized(Unauthorized {}))
-            .response_headers()
+            .headers()
             .get_all("www-authenticate")
             .iter()
             .count(),
@@ -236,7 +235,7 @@ fn the_schema_leaves_internal_error_out() -> TestResult {
     let (schema, _) = pets::api::<WithSchema>().build()?;
     let error = schema
         .output_types
-        .get_type("status_code::PetsInsertError")
+        .get_type("response_error::PetsInsertError")
         .ok_or("no error type")?;
     let reflectapi::Type::Enum(error) = error else {
         return Err(format!("expected an enum, got {error:?}").into());
@@ -253,4 +252,23 @@ fn the_schema_leaves_internal_error_out() -> TestResult {
         ]
     );
     Ok(())
+}
+
+/// Only a status, through the deprecated `StatusCode`: implementing it
+/// implements `ResponseError`, with no headers.
+#[derive(Debug, serde::Serialize, reflectapi::Output)]
+pub struct Locked {}
+
+#[allow(deprecated)]
+impl reflectapi::StatusCode for Locked {
+    fn status_code(&self) -> http::StatusCode {
+        http::StatusCode::LOCKED
+    }
+}
+
+#[test]
+fn a_status_code_is_a_response_error_without_headers() {
+    let error = Wrapped::Inner(Locked {});
+    assert_eq!(error.status().as_u16(), 423);
+    assert!(error.headers().is_empty());
 }

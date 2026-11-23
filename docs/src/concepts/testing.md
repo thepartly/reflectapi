@@ -41,7 +41,7 @@ pub struct UsersGetRequest {
     pub id: u32,
 }
 
-#[derive(Debug, Serialize, Output, reflectapi::StatusCode)]
+#[derive(Debug, Serialize, Output, reflectapi::ResponseError)]
 pub enum UsersGetError {
     #[reflectapi(status = 404)]
     NotFound,
@@ -98,7 +98,7 @@ headers. Call it directly:
 # pub struct UsersCreateRequest { pub name: String }
 # #[derive(Deserialize, Input)]
 # pub struct UsersGetRequest { pub id: u32 }
-# #[derive(Debug, Serialize, Output, reflectapi::StatusCode)]
+# #[derive(Debug, Serialize, Output, reflectapi::ResponseError)]
 # pub enum UsersGetError {
 #     #[reflectapi(status = 404)]
 #     NotFound,
@@ -128,7 +128,7 @@ async fn get_finds_a_created_user() {
     let error = missing.err().unwrap();
     assert!(matches!(error, UsersGetError::NotFound));
     assert_eq!(
-        reflectapi::StatusCode::status_code(&error),
+        reflectapi::ResponseError::status(&error),
         http::StatusCode::NOT_FOUND
     );
 }
@@ -162,7 +162,7 @@ it answers.
 # pub struct UsersCreateRequest { pub name: String }
 # #[derive(Deserialize, Input)]
 # pub struct UsersGetRequest { pub id: u32 }
-# #[derive(Debug, Serialize, Output, reflectapi::StatusCode)]
+# #[derive(Debug, Serialize, Output, reflectapi::ResponseError)]
 # pub enum UsersGetError {
 #     #[reflectapi(status = 404)]
 #     NotFound,
@@ -244,7 +244,7 @@ its `util` feature as a dev-dependency:
 # pub struct UsersCreateRequest { pub name: String }
 # #[derive(Deserialize, Input)]
 # pub struct UsersGetRequest { pub id: u32 }
-# #[derive(Debug, Serialize, Output, reflectapi::StatusCode)]
+# #[derive(Debug, Serialize, Output, reflectapi::ResponseError)]
 # pub enum UsersGetError {
 #     #[reflectapi(status = 404)]
 #     NotFound,
@@ -320,7 +320,7 @@ deserialization, with no server.
 #     pub struct UsersCreateRequest { pub name: String }
 #     #[derive(Deserialize, Input)]
 #     pub struct UsersGetRequest { pub id: u32 }
-#     #[derive(Debug, Serialize, Output, reflectapi::StatusCode)]
+#     #[derive(Debug, Serialize, Output, reflectapi::ResponseError)]
 #     pub enum UsersGetError {
 #         #[reflectapi(status = 404)]
 #         NotFound,
@@ -519,7 +519,7 @@ a free local port and use the built-in `reqwest` transport:
 #     pub struct UsersCreateRequest { pub name: String }
 #     #[derive(Deserialize, Input)]
 #     pub struct UsersGetRequest { pub id: u32 }
-#     #[derive(Debug, Serialize, Output, reflectapi::StatusCode)]
+#     #[derive(Debug, Serialize, Output, reflectapi::ResponseError)]
 #     pub enum UsersGetError {
 #         #[reflectapi(status = 404)]
 #         NotFound,
@@ -817,7 +817,7 @@ it finds. Use it for the API's own conventions:
 # pub struct UsersCreateRequest { pub name: String }
 # #[derive(Deserialize, Input)]
 # pub struct UsersGetRequest { pub id: u32 }
-# #[derive(Debug, Serialize, Output, reflectapi::StatusCode)]
+# #[derive(Debug, Serialize, Output, reflectapi::ResponseError)]
 # pub enum UsersGetError {
 #     #[reflectapi(status = 404)]
 #     NotFound,

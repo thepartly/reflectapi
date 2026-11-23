@@ -127,7 +127,7 @@ fields are all optional.
 ### The route's error
 
 When the handler returns `Err`, the response has the status the error's
-[`StatusCode`](https://docs.rs/reflectapi/latest/reflectapi/trait.StatusCode.html)
+[`ResponseError`](https://docs.rs/reflectapi/latest/reflectapi/trait.ResponseError.html)
 implementation gives, and the error serialized in the request's format, as
 serde writes it:
 
@@ -149,7 +149,7 @@ content-type: application/json
 ```
 
 The error can add response headers, such as `retry-after`, with
-`StatusCode::response_headers`. They cannot replace `content-type` or
+`ResponseError::headers`. They cannot replace `content-type` or
 `traceparent`. An error that says `200` is sent as `500`, since a client would
 otherwise read it as the output.
 
@@ -190,7 +190,7 @@ Failed to parse request headers: missing field `authorization`
 The `400` message includes the request body as received.
 
 These are why a route's error can't use `400`, `405` or `415` when it derives
-`StatusCode`: a client couldn't tell the route's answer from reflectapi's (see
+`ResponseError`: a client couldn't tell the route's answer from reflectapi's (see
 [A route's error](../getting-started/attributes.md#a-routes-error)). Servers
 and proxies in front of the API add their own, such as `413` for a body that
 is too large or `502` from a gateway.

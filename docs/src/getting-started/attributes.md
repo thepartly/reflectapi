@@ -282,18 +282,20 @@ The release in Rust's `#[deprecated(since = "..")]` is kept as well. See [Deprec
 | `#[reflectapi(output_skip)]` | Exclude the variant from the output schema only. |
 | `#[reflectapi(deprecated_since = "YYYY-MM-DD")]` | Date the variant was deprecated. Requires `#[deprecated]`. |
 | `#[reflectapi(sunset = "YYYY-MM-DD")]` | Date after which the variant may be removed. Requires `#[deprecated]`. |
-| `#[reflectapi(status = 404)]` | With `#[derive(reflectapi::StatusCode)]`: the status a route's error is answered with when it is this variant. See [A route's error](#a-routes-error). |
-| `#[reflectapi(transparent)]` | With `#[derive(reflectapi::StatusCode)]`: the variant has one field, whose status and headers it is answered with. |
+| `#[reflectapi(status = 404)]` | With `#[derive(reflectapi::ResponseError)]`: the status a route's error is answered with when it is this variant. See [A route's error](#a-routes-error). |
+| `#[reflectapi(transparent)]` | With `#[derive(reflectapi::ResponseError)]`: the variant has one field, whose status and headers it is answered with. |
 
 ### A route's error
 
-A route's error implements [`reflectapi::StatusCode`](https://docs.rs/reflectapi/latest/reflectapi/trait.StatusCode.html): the status its response
-has, and, with `response_headers`, the headers the response adds, none by
-default. For an enum, derive it, giving each variant its status, or taking the
-status and headers of its one field:
+A route's error implements [`reflectapi::ResponseError`](https://docs.rs/reflectapi/latest/reflectapi/trait.ResponseError.html): the status its response
+has, and, with `headers`, the headers the response adds, none by default.
+Make a route's error an enum and derive it, rather than implement it
+by hand: the derive checks every status as it compiles, and a hand-written
+impl isn't checked. Each variant gives its status, or takes the status and
+headers of its one field:
 
 ```rust,ignore
-#[derive(serde::Serialize, reflectapi::Output, reflectapi::StatusCode)]
+#[derive(serde::Serialize, reflectapi::Output, reflectapi::ResponseError)]
 enum PetsInsertError {
     /// The owner doesn't exist: change the request.
     #[reflectapi(status = 404)]
@@ -327,10 +329,10 @@ The derive refuses, as it compiles, a status a route's error must not give:
 A `transparent` variant's status is its field's, known as it runs, and isn't
 checked.
 
-A type of the app's own that implements `StatusCode` gives a variant its
-status and headers through `transparent`: `RetryAfter` above is an app's own
-"try again after", `429` with the wait in `retry-after`, and in its body for a
-typed client:
+The one place to implement `ResponseError` by hand is a type a `transparent`
+variant wraps, which gives the variant its status and headers: `RetryAfter`
+above is an app's own "try again after", `429` with the wait in `retry-after`,
+and in its body for a typed client:
 
 ```rust,ignore
 #[derive(serde::Serialize, reflectapi::Output)]
@@ -338,15 +340,17 @@ struct RetryAfter {
     after_secs: u64,
 }
 
-impl reflectapi::StatusCode for RetryAfter {
-    fn status_code(&self) -> http::StatusCode {
+impl reflectapi::ResponseError for RetryAfter {
+    fn status(&self) -> http::StatusCode {
         http::StatusCode::TOO_MANY_REQUESTS
     }
 
-    fn response_headers(&self) -> http::HeaderMap {
+    fn headers(&self) -> http::HeaderMap {
         let mut headers = http::HeaderMap::new();
         headers.insert(http::header::RETRY_AFTER, self.after_secs.into());
         headers
     }
 }
 ```
+
+A type with only a status implements `status` alone.

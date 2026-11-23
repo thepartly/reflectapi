@@ -1,4 +1,4 @@
-//! `#[derive(StatusCode)]`: how a route's error enum is answered. Each variant
+//! `#[derive(ResponseError)]`: how a route's error enum is answered. Each variant
 //! gives its status, `#[reflectapi(status = 404)]`, or takes the status and
 //! headers of its one field, `#[reflectapi(transparent)]`. The statuses a
 //! route's error must not give are refused as it compiles.
@@ -12,7 +12,7 @@ use crate::symbol::{OUTPUT_SKIP, REFLECT, SKIP, STATUS, TRANSPARENT};
 /// The one variant that may answer `500`.
 const INTERNAL_ERROR: &str = "InternalError";
 
-pub(crate) fn derive_status_code(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+pub(crate) fn derive_response_error(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = syn::parse_macro_input!(input as DeriveInput);
     match expand(&input) {
         Ok(tokens) => tokens.into(),
@@ -57,8 +57,8 @@ fn expand(input: &DeriveInput) -> syn::Result<TokenStream> {
     let Data::Enum(data) = &input.data else {
         return Err(syn::Error::new_spanned(
             &input.ident,
-            "`#[derive(reflectapi::StatusCode)]` is for an error enum; give a struct \
-             its status with `impl reflectapi::StatusCode`",
+            "`#[derive(reflectapi::ResponseError)]` is for an error enum; give a struct \
+             its status and headers with `impl reflectapi::ResponseError`",
         ));
     };
     let http = quote!(::reflectapi::__private::http);
@@ -141,9 +141,8 @@ fn expand(input: &DeriveInput) -> syn::Result<TokenStream> {
                         continue;
                     }
                 };
-                status_arms.push(quote!(#pattern => ::reflectapi::StatusCode::status_code(inner)));
-                header_arms
-                    .push(quote!(#pattern => ::reflectapi::StatusCode::response_headers(inner)));
+                status_arms.push(quote!(#pattern => ::reflectapi::ResponseError::status(inner)));
+                header_arms.push(quote!(#pattern => ::reflectapi::ResponseError::headers(inner)));
                 transparent_types.push(ty.clone());
             }
         }
@@ -159,24 +158,29 @@ fn expand(input: &DeriveInput) -> syn::Result<TokenStream> {
         for ty in &transparent_types {
             where_clause
                 .predicates
-                .push(parse_quote!(#ty: ::reflectapi::StatusCode));
+                .push(parse_quote!(#ty: ::reflectapi::ResponseError));
         }
+        // The supertraits, whose own impls carry their bounds on the
+        // parameters.
+        where_clause.predicates.push(parse_quote!(
+            Self: ::reflectapi::Output + ::reflectapi::__private::serde::Serialize
+        ));
     }
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
-    let status_code = if data.variants.is_empty() {
+    let status = if data.variants.is_empty() {
         quote!(match *self {})
     } else {
         quote!(match self { #(#status_arms,)* })
     };
-    let response_headers = if header_arms.is_empty() {
+    let headers = if header_arms.is_empty() {
         // The trait's default: no headers.
         quote!()
     } else {
         let rest = (header_arms.len() < data.variants.len())
             .then(|| quote!(_ => #http::HeaderMap::new(),));
         quote! {
-            fn response_headers(&self) -> #http::HeaderMap {
+            fn headers(&self) -> #http::HeaderMap {
                 match self {
                     #(#header_arms,)*
                     #rest
@@ -186,12 +190,12 @@ fn expand(input: &DeriveInput) -> syn::Result<TokenStream> {
     };
 
     Ok(quote! {
-        impl #impl_generics ::reflectapi::StatusCode for #name #ty_generics #where_clause {
-            fn status_code(&self) -> #http::StatusCode {
-                #status_code
+        impl #impl_generics ::reflectapi::ResponseError for #name #ty_generics #where_clause {
+            fn status(&self) -> #http::StatusCode {
+                #status
             }
 
-            #response_headers
+            #headers
         }
     })
 }

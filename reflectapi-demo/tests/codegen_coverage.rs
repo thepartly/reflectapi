@@ -527,8 +527,8 @@ mod deprecation {
         pub trees: Vec<GenericTree<bool>>,
     }
 
-    impl reflectapi::StatusCode for TreesError {
-        fn status_code(&self) -> http::StatusCode {
+    impl reflectapi::ResponseError for TreesError {
+        fn status(&self) -> http::StatusCode {
             http::StatusCode::BAD_REQUEST
         }
     }

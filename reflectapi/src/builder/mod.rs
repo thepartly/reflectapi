@@ -11,7 +11,9 @@ use futures_util::Stream;
 pub use handler::*;
 pub use mode::{BuildMode, DispatchOnly, WithSchema};
 use reflectapi_schema::Pattern;
-pub use result::{IntoResult, StatusCode};
+#[allow(deprecated)]
+pub use result::StatusCode;
+pub use result::{IntoResult, ResponseError};
 use serde::{de::DeserializeOwned, ser::Serialize};
 
 use crate::{Input, Output};
@@ -200,7 +202,7 @@ where
         I: Input + DeserializeOwned + Send + 'static,
         H: Input + DeserializeOwned + Send + 'static,
         O: Output + Serialize + Send + 'static,
-        E: Output + Serialize + StatusCode + Send + 'static,
+        E: ResponseError + Send + 'static,
     {
         let rb = builder(self.route_defaults());
         if rb.sse_keep_alive.is_some() {
@@ -242,7 +244,7 @@ where
         I: Input + DeserializeOwned + Send + 'static,
         H: Input + DeserializeOwned + Send + 'static,
         O: StreamItem + Send + 'static,
-        E1: Output + Serialize + StatusCode + Send + 'static,
+        E1: ResponseError + Send + 'static,
     {
         let rb = builder(self.route_defaults());
         match M::register_function::<I, H, O::Data, E1>(&rb, &mut self.schema, true) {
