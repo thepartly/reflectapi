@@ -6,10 +6,10 @@
 //! as an object). How a variant appears on the wire follows from its shape
 //! and its enum's representation, so backends read the shape from here.
 
-use reflectapi_schema::{Field, Fields, Struct};
+use crate::{Field, Fields, Struct};
 
 #[derive(Debug, Clone, Copy)]
-pub(crate) enum Shape<'a> {
+pub enum Shape<'a> {
     /// `A`
     Unit,
     /// `A(T)`
@@ -45,7 +45,7 @@ impl<'a> Shape<'a> {
 /// The field a struct is written as when it wraps one: a newtype, or a
 /// `#[serde(transparent)]` struct with one field. Serde writes either as that
 /// field's value, flattened or not.
-pub(crate) fn wrapped_field(strukt: &Struct) -> Option<&Field> {
+pub fn wrapped_field(strukt: &Struct) -> Option<&Field> {
     if strukt.transparent() {
         return match strukt.fields.iter().as_slice() {
             [field] => Some(field),

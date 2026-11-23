@@ -1,11 +1,11 @@
 //! The headers a request-headers type reads.
 
-use reflectapi_schema::{Field, TypeReference};
+use crate::{Field, TypeReference};
 
 use super::layout::{Layout, Lookup, Opaque, MAX_DEPTH};
 
 /// A header a request-headers type reads.
-pub(crate) struct Header {
+pub struct Header {
     /// The field the header is read into; its serde name is the header's.
     pub field: Field,
     /// Every request has the header.
@@ -21,7 +21,7 @@ pub(crate) struct Header {
 ///
 /// Fails, saying why, when a flattened field holds something other than a
 /// struct or `()`, whose keys can't be headers.
-pub(crate) fn request_headers(
+pub fn request_headers(
     headers_type: &TypeReference,
     lookup: Lookup<'_, '_>,
 ) -> Result<Vec<Header>, String> {
@@ -51,7 +51,7 @@ pub(crate) fn request_headers(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use reflectapi_schema::{Enum, Fields, Representation, Struct, Type};
+    use crate::{Enum, Fields, Representation, Struct, Type};
 
     fn strukt(name: &str, fields: Vec<Field>) -> Type {
         let mut strukt = Struct::new(name);

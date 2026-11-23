@@ -90,9 +90,6 @@ pub mod dispatch;
 #[cfg(feature = "codegen")]
 pub mod codegen;
 
-#[cfg(any(feature = "builder", feature = "codegen"))]
-pub(crate) mod wire;
-
 #[cfg(feature = "builder")]
 pub use self::builder::{
     BuildError, BuildErrors, BuildMode, Builder, ContentType, DispatchOnly, Event, EventId,
