@@ -53,9 +53,9 @@ test = [
 ]
 
 [project.urls]
-Homepage = "https://thepartly.github.io/reflectapi/"
+Homepage = "https://reflectapi.rs/"
 Repository = "https://github.com/thepartly/reflectapi"
-Documentation = "https://thepartly.github.io/reflectapi/clients/"
+Documentation = "https://reflectapi.rs/clients/"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/reflectapi_runtime"]

@@ -1,6 +1,6 @@
 error: sunset date 2026-10-01 is before the deprecation date 2026-11-01
 
-         = help: see https://thepartly.github.io/reflectapi/getting-started/attributes.html
+         = help: see https://reflectapi.rs/getting-started/attributes.html
 
  --> tests/errors/invalid_deprecation_input_and_output.rs:5:60
   |

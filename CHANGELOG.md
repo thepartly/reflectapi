@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Changed
+
+- **The user guide is at [reflectapi.rs](https://reflectapi.rs/).** The derives' compile errors, generated clients' headers, the crates' homepages and docs.rs link there. Links to thepartly.github.io/reflectapi redirect to the same page.
+
 ### Fixed
 
 - **Two different types under one name are a build error, where clients silently kept one.** If `rename_types` or `glob_rename_types` mapped two different types onto one name, `build()` succeeded, and every generated client kept only one of them. Which one depended on route order, so routes using the other got the wrong shape. The same happened when `nest` or `extend` merged builders with different types of the same name. `build()` now merges copies of one definition and fails on different types, naming the type and whether it's a request or response type. `Typespace` gains `dedup_types` and `conflicting_types`. ([#181](https://github.com/thepartly/reflectapi/issues/181))

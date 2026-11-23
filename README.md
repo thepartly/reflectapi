@@ -28,8 +28,8 @@
 </p>
 
 <p align="center">
-  <a href="https://thepartly.github.io/reflectapi/">Website</a> ·
-  <a href="https://thepartly.github.io/reflectapi/getting-started/quick-start.html">Quick start</a> ·
+  <a href="https://reflectapi.rs/">Website</a> ·
+  <a href="https://reflectapi.rs/getting-started/quick-start.html">Quick start</a> ·
   <a href="https://docs.rs/reflectapi">API reference</a> ·
   <a href="https://www.youtube.com/watch?v=6Scgq9fBZQM&amp;t=21675s">Talk: Reflect your Rust API into the world</a>
 </p>
@@ -93,7 +93,7 @@ cargo add reflectapi --features builder,axum
 cargo binstall reflectapi-cli   # the codegen CLI
 ```
 
-Then follow the [Quick start](https://thepartly.github.io/reflectapi/getting-started/quick-start.html).
+Then follow the [Quick start](https://reflectapi.rs/getting-started/quick-start.html).
 The [`reflectapi-demo`](reflectapi-demo) crate is a complete example.
 
 ## Alternatives
@@ -112,7 +112,7 @@ Other ways to connect a Rust server to its clients, and when each fits.
   [progenitor](https://github.com/oxidecomputer/progenitor): an OpenAPI
   document is the contract, or you need clients in languages reflectapi
   doesn't generate. reflectapi can write that document too; see
-  [Supported Outputs](https://thepartly.github.io/reflectapi/clients/#supported-outputs).
+  [Supported Outputs](https://reflectapi.rs/clients/#supported-outputs).
 - **[ts-rs](https://github.com/Aleph-Alpha/ts-rs),
   [specta](https://github.com/specta-rs/specta) and
   [typeshare](https://github.com/1Password/typeshare)**: you only need your
@@ -123,7 +123,7 @@ Other ways to connect a Rust server to its clients, and when each fits.
 reflectapi fits when you own the server and its clients, routes can be
 named calls rather than REST resources, and the Rust types and their serde
 attributes should be the only definition of the API.
-[Why reflectapi?](https://thepartly.github.io/reflectapi/introduction.html#why-reflectapi) explains why it doesn't
+[Why reflectapi?](https://reflectapi.rs/introduction.html#why-reflectapi) explains why it doesn't
 build on OpenAPI.
 
 ## License

@@ -1,6 +1,6 @@
 error: #[reflectapi(open)] is only supported on enums
 
-         = help: see https://thepartly.github.io/reflectapi/getting-started/attributes.html
+         = help: see https://reflectapi.rs/getting-started/attributes.html
 
  --> tests/errors/open_on_struct.rs:3:8
   |
