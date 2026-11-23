@@ -1,6 +1,7 @@
 #[macro_use]
 mod assert;
 mod basic;
+mod build_checks;
 mod enums;
 mod generics;
 mod namespace;

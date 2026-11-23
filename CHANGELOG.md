@@ -40,6 +40,10 @@
 ### Fixed
 
 - **Two different types under one name are a build error, where clients silently kept one.** If `rename_types` or `glob_rename_types` mapped two different types onto one name, `build()` succeeded, and every generated client kept only one of them. Which one depended on route order, so routes using the other got the wrong shape. The same happened when `nest` or `extend` merged builders with different types of the same name. `build()` now merges copies of one definition and fails on different types, naming the type and whether it's a request or response type. `Typespace` gains `dedup_types` and `conflicting_types`. ([#181](https://github.com/thepartly/reflectapi/issues/181))
+- **`build()` refuses schemas whose clients would lose data or fail to compile**, always:
+  - **Two untagged unit variants in one enum.** Both are written as `null`, and `null` reads back as the first.
+  - **An untagged unit variant inside `Option` or `reflectapi::Option`.** `Some` of it is written as `null`, which reads back as `None`.
+  - **A reference through a shadowed module name**, such as a type in `a::b` referring to `a::b::a::Leaf`. TypeScript and Python look names up from the innermost scope outward, so inside `a::b` they read `a::…` as `a::b::a::…`, and the generated client doesn't compile or import. A module named like a top-level one is still fine when nothing in its scope crosses it.
 - **TypeScript and Rust codegen fill a built-in type's parameters in one pass**, so a parameter's name is no longer found inside an argument already filled in, such as `N` inside a type named `Node` in `FixedSizeArray<T, N>`.
 
 ## 0.26.0

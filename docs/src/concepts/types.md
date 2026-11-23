@@ -155,6 +155,10 @@ variant and a union of them.
 
 - `rename`, `rename_all` and the other serde attributes on variants and
   fields are reflected too.
+- An untagged unit variant, such as `Empty` above, is written as `null`.
+  `build()` refuses two of them in one enum, since `null` reads back as the
+  first, and one inside an `Option` or `reflectapi::Option`, since `null`
+  reads back as `None`.
 - An enum whose responses may gain variants can be marked
   `#[reflectapi(open)]`, so that clients keep values with unfamiliar tags; see
   [Enum evolution](../getting-started/attributes.md#enum-evolution).

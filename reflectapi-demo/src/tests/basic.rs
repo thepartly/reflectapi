@@ -1066,6 +1066,8 @@ fn test_reflectapi_response_headers_validation() {
             format!("response headers type `{type_name}`: header `_region` must be an `Option`: any response header may be absent"),
             format!("response headers type `{type_name}`: `x-dup` is declared by more than one field"),
             format!("response headers type `{type_name}`: header `x-cache` must be `Option<T>` where `T` is a string on the wire, e.g. `String`, a unit-variant enum, a newtype over one, `uuid::Uuid` or `chrono::DateTime`"),
+            // The untagged unit is also lost inside the `Option`.
+            format!("`{type_name}.x-cache` is `std::option::Option<reflectapi_demo::tests::basic::CacheWithUntagged>`, and `reflectapi_demo::tests::basic::CacheWithUntagged::Other` is an untagged unit, written as `null`, which reads back as `None`"),
         ]
     );
 }

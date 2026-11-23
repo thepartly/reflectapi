@@ -486,10 +486,13 @@ where
         self.errors.extend(validate_response_headers(&self.schema));
         self.errors.extend(validate_deprecation_dates(&self.schema));
         self.errors.extend(validate_flattened_options(&self.schema));
+        self.errors.extend(validate_untagged_units(&self.schema));
 
         let (mut schema, routers) = self.into_parts()?;
         schema.consolidate_types();
-        let errors = dedup_types(&mut schema, CONSOLIDATION_COLLISION);
+        let mut errors = dedup_types(&mut schema, CONSOLIDATION_COLLISION);
+        // On the consolidated names, which the clients are generated from.
+        errors.extend(validate_module_names(&schema));
         if !errors.is_empty() {
             return Err(crate::BuildErrors(errors));
         }
@@ -740,6 +743,192 @@ fn validate_flattened_options(schema: &crate::Schema) -> Vec<BuildError> {
         }
     }
     errors
+}
+
+/// Rejects untagged unit variants that lose data. Such a variant is written as
+/// `null`, so two in one enum can't be told apart (`null` reads back as the
+/// first), and one inside an `Option` reads back as `None`. One `null` variant
+/// elsewhere is a value of its own, and allowed.
+fn validate_untagged_units(schema: &crate::Schema) -> Vec<BuildError> {
+    let mut errors = BTreeSet::new();
+    for typespace in [&schema.input_types, &schema.output_types] {
+        for ty in typespace.types() {
+            if let crate::Type::Enum(e) = ty {
+                if let [first, rest @ ..] = null_variants(e).as_slice() {
+                    if !rest.is_empty() {
+                        let all = std::iter::once(first)
+                            .chain(rest)
+                            .map(|v| format!("`{v}`"))
+                            .collect::<Vec<_>>()
+                            .join(", ");
+                        errors.insert(format!(
+                            "`{}`: variants {all} are untagged units, so each is written as `null`, and `null` reads back as `{first}`",
+                            e.name()
+                        ));
+                    }
+                }
+            }
+            let fields: Vec<(String, &crate::Field)> = match ty {
+                crate::Type::Struct(s) => {
+                    s.fields().map(|f| (f.serde_name().to_owned(), f)).collect()
+                }
+                crate::Type::Enum(e) => e
+                    .variants()
+                    .flat_map(|v| {
+                        v.fields()
+                            .map(move |f| (format!("{}.{}", v.name(), f.serde_name()), f))
+                    })
+                    .collect(),
+                crate::Type::Primitive(_) => continue,
+            };
+            for (path, field) in fields {
+                let location = format!("`{}.{path}`", ty.name());
+                check_optional_null(&field.type_ref, typespace, &location, &mut errors);
+            }
+        }
+    }
+    for f in &schema.functions {
+        let inputs = [
+            ("input", f.input_type()),
+            ("input headers", f.input_headers()),
+        ];
+        let outputs = [
+            (
+                "output",
+                match f.output_type() {
+                    crate::OutputType::Complete { output_type } => output_type.as_ref(),
+                    crate::OutputType::Stream { item_type } => Some(item_type),
+                },
+            ),
+            ("error", f.error_type.as_ref()),
+            ("response headers", f.response_headers()),
+        ];
+        for (typespace, refs) in [
+            (&schema.input_types, &inputs[..]),
+            (&schema.output_types, &outputs[..]),
+        ] {
+            for (what, type_ref) in refs {
+                if let Some(type_ref) = type_ref {
+                    let location = format!("route `{}` {what}", f.name);
+                    check_optional_null(type_ref, typespace, &location, &mut errors);
+                }
+            }
+        }
+    }
+    errors
+        .into_iter()
+        .map(|error| BuildError::Other(error.into()))
+        .collect()
+}
+
+/// The variants of `e` written as `null`: its unit variants if it is
+/// untagged, else its unit variants marked `#[serde(untagged)]`. The options'
+/// own `None` are what they mean, and not counted.
+fn null_variants(e: &crate::Enum) -> Vec<&str> {
+    if matches!(e.name(), "std::option::Option" | "reflectapi::Option") {
+        return Vec::new();
+    }
+    let untagged = matches!(e.representation, crate::Representation::None);
+    e.variants()
+        .filter(|v| matches!(v.fields, crate::Fields::None) && (untagged || v.untagged))
+        .map(|v| v.name())
+        .collect()
+}
+
+/// Reports an `Option` or `reflectapi::Option`, anywhere in `type_ref`,
+/// holding an enum with a variant written as `null`.
+fn check_optional_null(
+    type_ref: &crate::TypeReference,
+    typespace: &crate::Typespace,
+    location: &str,
+    errors: &mut BTreeSet<String>,
+) {
+    if matches!(
+        type_ref.name.as_str(),
+        "std::option::Option" | "reflectapi::Option"
+    ) {
+        if let Some(inner) = type_ref.arguments.first() {
+            if let Some(crate::Type::Enum(e)) = typespace.get_type(&inner.name) {
+                if let Some(variant) = null_variants(e).first() {
+                    errors.insert(format!(
+                        "{location} is `{}<{}>`, and `{}::{variant}` is an untagged unit, written as `null`, which reads back as `None`",
+                        type_ref.name,
+                        e.name(),
+                        e.name(),
+                    ));
+                }
+            }
+        }
+    }
+    for argument in &type_ref.arguments {
+        check_optional_null(argument, typespace, location, errors);
+    }
+}
+
+/// Rejects a reference the TypeScript and Python clients would resolve to the
+/// wrong module. They look a name up from the innermost scope outward, so in
+/// a type inside `c`, a reference to `a::b::X` breaks when a module `c::a`
+/// exists: `a::…` is read as `c::a::…`. Nesting a module under a top-level
+/// one's name is fine while nothing in its scope refers to the top-level one.
+fn validate_module_names(schema: &crate::Schema) -> Vec<BuildError> {
+    let types = || {
+        schema
+            .input_types
+            .types()
+            .chain(schema.output_types.types())
+    };
+    // Every module a type is in: `a` and `a::b` for `a::b::X`.
+    let modules: BTreeSet<String> = types()
+        .flat_map(|ty| {
+            let segments: Vec<&str> = ty.name().split("::").collect();
+            (1..segments.len())
+                .map(|end| segments[..end].join("::"))
+                .collect::<Vec<_>>()
+        })
+        .collect();
+
+    let mut errors = BTreeSet::new();
+    for ty in types() {
+        let segments: Vec<&str> = ty.name().split("::").collect();
+        let module = &segments[..segments.len() - 1];
+        let mut references = Vec::new();
+        match ty {
+            crate::Type::Struct(s) => {
+                references.extend(s.fields().map(|f| &f.type_ref));
+            }
+            crate::Type::Enum(e) => {
+                references.extend(e.variants().flat_map(|v| v.fields()).map(|f| &f.type_ref));
+            }
+            crate::Type::Primitive(_) => continue,
+        }
+        while let Some(type_ref) = references.pop() {
+            references.extend(&type_ref.arguments);
+            let Some(root) = type_ref.name.split("::").next() else {
+                continue;
+            };
+            if !type_ref.name.contains("::") {
+                // A type parameter, or a type outside any module.
+                continue;
+            }
+            // The innermost enclosing module with a child named `root`.
+            if let Some(shadowing) = (1..=module.len())
+                .rev()
+                .map(|end| format!("{}::{root}", module[..end].join("::")))
+                .find(|candidate| modules.contains(candidate))
+            {
+                errors.insert(format!(
+                    "`{}` refers to `{}`, but inside `{}` the TypeScript and Python clients read `{root}::…` as `{shadowing}::…`; rename one of the modules with `rename_types`",
+                    ty.name(),
+                    type_ref.name,
+                    module.join("::"),
+                ));
+            }
+        }
+    }
+    errors
+        .into_iter()
+        .map(|error| BuildError::Other(error.into()))
+        .collect()
 }
 
 /// Checks each distinct `response_headers` type: a non-generic struct of

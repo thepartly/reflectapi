@@ -156,8 +156,12 @@ matches type names against a glob instead and replaces their whole module path.
 - A rename that matches no type is a build error, which catches a stale
   pattern after a module moves. `allow_redundant_renames(true)`, called before
   the rename, turns it off.
-- Renames don't check for collisions. Two types renamed to the same name
-  produce a schema with both under one name, so keep the result unique.
+- Two different types renamed to the same name are a build error. Copies of
+  one definition under one name are merged.
+- A module may share a top-level module's name, such as `c::a` beside `a`,
+  as long as no type inside `c` refers to a type in `a`. TypeScript and Python
+  look names up from the innermost scope outward, so inside `c` they would
+  read `a::…` as `c::a::…`, and `build()` refuses such a reference.
 - Type names are not on the wire. Moving or renaming a type changes the
   generated code, not what deployed clients send or receive.
 
