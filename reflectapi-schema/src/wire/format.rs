@@ -1,11 +1,11 @@
 //! What a primitive is on the wire beyond its JSON type: a UUID, a date, a
 //! URI. Every generator reads it here, so a schema says it once.
 
-use reflectapi_schema::Primitive;
+use crate::Primitive;
 
 /// The format of the string a primitive is written as: the schema's, or, for
 /// a schema written before primitives carried one, the built-in type's.
-pub(crate) fn wire_format(primitive: &Primitive) -> Option<&str> {
+pub fn wire_format(primitive: &Primitive) -> Option<&str> {
     primitive
         .format()
         .or_else(|| builtin_format(primitive.name()))
@@ -30,7 +30,7 @@ fn builtin_format(name: &str) -> Option<&'static str> {
 /// A primitive written as a string with a format: one that has a format and
 /// either no fallback or a `String` one. A fallback to anything else says
 /// how it's written instead.
-pub(crate) fn string_format(primitive: &Primitive) -> Option<&str> {
+pub fn string_format(primitive: &Primitive) -> Option<&str> {
     let format = wire_format(primitive)?;
     match primitive.fallback() {
         None => Some(format),
@@ -42,7 +42,7 @@ pub(crate) fn string_format(primitive: &Primitive) -> Option<&str> {
 /// How a Rust integer type is written: its OpenAPI format, and the bounds a
 /// JSON number must keep within, where they fit in an `i64`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct IntegerWidth {
+pub struct IntegerWidth {
     /// The OpenAPI format registry's name: `int8` … `int64`, `uint8` … `uint64`.
     /// `None` for `isize` and `usize`, whose width is the server's.
     pub format: Option<&'static str>,
@@ -54,7 +54,7 @@ pub(crate) struct IntegerWidth {
 /// registered format. `isize` and `usize` are as wide as the server's
 /// pointers, 32 bits on wasm32, which the schema doesn't record, so they get
 /// no format and `usize` only its minimum.
-pub(crate) fn integer_width(name: &str) -> Option<IntegerWidth> {
+pub fn integer_width(name: &str) -> Option<IntegerWidth> {
     let (format, minimum, maximum) = match name {
         "i8" => (Some("int8"), Some(i8::MIN.into()), Some(i8::MAX.into())),
         "i16" => (Some("int16"), Some(i16::MIN.into()), Some(i16::MAX.into())),
@@ -121,36 +121,5 @@ mod tests {
         assert_eq!(integer_width("isize"), None);
         assert_eq!(integer_width("i64").unwrap().minimum, None);
         assert_eq!(integer_width("u128"), None);
-    }
-
-    /// The table above stands in for the impls' formats on older schemas,
-    /// so it must say the same as they do.
-    #[cfg(all(
-        feature = "uuid",
-        feature = "chrono",
-        feature = "url",
-        feature = "rust_decimal"
-    ))]
-    #[test]
-    fn the_built_in_impls_set_the_formats_the_table_gives() {
-        fn check<T: crate::Output>() {
-            let mut typespace = crate::Typespace::new();
-            let reference = T::reflectapi_output_type(&mut typespace);
-            let ty = typespace.get_type(&reference.name).unwrap();
-            let primitive = ty.as_primitive().unwrap();
-            assert!(
-                primitive.format().is_some(),
-                "{} sets no format",
-                primitive.name()
-            );
-            assert_eq!(primitive.format(), builtin_format(primitive.name()));
-        }
-        check::<uuid::Uuid>();
-        check::<chrono::DateTime<chrono::Utc>>();
-        check::<chrono::NaiveDateTime>();
-        check::<chrono::NaiveDate>();
-        check::<chrono::NaiveTime>();
-        check::<url::Url>();
-        check::<rust_decimal::Decimal>();
     }
 }

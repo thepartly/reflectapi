@@ -5,10 +5,10 @@
 //! the value may be null depends on the type's definition, so the contract is
 //! resolved against the schema being rendered.
 
-use reflectapi_schema::Schema;
+use crate::Schema;
 
 use crate::wire::key::is_option;
-pub(crate) use crate::wire::key::{key_presence, FieldWireFacts, KeyPresence};
+pub use crate::wire::key::{key_presence, FieldWireFacts, KeyPresence};
 
 use super::nullability::accepts_null;
 
@@ -16,7 +16,7 @@ use super::nullability::accepts_null;
 /// matters on its own side: the server reads requests with
 /// `deserialize_with` and writes responses with `serialize_with`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Direction {
+pub enum Direction {
     Request,
     Response,
     Both,
@@ -38,7 +38,7 @@ impl Direction {
 
     /// Whether the field has a custom codec that may read or write `null` for
     /// any type in this direction.
-    pub(crate) fn custom_codec(self, serialize_with: bool, deserialize_with: bool) -> bool {
+    pub fn custom_codec(self, serialize_with: bool, deserialize_with: bool) -> bool {
         match self {
             Direction::Request => deserialize_with,
             Direction::Response => serialize_with,
@@ -48,7 +48,7 @@ impl Direction {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct FieldWireContract {
+pub struct FieldWireContract {
     pub key: KeyPresence,
     // The declared Rust type admits null. Custom codecs may change its wire
     // representation; use a reflected type override for such codecs.
@@ -77,7 +77,7 @@ impl FieldWireContract {
 /// generator does before rendering. Then a type name has one definition: a
 /// request and a response type that share a name but differ are renamed to
 /// `input::` and `output::` names, and so are the references to them.
-pub(crate) fn resolve_field_wire_contract(
+pub fn resolve_field_wire_contract(
     facts: FieldWireFacts<'_>,
     schema: &Schema,
     direction: Direction,
@@ -94,7 +94,7 @@ pub(crate) fn resolve_field_wire_contract(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use reflectapi_schema::{Field, TypeReference};
+    use crate::{Field, TypeReference};
 
     fn resolve(facts: FieldWireFacts<'_>) -> FieldWireContract {
         resolve_field_wire_contract(facts, &Schema::new(), Direction::Both)

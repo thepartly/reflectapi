@@ -1,4 +1,5 @@
 use http::HeaderName;
+use reflectapi_schema::wire::headers::request_headers;
 
 use crate::{Function, Input, Output, OutputType, Schema, TypeReference, Typespace};
 
@@ -145,7 +146,7 @@ impl BuildMode for DispatchOnly {
 }
 
 /// The names of the headers a request-headers type reads, as
-/// [`crate::wire::headers::request_headers`] finds them.
+/// [`request_headers`] finds them.
 fn header_names(
     typespace: &Typespace,
     headers_type: &TypeReference,
@@ -153,7 +154,7 @@ fn header_names(
     let invalid = |reason: String| {
         BuildError::Other(format!("request headers type `{}`: {reason}", headers_type.name).into())
     };
-    crate::wire::headers::request_headers(headers_type, &|name| typespace.get_type(name))
+    request_headers(headers_type, &|name| typespace.get_type(name))
         .map_err(invalid)?
         .iter()
         .map(|header| {

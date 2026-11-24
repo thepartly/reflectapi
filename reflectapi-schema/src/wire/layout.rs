@@ -11,7 +11,7 @@
 
 use std::collections::BTreeSet;
 
-use reflectapi_schema::{
+use crate::{
     mk_subst, Enum, Field, Fields, Instantiate, Primitive, Representation, Substitute, Type,
     TypeReference,
 };
@@ -21,16 +21,16 @@ use super::shape::{wrapped_field, Shape};
 
 /// Flattening deeper than this is treated as unknown. The outermost flattened
 /// field's type is at depth 0, as in Python's `collect_flattened_fields`.
-pub(crate) const MAX_DEPTH: usize = 10;
+pub const MAX_DEPTH: usize = 10;
 
 /// The unit type, which has no keys.
-pub(crate) const UNIT: &str = "std::tuple::Tuple0";
+pub const UNIT: &str = "std::tuple::Tuple0";
 
 /// Resolves a type name in the typespace the backend is describing.
-pub(crate) type Lookup<'a, 'l> = &'l dyn Fn(&str) -> Option<&'a Type>;
+pub type Lookup<'a, 'l> = &'l dyn Fn(&str) -> Option<&'a Type>;
 
 /// A `#[serde(flatten)]` field and the keys of its type.
-pub(crate) struct FlattenedGroup {
+pub struct FlattenedGroup {
     pub field: Field,
     /// The group may be absent: its type is an `Option`.
     pub optional: bool,
@@ -38,7 +38,7 @@ pub(crate) struct FlattenedGroup {
     pub layout: Layout,
 }
 
-pub(crate) enum Layout {
+pub enum Layout {
     Struct(StructLayout),
     /// The tag, then one layout per variant.
     InternallyTagged {
@@ -56,7 +56,7 @@ pub(crate) enum Layout {
 }
 
 /// Why a type's keys aren't known from the schema.
-pub(crate) enum Opaque {
+pub enum Opaque {
     /// An externally tagged or untagged enum.
     Enum(Box<Enum>),
     /// A primitive: a unit type such as `()` ([`UNIT`]), which has no keys,
@@ -73,18 +73,18 @@ pub(crate) enum Opaque {
 }
 
 /// A struct's fields in declaration order.
-pub(crate) struct StructLayout {
+pub struct StructLayout {
     pub members: Vec<Member>,
 }
 
-pub(crate) enum Member {
+pub enum Member {
     /// A named field with a key of its own.
     Key(Field),
     Flattened(FlattenedGroup),
 }
 
 /// A field with a key, found through flattened structs.
-pub(crate) struct KeyedField<'s> {
+pub struct KeyedField<'s> {
     pub field: &'s Field,
     /// Every value has the key: the field is required, and so is each
     /// flattened group it's found through.
@@ -327,7 +327,7 @@ fn instantiate<T: Clone + Instantiate>(
 /// writes in its place, flattened or not: the primitive falls back to one of
 /// its type parameters. A primitive with a representation of its own, such
 /// as `HashSet<T>` or `chrono::DateTime`, isn't a pointer.
-pub(crate) fn pointee(primitive: &Primitive, type_ref: &TypeReference) -> Option<TypeReference> {
+pub fn pointee(primitive: &Primitive, type_ref: &TypeReference) -> Option<TypeReference> {
     let fallback = primitive.fallback()?;
     if primitive.parameters.len() != type_ref.arguments.len()
         || !primitive
@@ -343,7 +343,7 @@ pub(crate) fn pointee(primitive: &Primitive, type_ref: &TypeReference) -> Option
 #[cfg(test)]
 mod tests {
     use super::*;
-    use reflectapi_schema::{Enum, Struct, Variant};
+    use crate::{Enum, Struct, Variant};
 
     fn field(name: &str, type_name: &str, required: bool) -> Field {
         let mut field = Field::new(name.into(), type_name.into());
@@ -424,7 +424,7 @@ mod tests {
     #[test]
     fn a_pointer_has_the_keys_of_the_type_it_holds() {
         let types = [
-            Type::Primitive(reflectapi_schema::Primitive::new(
+            Type::Primitive(crate::Primitive::new(
                 "std::boxed::Box".into(),
                 String::new(),
                 vec!["T".into()],
@@ -460,7 +460,7 @@ mod tests {
                 "Maybe",
                 vec![field("b", "u32", true), field("c", "u32", false)],
             ),
-            Type::Primitive(reflectapi_schema::Primitive::new(
+            Type::Primitive(crate::Primitive::new(
                 UNIT.into(),
                 String::new(),
                 Vec::new(),
@@ -602,7 +602,7 @@ mod tests {
         let types = [
             Type::Enum(external),
             Type::Struct(tuple),
-            Type::Primitive(reflectapi_schema::Primitive::new(
+            Type::Primitive(crate::Primitive::new(
                 "u32".into(),
                 String::new(),
                 Vec::new(),

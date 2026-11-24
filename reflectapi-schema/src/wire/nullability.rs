@@ -6,7 +6,7 @@
 
 use std::collections::BTreeSet;
 
-use reflectapi_schema::{Field, Representation, Type, TypeReference};
+use crate::{Field, Representation, Type, TypeReference};
 
 use super::presence::Direction;
 use crate::wire::layout::Lookup;
@@ -15,7 +15,7 @@ use crate::wire::shape::Shape;
 /// Conservative: anything not known to reject `null`, such as a generic
 /// parameter or a type the typespace doesn't define, is assumed to accept it,
 /// so a client never refuses a value the server would read.
-pub(crate) fn accepts_null(
+pub fn accepts_null(
     type_ref: &TypeReference,
     lookup: Lookup<'_, '_>,
     direction: Direction,
@@ -192,7 +192,7 @@ impl Resolver<'_, '_> {
 /// supplies, so `Wrapper<Option<u32>>` reads its field as `Option<u32>`.
 fn substitute<'a>(
     inner: &TypeReference,
-    parameters: impl Iterator<Item = &'a reflectapi_schema::TypeParameter>,
+    parameters: impl Iterator<Item = &'a crate::TypeParameter>,
     origin: &TypeReference,
 ) -> TypeReference {
     for (index, parameter) in parameters.enumerate() {
@@ -212,7 +212,7 @@ fn substitute<'a>(
 mod tests {
     use super::*;
 
-    fn schema() -> reflectapi_schema::Schema {
+    fn schema() -> crate::Schema {
         serde_json::from_value(serde_json::json!({
             "name": "nullability",
             "input_types": {"types": [

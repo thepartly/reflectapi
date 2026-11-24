@@ -10,10 +10,10 @@
 //! apply to it, and `required` doesn't describe it. Serde makes a flattened
 //! group optional only when its type is an `Option`.
 
-use reflectapi_schema::{Field, TypeReference};
+use crate::{Field, TypeReference};
 
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct FieldWireFacts<'a> {
+pub struct FieldWireFacts<'a> {
     pub type_ref: &'a TypeReference,
     pub required: bool,
     pub named: bool,
@@ -40,7 +40,7 @@ impl<'a> FieldWireFacts<'a> {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum KeyPresence {
+pub enum KeyPresence {
     Required,
     Optional,
     /// No key of its own: the field's type contributes its keys to the parent.
@@ -50,7 +50,7 @@ pub(crate) enum KeyPresence {
     },
 }
 
-pub(crate) fn is_option(type_ref: &TypeReference) -> bool {
+pub fn is_option(type_ref: &TypeReference) -> bool {
     matches!(
         type_ref.name.as_str(),
         "std::option::Option" | "reflectapi::Option"
@@ -58,7 +58,7 @@ pub(crate) fn is_option(type_ref: &TypeReference) -> bool {
 }
 
 /// The key half of a field's wire contract, which needs no typespace.
-pub(crate) fn key_presence(facts: FieldWireFacts<'_>) -> KeyPresence {
+pub fn key_presence(facts: FieldWireFacts<'_>) -> KeyPresence {
     if facts.flattened {
         KeyPresence::Flattened {
             optional: is_option(facts.type_ref),

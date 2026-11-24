@@ -27,6 +27,8 @@ mod rename;
 mod subst;
 pub mod transforms;
 mod visit;
+#[doc(hidden)]
+pub mod wire;
 
 pub use self::codegen::*;
 pub use self::deprecation::{validate_deprecation_dates, Deprecation, InvalidDeprecationDate};
