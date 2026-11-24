@@ -1,7 +1,10 @@
 name: Commit metadata
 
+# `pull_request_target` runs this file, and the checker, as they are on the
+# base branch, so a pull request can't change the rules that judge it. The
+# pull request's commits are only read with `git log`, never run.
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, reopened, synchronize]
 
 permissions:
@@ -15,15 +18,13 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          persist-credentials: false
       - run: python3 -m unittest discover -s .github/scripts -p test_check_commit_metadata.py -v
       - name: Check commit authors and messages
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        # The base branch's checker runs, so a pull request can't relax the
-        # rules that judge it. The pull request that adds it runs its own.
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          checker="$RUNNER_TEMP/check-commit-metadata.py"
-          git show "$BASE_SHA:.github/scripts/check-commit-metadata.py" > "$checker" 2>/dev/null \
-            || cp .github/scripts/check-commit-metadata.py "$checker"
-          python3 "$checker" "$BASE_SHA" "$HEAD_SHA"
+          git fetch --no-tags origin "+refs/pull/$PR_NUMBER/head:refs/remotes/pull/head"
+          python3 .github/scripts/check-commit-metadata.py "$BASE_SHA" "$HEAD_SHA"
