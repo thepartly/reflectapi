@@ -22,6 +22,7 @@
 
 mod codegen;
 mod deprecation;
+pub mod diff;
 mod internal;
 mod rename;
 mod subst;
@@ -752,7 +753,9 @@ impl OutputType {
     }
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum SerializationMode {
     #[default]
@@ -1151,6 +1154,9 @@ pub struct Struct {
     /// On the wire it's still the wrapped value.
     #[serde(skip_serializing_if = "is_false", default)]
     pub distinct: bool,
+    /// If serde deny_unknown_fields attribute is set on a struct
+    #[serde(skip_serializing_if = "is_false", default)]
+    pub deny_unknown_fields: bool,
 
     #[serde(
         skip_serializing_if = "LanguageSpecificTypeCodegenConfig::is_serialization_default",
@@ -1170,6 +1176,7 @@ impl Struct {
             fields: Default::default(),
             transparent: Default::default(),
             distinct: Default::default(),
+            deny_unknown_fields: Default::default(),
             codegen_config: Default::default(),
         }
     }
@@ -1583,6 +1590,11 @@ pub struct Enum {
     #[serde(skip_serializing_if = "is_false", default)]
     pub open: bool,
 
+    /// If serde deny_unknown_fields attribute is set on the enum, which
+    /// applies it to its struct variants
+    #[serde(skip_serializing_if = "is_false", default)]
+    pub deny_unknown_fields: bool,
+
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub variants: Vec<Variant>,
 
@@ -1602,6 +1614,7 @@ impl Enum {
             parameters: Default::default(),
             representation: Default::default(),
             open: false,
+            deny_unknown_fields: false,
             variants: Default::default(),
             codegen_config: Default::default(),
         }

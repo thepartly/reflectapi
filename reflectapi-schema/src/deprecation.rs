@@ -119,7 +119,7 @@ pub fn validate_deprecation_dates(
     Ok(())
 }
 
-fn is_iso_date(s: &str) -> bool {
+pub(crate) fn is_iso_date(s: &str) -> bool {
     let b = s.as_bytes();
     if b.len() != 10 || b[4] != b'-' || b[7] != b'-' {
         return false;
