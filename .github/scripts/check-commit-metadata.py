@@ -4,7 +4,8 @@
 For every commit in BASE..HEAD:
 
 - its author and committer must not be an AI agent, such as
-  `Claude <noreply@anthropic.com>`: commit as the person responsible;
+  `Claude <noreply@anthropic.com>`, Codex, Copilot, Gemini, Devin, Cursor's
+  agent or Jules: commit as the person responsible;
 - its message must not carry a generated-session trailer, session link,
   AI co-author trailer or "Generated with" footer.
 
@@ -22,22 +23,42 @@ import re
 import subprocess
 import sys
 
-AGENT_NAME = re.compile(r"\bclaude\b", re.IGNORECASE)
-AGENT_EMAIL = re.compile(r"@anthropic\.com$", re.IGNORECASE)
+# AI coding agents, by the names and emails their commits and trailers use.
+# Matched as whole words, so a person named, say, Claudette passes. A first
+# name an agent shares, such as Devin or Jules, is matched only in the
+# agent's own form.
+AGENTS = (
+    r"\b(claude|chatgpt|openai|codex|copilot|gemini)\b"
+    r"|\bdevin-ai\b|\bcursor ?agent\b|\bgoogle-labs-jules\b"
+)
+AGENT_NAME = re.compile(AGENTS, re.IGNORECASE)
+AGENT_EMAIL = re.compile(
+    r"@(anthropic|openai)\.com$|^cursoragent@cursor\.com$"
+    # A GitHub app's or bot's noreply address: `<id>+<login>@users.noreply...`.
+    r"|\+(" + AGENTS + r")[^@]*@users\.noreply\.github\.com$",
+    re.IGNORECASE,
+)
 
 PATTERNS = [
     ("session trailer", re.compile(r"^\s*Claude-Session\s*:", re.IGNORECASE)),
-    ("session link", re.compile(r"\bclaude\.ai/", re.IGNORECASE)),
+    (
+        "session link",
+        re.compile(r"\bclaude\.ai/|\bchatgpt\.com/codex\b", re.IGNORECASE),
+    ),
     (
         "co-author trailer",
         re.compile(
-            r"^\s*Co-Authored-By\s*:.*(\bClaude\b|@anthropic\.com)",
+            r"^\s*Co-Authored-By\s*:.*(" + AGENTS + r"|@(anthropic|openai)\.com"
+            r"|cursoragent@cursor\.com)",
             re.IGNORECASE,
         ),
     ),
     (
         "generated-by footer",
-        re.compile(r"Generated\s+(with|by)\s+\[?Claude\b", re.IGNORECASE),
+        re.compile(
+            r"Generated\s+(with|by)\s+\[?(" + AGENTS + r"|cursor|devin)",
+            re.IGNORECASE,
+        ),
     ),
 ]
 
