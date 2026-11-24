@@ -2,6 +2,14 @@
 
 How to build, test, document and release reflectapi.
 
+## Commits
+
+Commit as yourself: your name and email as the author and committer. If an AI
+agent writes a change, the commit is still yours, without its session trailer,
+session link, co-author trailer or "Generated with" footer. The `Commit
+metadata` check fails a pull request whose commits break this; see
+`.github/scripts/check-commit-metadata.py`.
+
 ## Building and running
 
 Ensure that you have `prettier`, `rustfmt`, and `ruff` available in your PATH for consistently formatted generated code.

@@ -1,0 +1,29 @@
+name: Commit metadata
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  commit-metadata:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - run: python3 -m unittest discover -s .github/scripts -p test_check_commit_metadata.py -v
+      - name: Check commit authors and messages
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        # The base branch's checker runs, so a pull request can't relax the
+        # rules that judge it. The pull request that adds it runs its own.
+        run: |
+          checker="$RUNNER_TEMP/check-commit-metadata.py"
+          git show "$BASE_SHA:.github/scripts/check-commit-metadata.py" > "$checker" 2>/dev/null \
+            || cp .github/scripts/check-commit-metadata.py "$checker"
+          python3 "$checker" "$BASE_SHA" "$HEAD_SHA"
