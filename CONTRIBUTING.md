@@ -7,9 +7,10 @@ How to build, test, document and release reflectapi.
 Commit as yourself: your name and email as the author and committer. If an AI
 agent writes a change, the commit is still yours, without its session trailer,
 session link, co-author trailer or "Generated with" footer. The `Commit
-metadata` check fails a pull request whose commits break this; see
-`.github/scripts/check-commit-metadata.py`. It runs as it is on `main`, so a
-change to it takes effect once merged.
+metadata` check fails a pull request whose commits break this, and a push to
+`main` that does, which covers a merge or squash commit whose message is
+written when merging. See `.github/scripts/check-commit-metadata.py`. It runs
+as it is on `main`, so a change to it takes effect once merged.
 
 ## Building and running
 

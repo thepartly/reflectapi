@@ -8,8 +8,12 @@ For every commit in BASE..HEAD:
 - its message must not carry a generated-session trailer, session link,
   AI co-author trailer or "Generated with" footer.
 
-The pull request body isn't checked: it doesn't reach `main`, whose squash
-commits take their messages from the commits. Exits 1 and lists each offence.
+It runs on every pull request, over the commits it adds, and on every push to
+`main`, over the commits pushed. So whatever reaches `main` is checked, however
+it was merged: a pull request's own commits, a merge commit, or a squash commit
+whose message was written or edited when merging. The pull request body isn't
+checked as such; where it becomes a commit message, that commit is. Exits 1 and
+lists each offence.
 
 Usage: check-commit-metadata.py BASE HEAD
 """
