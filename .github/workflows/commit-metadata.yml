@@ -1,0 +1,46 @@
+name: Commit metadata
+
+# Every commit that reaches `main` is checked, however it's merged: a pull
+# request's commits before it merges, and each push to `main`, which catches a
+# merge commit or a squash commit whose message was written when merging.
+#
+# `pull_request_target` runs this file, and the checker, as they are on the
+# base branch, so a pull request can't change the rules that judge it. The
+# pull request's commits are only read with `git log`, never run.
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  commit-metadata:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - run: python3 -m unittest discover -s .github/scripts -p test_check_commit_metadata.py -v
+      - name: Check commit authors and messages
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          PUSH_AFTER: ${{ github.sha }}
+        run: |
+          if [ "$EVENT" = pull_request_target ]; then
+            git fetch --no-tags origin "+refs/pull/$PR_NUMBER/head:refs/remotes/pull/head"
+            base="$PR_BASE" head="$PR_HEAD"
+          else
+            base="$PUSH_BEFORE" head="$PUSH_AFTER"
+            # A force push can leave the old tip unreachable: check the new one.
+            git cat-file -e "$base^{commit}" 2>/dev/null || base="$head^"
+          fi
+          python3 .github/scripts/check-commit-metadata.py "$base" "$head"
