@@ -376,3 +376,59 @@ Unlike an override, this gives the type no name of its own: clients see an
 `f64`. The orphan rule applies: a trait from `reflectapi` can be implemented
 only for a type of your own crate, so use an override for a field of a type
 from another crate.
+
+## TypeScript types chosen by the client
+
+A TypeScript client can write a schema type as a type of its own choosing,
+such as a UUID type from a package it already uses. The server's schema stays
+as it is, so two clients of one API can choose differently.
+
+```rust
+use reflectapi::codegen::typescript::{generate, Config};
+
+#[derive(serde::Serialize, reflectapi::Output)]
+struct Order {
+    id: uuid::Uuid,
+}
+
+async fn order(_: (), _: reflectapi::Empty, _: reflectapi::Empty) -> Order {
+    Order { id: uuid::Uuid::nil() }
+}
+
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
+let (schema, _) = reflectapi::Builder::new()
+    .route(order, |b| b.name("order"))
+    .build()?;
+let files = generate(
+    schema,
+    Config::default().type_override("uuid::Uuid", r#"import("@acme/ids").Uuid"#),
+)?;
+assert!(files["generated.ts"].contains(r#"id: import("@acme/ids").Uuid"#));
+# Ok(())
+# }
+```
+
+The CLI takes the same as `--typescript-type`, once per type:
+
+```bash
+reflectapi codegen --language typescript \
+  --typescript-type 'uuid::Uuid=import("@acme/ids").Uuid'
+```
+
+- **The type** is any TypeScript type. An import type, `import("…")`, needs
+  no import statement. A bare name is looked up inside the generated
+  namespaces, so it can be shadowed by a generated type of the same name.
+- **It must be assignable to the schema type.** `generated.ts` checks each
+  override against the type it replaces, as that type is on the wire, so
+  `tsc` refuses an override that a request would send as something else. A
+  `Date` for a `chrono::DateTime` fails with
+  `Type 'Date' does not satisfy the constraint 'string'`; a branded string
+  passes.
+- **Responses aren't converted.** A value from a response is the JSON
+  value, typed as the override, so the override should describe that value:
+  a narrower string type, a branded string or a readonly view, not a class.
+- **The name is the Rust type's.** A type the builder splits into `input` and
+  `output` types, because requests and responses differ, is replaced in both,
+  and must be assignable to both. A type with type parameters can't be
+  overridden, except one written as a string, such as `chrono::DateTime`.
+  Naming a type the schema doesn't have is an error.

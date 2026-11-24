@@ -25,6 +25,15 @@ pub struct Config {
     include_tags: BTreeSet<String>,
     /// Exclude handlers with these tags (empty means exclude none).
     exclude_tags: BTreeSet<String>,
+    /// TypeScript types chosen for schema types, by the schema type's name.
+    type_overrides: BTreeMap<String, TypeOverride>,
+}
+
+/// The TypeScript a client chose for a schema type. A struct, so that an
+/// override can later carry a codec to convert the wire value.
+#[derive(Debug, Clone)]
+struct TypeOverride {
+    typescript: String,
 }
 
 impl Config {
@@ -51,6 +60,74 @@ impl Config {
         self.exclude_tags = exclude_tags;
         self
     }
+
+    /// Writes the schema type `rust_type`, such as `uuid::Uuid`, as the
+    /// TypeScript type `typescript` wherever the client uses it. For a type
+    /// from a package, use an import type, `import("@acme/ids").Uuid`, which
+    /// needs no import statement.
+    ///
+    /// The override must be assignable to the type it replaces, as that type
+    /// is on the wire. `generated.ts` checks this when it's type-checked: an
+    /// override that would be sent as something else, such as a `Date` for a
+    /// string, fails `tsc`. Responses aren't converted, so a value from a
+    /// response is the wire value typed as the override.
+    ///
+    /// A type that takes type parameters can't be overridden, except one
+    /// written as a string, such as `chrono::DateTime`, whose parameters the
+    /// client leaves out. Overriding a type the schema doesn't have is an
+    /// error.
+    pub fn type_override(
+        &mut self,
+        rust_type: impl Into<String>,
+        typescript: impl Into<String>,
+    ) -> &mut Self {
+        self.type_overrides.insert(
+            rust_type.into(),
+            TypeOverride {
+                typescript: typescript.into(),
+            },
+        );
+        self
+    }
+}
+
+/// How references to schema types are written: the TypeScript for Rust's
+/// standard and library types, and the client's type overrides.
+struct TypeNames<'a> {
+    implemented: HashMap<String, String>,
+    overrides: &'a BTreeMap<String, TypeOverride>,
+}
+
+/// Each named type's definition. A type that's a TypeScript built-in, such as
+/// `u8`'s `number`, has none. Without `constructors`, a distinct type is
+/// rendered without its constructor, so the definitions declare no values.
+fn render_types(
+    schema: &crate::Schema,
+    type_names: impl IntoIterator<Item = String>,
+    names: &TypeNames<'_>,
+    constructors: bool,
+) -> anyhow::Result<HashMap<String, String>> {
+    let mut rendered_types = HashMap::new();
+    for original_type_name in type_names {
+        let type_def = schema.get_type(&original_type_name).context(format!(
+            "internal error: failed to get consolidated type definition for type: {original_type_name}"
+        ))?;
+        if let Some(primitive) = format_alias(type_def) {
+            rendered_types.insert(original_type_name, render_format_alias(primitive));
+            continue;
+        }
+        if names.implemented.contains_key(&original_type_name) {
+            continue;
+        }
+        if type_def.as_primitive().is_some() {
+            continue;
+        }
+        rendered_types.insert(
+            original_type_name,
+            render_type(type_def, schema, names, constructors)?,
+        );
+    }
+    Ok(rendered_types)
 }
 
 /// Generates the TypeScript client: each file's name and contents.
@@ -61,28 +138,19 @@ pub fn generate(
     schema.strip_hidden_fields();
     super::schema::relax_deprecated_response_fields(&mut schema);
     super::validate_response_enums(&schema)?;
-    let implemented_types = build_implemented_types();
+    let no_overrides = BTreeMap::new();
+    let wire_names = TypeNames {
+        implemented: build_implemented_types(),
+        overrides: &no_overrides,
+    };
+    let overrides = resolve_type_overrides(&mut schema, &config.type_overrides)?;
+    let names = TypeNames {
+        implemented: build_implemented_types(),
+        overrides: &overrides,
+    };
 
-    let mut rendered_types = HashMap::new();
-    for original_type_name in schema.consolidate_types() {
-        let type_def = schema.get_type(&original_type_name).context(format!(
-            "internal error: failed to get consolidated type definition for type: {original_type_name}"
-        ))?;
-        if let Some(primitive) = format_alias(type_def) {
-            rendered_types.insert(original_type_name, render_format_alias(primitive));
-            continue;
-        }
-        if implemented_types.contains_key(&original_type_name) {
-            continue;
-        }
-        if type_def.as_primitive().is_some() {
-            continue;
-        }
-        rendered_types.insert(
-            original_type_name,
-            render_type(type_def, &schema, &implemented_types)?,
-        );
-    }
+    let type_names = schema.consolidate_types();
+    let rendered_types = render_types(&schema, type_names, &names, true)?;
 
     for function in schema.functions() {
         if let Some(type_ref) = function.response_headers() {
@@ -137,7 +205,7 @@ pub fn generate(
         &mut types,
         &function_groups,
         &schema,
-        &implemented_types,
+        &names,
         &functions_by_name,
     );
 
@@ -152,6 +220,14 @@ pub fn generate(
     let module = modules_from_rendered_types(schema.consolidate_types(), rendered_types);
     generated_code.push(module.render().trim().to_string());
 
+    if !overrides.is_empty() {
+        generated_code.push(render_type_override_checks(
+            &overrides,
+            &schema,
+            &wire_names,
+        )?);
+    }
+
     if needs_decoders {
         generated_code.push(render_decoder_specs(&schema));
     }
@@ -162,7 +238,7 @@ pub fn generate(
             function,
             &implementation_names[&function.name],
             &schema,
-            &implemented_types,
+            &names,
         )?);
     }
 
@@ -932,15 +1008,15 @@ impl FunctionSignature {
 fn function_signature(
     function: &Function,
     schema: &crate::Schema,
-    implemented_types: &HashMap<String, String>,
+    names: &TypeNames<'_>,
 ) -> FunctionSignature {
     let input_type = if let Some(input_type) = function.input_type.as_ref() {
-        type_ref_to_ts_ref(input_type, schema, implemented_types)
+        type_ref_to_ts_ref(input_type, schema, names)
     } else {
         "{}".into()
     };
     let input_headers = if let Some(input_headers) = function.input_headers.as_ref() {
-        type_ref_to_ts_ref(input_headers, schema, implemented_types)
+        type_ref_to_ts_ref(input_headers, schema, names)
     } else {
         "{}".into()
     };
@@ -948,15 +1024,15 @@ fn function_signature(
         reflectapi_schema::OutputType::Complete { output_type } => FunctionOutput::Single {
             output_type: output_type
                 .as_ref()
-                .map(|t| type_ref_to_ts_ref(t, schema, implemented_types))
+                .map(|t| type_ref_to_ts_ref(t, schema, names))
                 .unwrap_or_else(|| "{}".into()),
         },
         reflectapi_schema::OutputType::Stream { item_type } => FunctionOutput::Stream {
-            item_type: type_ref_to_ts_ref(item_type, schema, implemented_types),
+            item_type: type_ref_to_ts_ref(item_type, schema, names),
         },
     };
     let error_type = if let Some(error_type) = function.error_type.as_ref() {
-        type_ref_to_ts_ref(error_type, schema, implemented_types)
+        type_ref_to_ts_ref(error_type, schema, names)
     } else {
         "{}".into()
     };
@@ -964,13 +1040,13 @@ fn function_signature(
         let Some(crate::Type::Struct(s)) = schema.get_type(&response_headers.name) else {
             unreachable!("response headers types are checked in `generate`")
         };
-        let names = s
+        let header_names = s
             .fields()
             .map(|field| field.serde_name().to_owned())
             .collect();
         ResponseHeaders {
-            type_: type_ref_to_ts_ref(response_headers, schema, implemented_types),
-            names,
+            type_: type_ref_to_ts_ref(response_headers, schema, names),
+            names: header_names,
         }
     });
     FunctionSignature {
@@ -987,7 +1063,7 @@ fn interfaces_from_function_group(
     interfaces: &mut Vec<templates::Interface>,
     group: &FunctionGroup,
     schema: &crate::Schema,
-    implemented_types: &HashMap<String, String>,
+    names: &TypeNames<'_>,
     functions_by_name: &IndexMap<String, &Function>,
 ) {
     let mut type_template = templates::Interface {
@@ -1000,7 +1076,7 @@ fn interfaces_from_function_group(
 
     for function_name in &group.functions {
         let function = functions_by_name.get(function_name).unwrap();
-        let sig = function_signature(function, schema, implemented_types);
+        let sig = function_signature(function, schema, names);
         let return_type = sig.interface_return_type();
         type_template.fields.push(templates::Field {
             name: function_name.split('.').next_back().unwrap().replace('-', "_"),
@@ -1035,7 +1111,7 @@ fn interfaces_from_function_group(
             interfaces,
             group,
             schema,
-            implemented_types,
+            names,
             functions_by_name,
         )
     }
@@ -1428,9 +1504,9 @@ fn render_function(
     function: &Function,
     implementation_name: &str,
     schema: &crate::Schema,
-    implemented_types: &HashMap<String, String>,
+    names: &TypeNames<'_>,
 ) -> Result<String, anyhow::Error> {
-    let sig = function_signature(function, schema, implemented_types);
+    let sig = function_signature(function, schema, names);
     let name = implementation_name.to_owned();
     let path = format!("{}/{}", function.path, function.name);
     let output_ref = match &function.output_type {
@@ -1500,7 +1576,8 @@ fn render_function(
 fn render_type(
     type_def: &crate::Type,
     schema: &crate::Schema,
-    implemented_types: &HashMap<String, String>,
+    names: &TypeNames<'_>,
+    constructors: bool,
 ) -> Result<String, anyhow::Error> {
     let type_name = type_to_ts_name(type_def);
 
@@ -1511,14 +1588,15 @@ fn render_type(
                 render_distinct(
                     struct_def,
                     &type_name,
-                    &type_ref_to_ts_ref(&field_type_ref, schema, implemented_types),
+                    &type_ref_to_ts_ref(&field_type_ref, schema, names),
+                    constructors,
                 )
             } else if struct_def.is_alias() {
                 let field_type_ref = struct_def.fields.iter().next().unwrap().type_ref.clone();
                 let alias_template = templates::Alias {
                     name: type_name,
                     description: doc_to_ts_comments(&struct_def.description, None, 0),
-                    type_: type_ref_to_ts_ref(&field_type_ref, schema, implemented_types),
+                    type_: type_ref_to_ts_ref(&field_type_ref, schema, names),
                 };
                 alias_template.render()
             } else {
@@ -1530,15 +1608,14 @@ fn render_type(
                         .fields
                         .iter()
                         .filter(|f| !f.flattened)
-                        .map(|f| field_to_ts_field(f, schema, implemented_types))
+                        .map(|f| field_to_ts_field(f, schema, names))
                         .collect::<Vec<_>>(),
                     flattened_types: struct_def
                         .fields
                         .iter()
                         .filter(|f| f.flattened)
                         .map(|field| {
-                            let type_ref =
-                                type_ref_to_ts_ref(&field.type_ref, schema, implemented_types);
+                            let type_ref = type_ref_to_ts_ref(&field.type_ref, schema, names);
                             let external = flattened_external_enum_ref(
                                 &field.type_ref,
                                 schema,
@@ -1591,7 +1668,7 @@ fn render_type(
                         ),
                         deprecation_message: variant.deprecation().map(|d| d.message()),
                         representation: enum_def.representation.clone(),
-                        fields: fields_to_ts_fields(&variant.fields, schema, implemented_types),
+                        fields: fields_to_ts_fields(&variant.fields, schema, names),
                         discriminant: variant.discriminant,
                         untagged: variant.untagged,
                     })
@@ -1660,19 +1737,19 @@ fn flattened_external_enum_ref(
 fn fields_to_ts_fields(
     fields: &crate::Fields,
     schema: &crate::Schema,
-    implemented_types: &HashMap<String, String>,
+    names: &TypeNames<'_>,
 ) -> templates::Fields {
     match fields {
         reflectapi_schema::Fields::Named(fields) => templates::Fields::Named(
             fields
                 .iter()
-                .map(|f| field_to_ts_field(f, schema, implemented_types))
+                .map(|f| field_to_ts_field(f, schema, names))
                 .collect::<Vec<_>>(),
         ),
         reflectapi_schema::Fields::Unnamed(fields) => templates::Fields::Unnamed(
             fields
                 .iter()
-                .map(|f| field_to_ts_field(f, schema, implemented_types))
+                .map(|f| field_to_ts_field(f, schema, names))
                 .collect(),
         ),
         reflectapi_schema::Fields::None => templates::Fields::None,
@@ -1682,7 +1759,7 @@ fn fields_to_ts_fields(
 fn field_to_ts_field(
     field: &crate::Field,
     schema: &crate::Schema,
-    implemented_types: &HashMap<String, String>,
+    names: &TypeNames<'_>,
 ) -> templates::Field {
     // Reflection has already resolved directional presence, before type
     // consolidation and user transforms. Keep required authoritative.
@@ -1699,7 +1776,7 @@ fn field_to_ts_field(
             field.deprecation().map(|d| d.message()).as_deref(),
             4,
         ),
-        type_: type_ref_to_ts_ref(&field.type_ref, schema, implemented_types),
+        type_: type_ref_to_ts_ref(&field.type_ref, schema, names),
         optional: contract.key == crate::codegen::schema::KeyPresence::Optional,
     }
 }
@@ -1707,26 +1784,26 @@ fn field_to_ts_field(
 fn type_ref_to_ts_ref(
     type_ref: &crate::TypeReference,
     schema: &crate::Schema,
-    implemented_types: &HashMap<String, String>,
+    names: &TypeNames<'_>,
 ) -> String {
-    if let Some(resolved_type) = resolve_type_ref(type_ref, schema, implemented_types) {
+    if let Some(resolved_type) = resolve_type_ref(type_ref, schema, names) {
         return resolved_type;
     }
 
     let type_name_parts = type_ref.name.split("::").collect::<Vec<_>>();
     let n = type_name_parts.join(".");
-    let p = type_ref_params_to_ts_ref(&type_ref.arguments, schema, implemented_types);
+    let p = type_ref_params_to_ts_ref(&type_ref.arguments, schema, names);
     format!("{n}{p}")
 }
 
 fn type_ref_params_to_ts_ref(
     type_params: &[crate::TypeReference],
     schema: &crate::Schema,
-    implemented_types: &HashMap<String, String>,
+    names: &TypeNames<'_>,
 ) -> String {
     let p = type_params
         .iter()
-        .map(|type_ref| type_ref_to_ts_ref(type_ref, schema, implemented_types))
+        .map(|type_ref| type_ref_to_ts_ref(type_ref, schema, names))
         .collect::<Vec<_>>()
         .join(", ");
     if p.is_empty() {
@@ -1761,16 +1838,26 @@ fn type_params_to_ts_name(type_params: std::slice::Iter<'_, crate::TypeParameter
 
 /// `#[reflectapi(distinct)]`: the type, which only the wrapped value converts
 /// to by way of its constructor, and the constructor, a value of the same name.
-fn render_distinct(struct_def: &crate::Struct, type_name: &str, wrapped: &str) -> String {
+fn render_distinct(
+    struct_def: &crate::Struct,
+    type_name: &str,
+    wrapped: &str,
+    constructor: bool,
+) -> String {
     let name = type_name.split('<').next().unwrap_or(type_name);
     let generics = type_params_to_ts_name(struct_def.parameters());
     let description = doc_to_ts_comments(&struct_def.description, None, 0);
-    format!(
-        "\n{description}export type {type_name} = __Distinct<{wrapped}, \"{rust_name}\">;\n\
-         /** `{name}`'s constructor: marks the value it wraps as one. */\n\
-         export const {name} = {generics}(value: {wrapped}): {type_name} => value as {type_name};",
+    let mut out = format!(
+        "\n{description}export type {type_name} = __Distinct<{wrapped}, \"{rust_name}\">;",
         rust_name = struct_def.name,
-    )
+    );
+    if constructor {
+        out.push_str(&format!(
+            "\n/** `{name}`'s constructor: marks the value it wraps as one. */\n\
+             export const {name} = {generics}(value: {wrapped}): {type_name} => value as {type_name};"
+        ));
+    }
+    out
 }
 
 /// A primitive written as a string with a format, such as `uuid::Uuid` or
@@ -1779,6 +1866,139 @@ fn render_distinct(struct_def: &crate::Struct, type_name: &str, wrapped: &str) -
 fn format_alias(type_def: &crate::Type) -> Option<&crate::Primitive> {
     let primitive = type_def.as_primitive()?;
     super::schema::string_format(primitive).map(|_| primitive)
+}
+
+/// The overrides by the names of the types they replace. A type that differs
+/// between requests and responses is split into `input` and `output` modules,
+/// by the builder or when types are consolidated here, and an override named
+/// by the Rust type replaces both.
+///
+/// Refuses an override of a type the schema doesn't have, which is likely a
+/// misspelling, or of one whose type parameters the client writes, which an
+/// override would have to take.
+fn resolve_type_overrides(
+    schema: &mut crate::Schema,
+    overrides: &BTreeMap<String, TypeOverride>,
+) -> anyhow::Result<BTreeMap<String, TypeOverride>> {
+    schema.consolidate_types();
+    let mut resolved = BTreeMap::new();
+    for (name, type_override) in overrides {
+        let mut targets = vec![];
+        if schema.get_type(name).is_some() {
+            targets.push(name.clone());
+        } else {
+            for module in ["input", "output"] {
+                let mut parts = name.split("::").collect::<Vec<_>>();
+                parts.insert(parts.len() - 1, module);
+                let split = parts.join("::");
+                if schema.get_type(&split).is_some() {
+                    targets.push(split);
+                }
+            }
+        }
+        if targets.is_empty() {
+            anyhow::bail!("type override for `{name}`: the schema has no type `{name}`");
+        }
+        for target in targets {
+            let type_def = schema.get_type(&target).expect("found above");
+            if type_def.parameters().next().is_some() && format_alias(type_def).is_none() {
+                anyhow::bail!(
+                    "type override for `{name}`: a type with type parameters can't be overridden"
+                );
+            }
+            resolved.insert(target, type_override.clone());
+        }
+    }
+    Ok(resolved)
+}
+
+/// `tsc` checks that each override is assignable to the type it replaces, as
+/// that type is on the wire, so a request sends what the server reads.
+///
+/// The wire types are the overridden types, and every type they reach, rendered
+/// again without overrides in the namespace `__wire`. A reference such as
+/// `myapp.Inner` inside `__wire` resolves to `__wire.myapp.Inner`, so an
+/// override is checked against its type's wire shape, not one that other
+/// overrides have already narrowed.
+fn render_type_override_checks(
+    overrides: &BTreeMap<String, TypeOverride>,
+    schema: &crate::Schema,
+    wire_names: &TypeNames<'_>,
+) -> anyhow::Result<String> {
+    let wire_types = render_types(
+        schema,
+        reachable_types(schema, overrides.keys()),
+        wire_names,
+        false,
+    )?;
+    let in_wire_namespace = wire_types.keys().cloned().collect::<BTreeSet<_>>();
+    let mut wire_module =
+        modules_from_rendered_types(in_wire_namespace.iter().cloned().collect(), wire_types);
+    wire_module.name = "__wire".into();
+
+    let mut out = String::from(
+        "\n/** The overridden types as they are on the wire, for the checks below. */",
+    );
+    out.push_str(&wire_module.render());
+    out.push_str(
+        "\n\n/** Each type override must be assignable to the schema type it replaces. */\n\
+         type __TypeOverride<Wire, T extends Wire> = T;\n\
+         export type __TypeOverrides = {\n",
+    );
+    for (name, type_override) in overrides {
+        let mut wire = type_ref_to_ts_ref(
+            &crate::TypeReference::new(name.clone(), vec![]),
+            schema,
+            wire_names,
+        );
+        if in_wire_namespace.contains(name) {
+            wire = format!("__wire.{wire}");
+        }
+        out.push_str(&format!(
+            "  {}: __TypeOverride<{wire}, {}>;\n",
+            serde_json::to_string(name).expect("a string serializes"),
+            type_override.typescript,
+        ));
+    }
+    out.push_str("};");
+    Ok(out)
+}
+
+/// The schema types the named types reach: themselves, and the types of their
+/// fields, variants, type arguments and fallbacks, transitively.
+fn reachable_types<'a>(
+    schema: &crate::Schema,
+    roots: impl IntoIterator<Item = &'a String>,
+) -> BTreeSet<String> {
+    let mut reached = BTreeSet::new();
+    let mut pending = roots
+        .into_iter()
+        .map(|name| crate::TypeReference::new(name.clone(), vec![]))
+        .collect::<Vec<_>>();
+    while let Some(reference) = pending.pop() {
+        pending.extend(reference.arguments.iter().cloned());
+        // A type parameter, such as `T`, names no type.
+        let Some(type_def) = schema.get_type(&reference.name) else {
+            continue;
+        };
+        if !reached.insert(reference.name.clone()) {
+            continue;
+        }
+        match type_def {
+            crate::Type::Struct(strukt) => {
+                pending.extend(strukt.fields.iter().map(|f| f.type_ref.clone()));
+            }
+            crate::Type::Enum(enm) => {
+                for variant in &enm.variants {
+                    pending.extend(variant.fields.iter().map(|f| f.type_ref.clone()));
+                }
+            }
+            crate::Type::Primitive(primitive) => {
+                pending.extend(primitive.fallback.clone());
+            }
+        }
+    }
+    reached
 }
 
 /// `export type Uuid = string;`, documented with the type's description and
@@ -1804,8 +2024,12 @@ fn render_format_alias(primitive: &crate::Primitive) -> String {
 fn resolve_type_ref(
     type_ref: &crate::TypeReference,
     schema: &crate::Schema,
-    implemented_types: &HashMap<String, String>,
+    names: &TypeNames<'_>,
 ) -> Option<String> {
+    if let Some(type_override) = names.overrides.get(&type_ref.name) {
+        // Its type arguments, if any, are a string's, which the client leaves out.
+        return Some(type_override.typescript.clone());
+    }
     if schema
         .get_type(&type_ref.name)
         .and_then(format_alias)
@@ -1813,21 +2037,13 @@ fn resolve_type_ref(
     {
         return Some(type_ref.name.replace("::", "."));
     }
-    let Some(mut implementation) = implemented_types.get(type_ref.name.as_str()).cloned() else {
+    let Some(mut implementation) = names.implemented.get(type_ref.name.as_str()).cloned() else {
         let Some(fallback_type_ref) = type_ref.fallback_once(schema.input_types()) else {
             let fallback_type_ref = type_ref.fallback_once(schema.output_types())?;
-            return Some(type_ref_to_ts_ref(
-                &fallback_type_ref,
-                schema,
-                implemented_types,
-            ));
+            return Some(type_ref_to_ts_ref(&fallback_type_ref, schema, names));
         };
 
-        return Some(type_ref_to_ts_ref(
-            &fallback_type_ref,
-            schema,
-            implemented_types,
-        ));
+        return Some(type_ref_to_ts_ref(&fallback_type_ref, schema, names));
     };
 
     if type_ref.arguments.is_empty() {
@@ -1844,7 +2060,7 @@ fn resolve_type_ref(
             // I think ideally we shouldn't be doing this by string substitution...
             implementation = implementation.replacen(
                 type_def_param.name.as_str(),
-                type_ref_to_ts_ref(type_ref_param, schema, implemented_types).as_str(),
+                type_ref_to_ts_ref(type_ref_param, schema, names).as_str(),
                 1,
             );
         }

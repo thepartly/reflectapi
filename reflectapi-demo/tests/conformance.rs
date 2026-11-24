@@ -7,7 +7,8 @@
 //!
 //! - `samples.json`: for each case, serde's JSON for several values of its
 //!   type, and the divergences we know about;
-//! - the Python, TypeScript and Rust clients, and `openapi.json`;
+//! - the Python, TypeScript and Rust clients, and `openapi.json`; the
+//!   TypeScript client writes `uuid::Uuid` with a type override;
 //! - `typescript/cases.ts` and `rust/cases.rs`, which call each route.
 //!
 //! The harnesses then check every sample in every language:
@@ -436,6 +437,9 @@ conformance_cases! {
     ];
 }
 
+/// The TypeScript client's type for `uuid::Uuid`, a type override.
+const TYPESCRIPT_UUID: &str = "`${string}-${string}-${string}-${string}-${string}`";
+
 /// A known disagreement with serde, expected to fail until it's fixed.
 struct Divergence {
     case: &'static str,
@@ -537,8 +541,12 @@ fn write_conformance_fixture() {
         &reflectapi::codegen::openapi::generate(&schema, &Default::default()).unwrap(),
     );
 
+    // A type override, checked here against serde's UUIDs: in this client a
+    // UUID is a string of five dash-separated parts, not any string.
+    let mut typescript_config = reflectapi::codegen::typescript::Config::default();
+    typescript_config.type_override("uuid::Uuid", TYPESCRIPT_UUID);
     for (filename, source) in
-        reflectapi::codegen::typescript::generate(schema.clone(), &Default::default()).unwrap()
+        reflectapi::codegen::typescript::generate(schema.clone(), &typescript_config).unwrap()
     {
         write(&format!("typescript/{filename}"), &source);
     }

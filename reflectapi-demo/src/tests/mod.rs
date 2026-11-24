@@ -5,6 +5,7 @@ mod enums;
 mod generics;
 mod namespace;
 mod serde;
+mod type_overrides;
 
 mod test_lib;
 

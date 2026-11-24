@@ -67,6 +67,14 @@ enum Commands {
         #[arg(short = 'I', long, default_value = "false")]
         instrument: bool,
 
+        /// TypeScript only: writes a schema type as a TypeScript type of your
+        /// choosing, given as RUST_TYPE=TYPESCRIPT, such as
+        /// 'uuid::Uuid=import("@acme/ids").Uuid'. The TypeScript type must be
+        /// assignable to the schema type, which tsc checks. Repeat for more
+        /// types.
+        #[arg(long = "typescript-type", value_name = "RUST_TYPE=TYPESCRIPT", value_parser = parse_type_override)]
+        typescript_types: Vec<(String, String)>,
+
         // Python-specific options
         /// Package name for the generated Python client
         #[arg(long, default_value = "api_client")]
@@ -109,6 +117,17 @@ enum Language {
     Rust,
     Python,
     Openapi,
+}
+
+fn parse_type_override(value: &str) -> Result<(String, String), String> {
+    match value.split_once('=') {
+        Some((rust_type, typescript)) if !rust_type.trim().is_empty() && !typescript.trim().is_empty() => {
+            Ok((rust_type.trim().to_owned(), typescript.trim().to_owned()))
+        }
+        _ => Err(format!(
+            "expected RUST_TYPE=TYPESCRIPT, such as 'uuid::Uuid=import(\"@acme/ids\").Uuid', not '{value}'"
+        )),
+    }
 }
 
 /// Parses a schema, checking its format version first wherever its key is,
@@ -158,6 +177,7 @@ fn main() -> anyhow::Result<()> {
             python_async,
             python_sync,
             python_testing,
+            typescript_types,
         } => {
             let include_tags = BTreeSet::from_iter(include_tags);
             let exclude_tags = BTreeSet::from_iter(exclude_tags);
@@ -168,14 +188,18 @@ fn main() -> anyhow::Result<()> {
             let schema = read_schema(&schema_as_json)?;
 
             let files: std::collections::BTreeMap<String, String> = match language {
-                Language::Typescript => reflectapi::codegen::typescript::generate(
-                    schema,
-                    reflectapi::codegen::typescript::Config::default()
+                Language::Typescript => {
+                    let mut config = reflectapi::codegen::typescript::Config::default();
+                    config
                         .format(format)
                         .typecheck(typecheck)
                         .include_tags(include_tags)
-                        .exclude_tags(exclude_tags),
-                )?,
+                        .exclude_tags(exclude_tags);
+                    for (rust_type, typescript) in typescript_types {
+                        config.type_override(rust_type, typescript);
+                    }
+                    reflectapi::codegen::typescript::generate(schema, &config)?
+                }
                 Language::Rust => {
                     let content = reflectapi::codegen::rust::generate(
                         schema,
