@@ -34,7 +34,7 @@ blocks = [
         ([("authorization", "k"), (": Bearer <token>", None)], ("The only header for authentication", 0)),
         ([("traceparent", "k"), (": 00-4bf9…-01", None)], ("Trace context, returned in the response", 0)),
         ([("", None)], None),
-        ([('{"cursor": "eyJ…", "limit": 20}', "k")], ("Input: always an object in the body", 0)),
+        ([('{"page": {"cursor": "eyJ…", "limit": 20}}', "k")], ("Input: always an object in the body", 0)),
     ]),
     ("Response", [
         ([("HTTP/1.1 ", None), ("200", "k"), (" OK", None)], ("200 for every success", 1)),
@@ -45,7 +45,7 @@ blocks = [
     ]),
     ("Error", [
         ([("HTTP/1.1 ", None), ("404", "k"), (" Not Found", None)], ("A 4xx, chosen by the error's case", 1)),
-        ([('{"not_found": {"id": "e7fe…"}}', "k")], ("The call's error: a typed value", 0)),
+        ([('{"not_found": {"id": "e7fe…"}}', "k")], ("A value of the call's error type", 0)),
     ]),
 ]
 

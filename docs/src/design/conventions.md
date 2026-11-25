@@ -14,9 +14,10 @@ reflectapi = { version = "0.26", features = ["builder", "conventions"] }
 
 ## Pagination
 
-A list request takes a `PageRequest`, `{"cursor": …, "limit": …}`, both
-optional. The response is a `ForwardPaginatedList`: its items under `items`,
-and a `next_cursor` while more follow.
+A list request has a `page` field, a `PageRequest`:
+`{"page": {"cursor": …, "limit": …}}`, both optional. The response is a
+`ForwardPaginatedList`: its items under `items`, and a `next_cursor` while
+more follow.
 
 A cursor is a `String` by default. A server that keeps something structured in
 it names its own type, such as `Encoded<Cursor>`: clients still see a string,
@@ -41,11 +42,18 @@ struct PetsCursor {
 
 type Pets = Arc<Vec<Pet>>;
 
+#[derive(serde::Deserialize, reflectapi::Input)]
+struct PetsListRequest {
+    #[serde(default)]
+    page: PageRequest<Encoded<PetsCursor>>,
+}
+
 async fn pets_list(
     pets: Pets,
-    page: PageRequest<Encoded<PetsCursor>>,
+    request: PetsListRequest,
     _: reflectapi::Empty,
 ) -> ForwardPaginatedList<Pet, Encoded<PetsCursor>> {
+    let page = request.page;
     let after = page.cursor.map_or(0, |cursor| cursor.after_id);
     let limit = page.limit.map_or(20, |limit| limit.get() as usize);
     let mut rest = pets.iter().filter(|pet| pet.id > after);
@@ -73,19 +81,19 @@ async fn pets_list(
 #         .collect(),
 # );
 # let call = |json: &str| {
-#     let page = serde_json::from_str(json).unwrap();
+#     let request = serde_json::from_str(json).unwrap();
 #     let pets = pets.clone();
-#     async move { serde_json::to_value(pets_list(pets, page, reflectapi::Empty {}).await).unwrap() }
+#     async move { serde_json::to_value(pets_list(pets, request, reflectapi::Empty {}).await).unwrap() }
 # };
 # assert_eq!(
-#     call(r#"{"limit": 2}"#).await,
+#     call(r#"{"page": {"limit": 2}}"#).await,
 #     serde_json::json!({
 #         "items": [{"id": 1, "name": "Rex"}, {"id": 2, "name": "Max"}],
 #         "pagination": {"next_cursor": "eyJhZnRlcl9pZCI6Mn0"}
 #     })
 # );
 # assert_eq!(
-#     call(r#"{"cursor": "eyJhZnRlcl9pZCI6Mn0", "limit": 2}"#).await,
+#     call(r#"{"page": {"cursor": "eyJhZnRlcl9pZCI6Mn0", "limit": 2}}"#).await,
 #     serde_json::json!({
 #         "items": [{"id": 3, "name": "Bella"}],
 #         "pagination": {"next_cursor": null}
@@ -97,11 +105,11 @@ async fn pets_list(
 A client reads the pages until `next_cursor` is `null`:
 
 ```text
-→ pets.list  {"limit": 2}
+→ pets.list  {"page": {"limit": 2}}
 ← {"items": [{"id": 1, "name": "Rex"}, {"id": 2, "name": "Max"}],
    "pagination": {"next_cursor": "eyJhZnRlcl9pZCI6Mn0"}}
 
-→ pets.list  {"cursor": "eyJhZnRlcl9pZCI6Mn0", "limit": 2}
+→ pets.list  {"page": {"cursor": "eyJhZnRlcl9pZCI6Mn0", "limit": 2}}
 ← {"items": [{"id": 3, "name": "Bella"}],
    "pagination": {"next_cursor": null}}
 ```

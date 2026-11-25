@@ -12,6 +12,9 @@ Run after `mdbook build`, from anywhere: `python3 docs/build-extras.py`, or
 - `llms.txt`: the guide's table of contents with links (https://llmstxt.org).
 - `llms-full.txt`: the whole guide as one Markdown file, in reading order,
   so an agent can read all of it with one fetch.
+
+It first checks the form of the API design standard's rules, and stops if
+one is malformed: see `check_standard`.
 """
 
 import re
@@ -59,9 +62,67 @@ def svg_description(page: Path, include: str) -> str:
     return f"(Diagram: {desc[1].strip()})" if desc else ""
 
 
+MARKER = re.compile(r"\b(MUST NOT|MUST|SHOULD NOT|SHOULD|MAY NOT|MAY)\b")
+RULE_TAG = re.compile(r"^\s*`\[(api-[a-z0-9-]+)\]`$")
+
+
+def check_standard() -> list[str]:
+    """The form of the API design standard's rules, as its "How to read it"
+    gives it: a rule is a bullet whose first paragraph has a key word in
+    capitals and closes with the rule's id, each id used once; and a key
+    word in capitals appears nowhere else, except as code."""
+    path = src / "design" / "standard.md"
+    errors, ids = [], {}
+    paragraph, bullet, start, fenced = [], False, 0, False
+
+    def close():
+        nonlocal paragraph, bullet
+        if paragraph:
+            tag = RULE_TAG.match(paragraph[-1])
+            text = re.sub(r"`[^`]*`", "", " ".join(paragraph))
+            marked = MARKER.search(text)
+            where = f"{path.name}:{start}"
+            if tag and not bullet:
+                errors.append(f"{where}: the id {tag[1]} doesn't close a bullet")
+            elif tag and not marked:
+                errors.append(f"{where}: the rule {tag[1]} has no key word in capitals")
+            elif marked and not tag:
+                kind = "a rule without an id" if bullet else "outside a rule"
+                errors.append(f"{where}: {marked[1]} {kind}: {paragraph[0].strip()[:60]}")
+            if tag:
+                if tag[1] in ids:
+                    errors.append(f"{where}: the id {tag[1]} is also at line {ids[tag[1]]}")
+                ids[tag[1]] = start
+        paragraph, bullet = [], False
+
+    for number, line in enumerate(path.read_text().splitlines(), 1):
+        if line.lstrip().startswith("```"):
+            close()
+            fenced = not fenced
+        elif fenced:
+            continue
+        elif not line.strip() or line.lstrip().startswith(("<", "|", "#")):
+            close()
+        elif re.match(r"\s*(-|\d+\.) ", line):
+            close()
+            paragraph, bullet, start = [line], True, number
+        else:
+            if not paragraph:
+                start = number
+            paragraph.append(line)
+    close()
+    if not ids:
+        errors.append(f"{path.name}: no rules found")
+    return errors
+
+
 def main() -> int:
     if not book.is_dir():
         print(f"{book} does not exist: run `mdbook build` first", file=sys.stderr)
+        return 1
+
+    if errors := check_standard():
+        print("\n".join(errors), file=sys.stderr)
         return 1
 
     for file in landing.iterdir():

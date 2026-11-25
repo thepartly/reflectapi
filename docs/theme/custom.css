@@ -356,14 +356,15 @@ code, pre, .hljs { font-family: var(--font-mono); }
 
 .glance-wrap { overflow-x: auto; margin: 1.5em 0; }
 
-/* The standard's reasoning, folded under a mono label like the section labels */
+/* Folded blocks: what explains a rule, beside it, under a mono label like the
+   section labels */
 
-.content details.reasoning {
-    margin: 1em 0 1.6em;
+.content details {
+    margin: 0.8em 0 1.2em;
     border-left: 2px solid var(--code-border);
     padding-left: 14px;
 }
-.content details.reasoning > summary {
+.content details > summary {
     cursor: pointer;
     font-family: var(--font-mono);
     font-weight: 500;
@@ -372,6 +373,18 @@ code, pre, .hljs { font-family: var(--font-mono); }
     text-transform: uppercase;
     color: var(--muted);
 }
-.content details.reasoning > summary:hover { color: var(--fg); }
-.content details.reasoning[open] > summary { margin-bottom: 0.6em; }
+.content details > summary:hover { color: var(--fg); }
+.content details[open] > summary { margin-bottom: 0.6em; }
 
+/* A rule's id, closing its statement: a quiet link to the rule. The rule a
+   link led to is marked. */
+
+.content a.rule-tag { text-decoration: none; white-space: nowrap; }
+.content a.rule-tag code {
+    background: none;
+    padding: 0;
+    font-size: 0.75em;
+    color: var(--muted);
+}
+.content a.rule-tag:hover code { color: var(--inline-code-color); }
+.content li:target { box-shadow: -14px 0 0 var(--bg), -17px 0 0 var(--claw); }

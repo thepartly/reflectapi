@@ -86,16 +86,18 @@ cargo install mdbook --locked
 # Test the book's Rust examples: each page's `rust` blocks run as doctests
 cargo test --manifest-path docs/doctests/Cargo.toml --doc
 
-# Build documentation
-cd docs
-mdbook build
+# Serve the whole site locally, as it is published: the book, the landing
+# page and the extras. It rebuilds on every change and reloads open pages.
+python3 docs/serve.py  # http://127.0.0.1:3000/
 
-# Serve documentation locally
-mdbook serve  # Opens at http://localhost:3000
-
-# Add sitemap.xml, llms.txt and llms-full.txt to the built site (CI does this)
-python3 build-extras.py
+# Or build it once, as CI does: the book, then the landing page, sitemap.xml,
+# llms.txt and llms-full.txt. build-extras.py also checks the form of the API
+# design standard's rules.
+(cd docs && mdbook build)
+python3 docs/build-extras.py
 ```
+
+`mdbook serve` in `docs/` serves the book alone, without the landing page.
 
 The logo files are generated; see [docs/graphics](docs/graphics/README.md).
 

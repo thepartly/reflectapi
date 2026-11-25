@@ -44,12 +44,16 @@
   });
 </script>
 {{!--
-  Folded reasoning (<details class="reasoning">) opens for printing, and folds
-  again after.
+  Folded blocks (<details>) open for printing, and fold again after.
+
+  A rule of the API design standard closes with its id as code, `[api-...]`:
+  the rule's bullet gets the id as its anchor and the id becomes a link to
+  it, so a rule can be linked (design/standard.html#api-writes-are-post).
+  A rule named elsewhere on the page by its id links to it too.
 --}}
 <script>
   addEventListener("beforeprint", () => {
-    for (const d of document.querySelectorAll("details.reasoning:not([open])")) {
+    for (const d of document.querySelectorAll("main details:not([open])")) {
       d.open = true;
       d.dataset.printOpened = "";
     }
@@ -58,6 +62,42 @@
     for (const d of document.querySelectorAll("details[data-print-opened]")) {
       d.open = false;
       delete d.dataset.printOpened;
+    }
+  });
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const tag = /^\[(api-[a-z0-9-]+)\]$/;
+    for (const item of document.querySelectorAll("main li")) {
+      const statement = item.querySelector(":scope > p") || item;
+      const spans = statement.querySelectorAll(":scope > code");
+      const last = spans[spans.length - 1];
+      const found = last && tag.exec(last.textContent);
+      if (!found || document.getElementById(found[1])) continue;
+      item.id = found[1];
+      const link = document.createElement("a");
+      link.href = "#" + found[1];
+      link.className = "rule-tag";
+      link.title = "Link to this rule";
+      last.textContent = found[1];
+      last.replaceWith(link);
+      link.appendChild(last);
+    }
+    for (const span of document.querySelectorAll("main code")) {
+      if (span.closest("a") || !document.getElementById(span.textContent)) continue;
+      if (!/^api-[a-z0-9-]+$/.test(span.textContent)) continue;
+      const link = document.createElement("a");
+      link.href = "#" + span.textContent;
+      link.className = "rule-tag";
+      span.replaceWith(link);
+      link.appendChild(span);
+    }
+    // The page was scrolled before the anchors were there. A rule inside a
+    // folded block is unfolded first.
+    const wanted = decodeURIComponent(location.hash.slice(1));
+    const target = wanted && document.getElementById(wanted);
+    if (target) {
+      for (let d = target.closest("details"); d; d = d.parentElement.closest("details")) d.open = true;
+      target.scrollIntoView();
     }
   });
 </script>

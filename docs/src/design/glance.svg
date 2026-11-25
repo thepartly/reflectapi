@@ -22,7 +22,7 @@ html.coal .glance, html.navy .glance, html.ayu .glance { --g-fg: #F7F7F7; --g-di
 <line class="glance-arrow" x1="512" y1="145.1" x2="282.0" y2="145.1" marker-end="url(#glance-head)"/>
 <line class="glance-arrow" x1="512" y1="168.1" x2="273.6" y2="168.1" marker-end="url(#glance-head)"/>
 <line class="glance-arrow" x1="512" y1="191.1" x2="231.6" y2="191.1" marker-end="url(#glance-head)"/>
-<line class="glance-arrow" x1="512" y1="237.1" x2="290.4" y2="237.1" marker-end="url(#glance-head)"/>
+<line class="glance-arrow" x1="512" y1="237.1" x2="374.4" y2="237.1" marker-end="url(#glance-head)"/>
 <line class="glance-arrow" x1="512" y1="297.1" x2="156.0" y2="297.1" marker-end="url(#glance-head)"/>
 <line class="glance-arrow" x1="512" y1="343.1" x2="273.6" y2="343.1" marker-end="url(#glance-head)"/>
 <line class="glance-arrow" x1="512" y1="366.1" x2="357.6" y2="366.1" marker-end="url(#glance-head)"/>
@@ -40,7 +40,7 @@ html.coal .glance, html.navy .glance, html.ayu .glance { --g-fg: #F7F7F7; --g-di
 <text class="glance-mono" y="196"><tspan class="glance-key" x="22.0">traceparent</tspan><tspan class="glance-code" x="114.4">: 00-4bf9…-01</tspan></text>
 <text class="glance-note" x="520" y="196">Trace context, returned in the response</text>
 <text class="glance-mono" y="219"></text>
-<text class="glance-mono" y="242"><tspan class="glance-key" x="22.0">{&quot;cursor&quot;: &quot;eyJ…&quot;, &quot;limit&quot;: 20}</tspan></text>
+<text class="glance-mono" y="242"><tspan class="glance-key" x="22.0">{&quot;page&quot;: {&quot;cursor&quot;: &quot;eyJ…&quot;, &quot;limit&quot;: 20}}</tspan></text>
 <text class="glance-note" x="520" y="242">Input: always an object in the body</text>
 <text class="glance-section" x="454" y="279" text-anchor="end">RESPONSE</text>
 <text class="glance-mono" y="302"><tspan class="glance-code" x="22.0">HTTP/1.1 </tspan><tspan class="glance-key" x="97.6">200</tspan><tspan class="glance-code" x="122.8"> OK</tspan></text>
@@ -55,7 +55,7 @@ html.coal .glance, html.navy .glance, html.ayu .glance { --g-fg: #F7F7F7; --g-di
 <text class="glance-mono" y="454"><tspan class="glance-code" x="22.0">HTTP/1.1 </tspan><tspan class="glance-key" x="97.6">404</tspan><tspan class="glance-code" x="122.8"> Not Found</tspan></text>
 <text class="glance-note" x="520" y="454">A 4xx, chosen by the error&#x27;s case</text>
 <text class="glance-mono" y="477"><tspan class="glance-key" x="22.0">{&quot;not_found&quot;: {&quot;id&quot;: &quot;e7fe…&quot;}}</tspan></text>
-<text class="glance-note" x="520" y="477">The call&#x27;s error: a typed value</text>
+<text class="glance-note" x="520" y="477">A value of the call&#x27;s error type</text>
 <text class="glance-note" x="22.0" y="16">Always POST</text>
 <text class="glance-note" x="64.0" y="38">Major version</text>
 <text class="glance-note" x="131.2" y="60">Call name: resource.verb</text>
