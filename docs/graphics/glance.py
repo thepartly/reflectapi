@@ -45,7 +45,7 @@ blocks = [
     ]),
     ("Error", [
         ([("HTTP/1.1 ", None), ("404", "k"), (" Not Found", None)], ("A 4xx, chosen by the error's case", 1)),
-        ([('{"not_found": {"id": "e7fe…"}}', "k")], ("A value of the call's error type", 0)),
+        ([('{"kind": "not_found", "id": "e7fe…"}', "k")], ("A value of the call's error type", 0)),
     ]),
 ]
 
@@ -120,7 +120,7 @@ svg = "\n".join([
     '<desc id="glance-desc">A request: POST /api/v1/orders.list, always POST, with the major version and a call name of resource and verb; '
     'content-type JSON or MessagePack; authorization, the only header for authentication; traceparent, returned in the response; '
     'and the input, always an object in the body. A response: 200 for every success, with the list wrapped in items and pagination '
-    'holding the next cursor, null at the end. An error: a 4xx status chosen by the error case, and a body that is the call\'s typed error value, such as not_found with the id.</desc>',
+    'holding the next cursor, null at the end. An error: a 4xx status chosen by the error case, and a body that is the call\'s typed error value, an object whose kind is not_found, with the id.</desc>',
     f'<style>{style}</style>',
     '<defs><marker id="glance-head" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">'
     '<path class="glance-head" d="M0,0 L8,4 L0,8 z"/></marker></defs>',

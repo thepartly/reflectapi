@@ -27,10 +27,25 @@ about.
 ## How to read it
 
 The standard is a list of rules. Each rule is a bullet: one statement that
-reads alone, closed by the rule's id, such as `api-writes-are-post`. An id
-never changes, so a review, a ticket or another document can name a rule by
-it, and link to it. What explains a rule is folded beside it: an example,
-the reasoning behind it, and how to follow it with reflectapi.
+reads alone, closed by the rule's id, such as `api-filter-bounds-together`.
+An id never changes, so a review, a ticket or another document can name a
+rule by it, and link to it. What explains a rule is folded beside it: an
+example, the reasoning behind it, and how to follow it with reflectapi.
+
+An id is `api-`, the rule's subject, and its claim, in one to five words of
+lower-case `kebab-case`:
+
+- The subject is what the rule constrains, in the singular, and the same
+  word across a topic's rules: `filter`, `page`, `error`, `header`.
+- The claim is what holds when the rule is followed. It doesn't repeat how
+  firm the rule is: no `prefer` or `avoid`.
+- What a rule rules out follows `not` where the id names the alternative,
+  `api-insert-not-create`, and `no` where it doesn't,
+  `api-page-no-total-count`.
+- A rule that names an action, a call that does this is named `update`, has
+  the action alone: `api-update`.
+- An id stays when its rule is reworded or moved, and a deleted rule's id
+  isn't given to another rule.
 
 The key words in capitals say how firm a rule is, as in
 [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119):
@@ -48,13 +63,13 @@ and the *client*, which sends requests.
 ## Request method
 
 - A call that writes or changes anything MUST be a `POST`.
-  `[api-writes-are-post]`
+  `[api-method-post-for-writes]`
 - A server MUST serve a read-only call for both `POST` and `GET`, handling a
   `GET` as it handles a `POST` to the same path.
-  `[api-reads-post-and-get]`
+  `[api-method-get-for-reads]`
 - An API's schema MUST list each call once, as a `POST`: the `GET` of a
   read-only call MUST NOT appear in it.
-  `[api-schema-lists-post-only]`
+  `[api-method-schema-lists-post]`
 
 <details>
 <summary>Reasoning</summary>
@@ -108,12 +123,12 @@ generated clients always send `POST`. See
 - A call MUST NOT change incompatibly within a version, in its types or in
   its behaviour: the change MUST be made as a new version of the call, or in
   a new major version of the API.
-  `[api-no-breaking-change-in-place]`
+  `[api-version-no-change-in-place]`
 
 - A call added to a version, and an optional (nullable) field added to an
   existing call, MAY be introduced within the version: both are compatible
   on the wire.
-  `[api-compatible-changes]`
+  `[api-version-compatible-changes]`
 - A new version of a call MUST be a call of its own, served beside the old
   one, and named as the old one with the suffix `-v2`, then `-v3`, and so
   on.
@@ -127,12 +142,19 @@ generated clients always send `POST`. See
 
   </details>
 
+  <details>
+  <summary>With reflectapi</summary>
+
+  The lint [`lints::call_version_suffix`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.call_version_suffix.html) checks it.
+
+  </details>
+
 - When a new version of a call is introduced, the old one MUST be marked
   deprecated in the API's schema, with a note that names its successor.
-  `[api-old-call-version-deprecated]`
+  `[api-call-version-old-deprecated]`
 - An incompatible change SHOULD be made as new versions of the calls it
   touches, not as a new major version of the API.
-  `[api-prefer-call-versions]`
+  `[api-call-version-before-api-version]`
 
   <details>
   <summary>Reasoning</summary>
@@ -146,15 +168,15 @@ generated clients always send `POST`. See
 
 - A new major version of the API SHOULD NOT be introduced for a change that
   keeps compatibility.
-  `[api-new-version-only-for-breaking]`
+  `[api-version-new-only-for-breaking]`
 - A server MAY serve several versions at once.
-  `[api-several-versions]`
+  `[api-version-several-served]`
 - A server not used by external customers or partners MAY support a single
   version, except briefly during a migration.
-  `[api-single-version-when-internal]`
+  `[api-version-single-when-internal]`
 - A public server MAY serve a version that its ingress doesn't expose, to
   keep internal calls private.
-  `[api-private-version]`
+  `[api-version-private]`
 
   <details open>
   <summary>Example</summary>
@@ -166,7 +188,7 @@ generated clients always send `POST`. See
 - A call within a stable version that can still change incompatibly, or be
   removed, MUST carry the `-experimental` suffix on its action until it is
   stable.
-  `[api-experimental-suffix]`
+  `[api-call-experimental-suffix]`
 
 <details>
 <summary>With reflectapi</summary>
@@ -201,6 +223,13 @@ generated clients always send `POST`. See
 
   </details>
 
+  <details>
+  <summary>With reflectapi</summary>
+
+  The lint [`lints::call_name_form`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.call_name_form.html) checks it.
+
+  </details>
+
 - A call name MUST have a resource name: its first part, or the part after
   its category.
   `[api-call-name-has-resource]`
@@ -209,7 +238,14 @@ generated clients always send `POST`. See
   `[api-call-name-has-action]`
 - A category, a resource or an action of several words MUST be written in
   `kebab-case`.
-  `[api-names-kebab-case]`
+  `[api-call-name-kebab-case]`
+
+  <details>
+  <summary>With reflectapi</summary>
+
+  The lint [`lints::call_names_kebab_case`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.call_names_kebab_case.html) checks it.
+
+  </details>
 
 <details>
 <summary>With reflectapi</summary>
@@ -240,7 +276,7 @@ API that stands apart from the rest.
   `[api-category-optional]`
 - An API SHOULD NOT use categories where its resources' names are clear
   without them.
-  `[api-avoid-categories]`
+  `[api-category-only-where-needed]`
 - A category MUST NOT follow how the server's implementation is split into
   modules: the calls of one resource MUST share one category, or have none.
   `[api-category-not-implementation]`
@@ -258,7 +294,7 @@ API that stands apart from the rest.
 
 - A resource's name MUST be plural, except that of a resource guaranteed to
   stay the only one forever, which MUST be singular.
-  `[api-resources-plural]`
+  `[api-resource-plural]`
 
   <details open>
   <summary>Example</summary>
@@ -281,7 +317,7 @@ Nested resources exist, and are reached, only in the context of a parent.
 
 - A resource MUST NOT be nested under another unless it exists, or makes
   sense, only in that parent's context.
-  `[api-nest-only-dependent-resources]`
+  `[api-resource-nested-only-dependent]`
 
   <details open>
   <summary>Example</summary>
@@ -293,7 +329,7 @@ Nested resources exist, and are reached, only in the context of a parent.
 
 - A call name MUST NOT nest resources more than two levels deep: a resource,
   and one resource nested under it.
-  `[api-two-resource-levels]`
+  `[api-resource-two-levels]`
 
   <details open>
   <summary>Example</summary>
@@ -304,9 +340,16 @@ Nested resources exist, and are reached, only in the context of a parent.
 
   </details>
 
+  <details>
+  <summary>With reflectapi</summary>
+
+  The lint [`lints::call_resource_levels`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.call_resource_levels.html) checks it.
+
+  </details>
+
 - A nested collection, a 1⇒N relation, MUST be plural, and a nested single
   entity, a 1⇒1 relation expected to stay one forever, MUST be singular.
-  `[api-nested-plural-or-singular]`
+  `[api-resource-nested-plural-or-singular]`
 
   <details open>
   <summary>Example</summary>
@@ -318,9 +361,16 @@ Nested resources exist, and are reached, only in the context of a parent.
 ### Actions
 
 - An action MUST include a verb.
-  `[api-actions-are-verbs]`
+  `[api-action-verb]`
 - A call SHOULD use one of the standard actions below wherever one fits.
-  `[api-prefer-standard-actions]`
+  `[api-action-standard]`
+
+  <details>
+  <summary>With reflectapi</summary>
+
+  The lint [`lints::call_actions_standard`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.call_actions_standard.html) checks it.
+
+  </details>
 
 #### `insert`
 
@@ -347,6 +397,13 @@ Nested resources exist, and are reached, only in the context of a parent.
     simplicity over perfect semantics.
   - [Insert with `exists: update`](#api-replace-overwrites-update-patches)
     is the upsert, so no separate `upsert` verb is needed.
+
+  </details>
+
+  <details>
+  <summary>With reflectapi</summary>
+
+  The lint [`lints::call_actions_standard`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.call_actions_standard.html) checks it.
 
   </details>
 
@@ -478,6 +535,14 @@ Nested resources exist, and are reached, only in the context of a parent.
   MUST be named `remove`: `delete`, `destroy` and `release` MUST NOT be
   used.
   `[api-remove-not-delete]`
+
+  <details>
+  <summary>With reflectapi</summary>
+
+  The lint [`lints::call_actions_standard`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.call_actions_standard.html) checks it.
+
+  </details>
+
 - A `remove` MAY take a conflict resolution field, `if`, in its request, with
   the fields and actions [Conflict resolution](#the-if-of-each-action) gives
   for it.
@@ -488,7 +553,7 @@ Nested resources exist, and are reached, only in the context of a parent.
 - A call that inserts, updates or removes several items of one collection,
   usually a nested one, MUST be named `insert-many`, `update-many` or
   `remove-many`.
-  `[api-many-actions]`
+  `[api-many]`
 
   <details open>
   <summary>Example</summary>
@@ -509,7 +574,7 @@ Nested resources exist, and are reached, only in the context of a parent.
 - A call that fetches one entity, usually by its primary key or a unique
   field, MUST be named `get`, and one that fetches several that way,
   `get-many`.
-  `[api-get-and-get-many]`
+  `[api-get]`
 
   <details open>
   <summary>Example</summary>
@@ -524,7 +589,7 @@ Nested resources exist, and are reached, only in the context of a parent.
   `[api-get-many-same-as-get]`
 - Where a shallower version of an entity is needed for a `get-many`, the
   two SHOULD be resources of their own.
-  `[api-shallow-version-own-resource]`
+  `[api-get-many-shallow-own-resource]`
 
   <details open>
   <summary>Example</summary>
@@ -626,7 +691,7 @@ Nested resources exist, and are reached, only in the context of a parent.
 - A `count` SHOULD return the cheapest form that serves its client, an
   exact number, an estimate or a capped count, and SHOULD say in its
   documentation which one it returns.
-  `[api-prefer-cheap-counts]`
+  `[api-count-cheapest-form]`
 
   <details open>
   <summary>Example</summary>
@@ -656,7 +721,7 @@ Their requests and responses are in
 
 - An entity whose life is a state machine MAY have an action for each
   transition between its states, named with the transition's verb.
-  `[api-state-transition-actions]`
+  `[api-action-state-transitions]`
 
   <details open>
   <summary>Example</summary>
@@ -679,7 +744,7 @@ Their requests and responses are in
 
 - An action other than the standard ones MAY be used for a case whose steps
   and flow differ radically from a standard action's.
-  `[api-other-actions]`
+  `[api-action-other-for-different-flow]`
 
   <details open>
   <summary>Example</summary>
@@ -691,22 +756,30 @@ Their requests and responses are in
 
 - What a call acts on, or searches by, SHOULD be said by its resources and
   its parameters, not by its action.
-  `[api-parameters-not-names]`
+  `[api-action-not-parameters]`
+
+  <details>
+  <summary>With reflectapi</summary>
+
+  The lint [`lints::call_actions_not_parameters`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.call_actions_not_parameters.html) checks it.
+
+  </details>
+
 - Unrelated functionality SHOULD NOT be packed into one call, and updates
   that look alike, are related or are implemented alike SHOULD be one
   `update`.
-  `[api-one-call-one-purpose]`
+  `[api-call-one-purpose]`
 
 <details open>
 <summary>Example</summary>
 
 | Don't 👎 | Do 👍 | Rule |
 |---|---|---|
-| `products.category.link`, `products.link-category` | `products.update {category: category_id}` | `api-prefer-standard-actions` |
-| `products.search-by-category`, `products.search-by-name` | `products.search {filter_by: {category: …}}`, `products.search {filter_by: {name: …}}` | `api-parameters-not-names` |
-| `users.update-password` | `users.password.update {password, verification_token, …}` | `api-parameters-not-names` |
-| `users.update {password}`, where the flow differs radically from `users.update {name}` | `users.password.update {password, verification_token, …}` | `api-one-call-one-purpose` |
-| `orders.update {status: "confirmed"}` | `orders.confirm` | `api-state-transition-actions` |
+| `products.category.link`, `products.link-category` | `products.update {category: category_id}` | `api-action-standard` |
+| `products.search-by-category`, `products.search-by-name` | `products.search {filter_by: {category: …}}`, `products.search {filter_by: {name: …}}` | `api-action-not-parameters` |
+| `users.update-password` | `users.password.update {password, verification_token, …}` | `api-action-not-parameters` |
+| `users.update {password}`, where the flow differs radically from `users.update {name}` | `users.password.update {password, verification_token, …}` | `api-call-one-purpose` |
+| `orders.update {status: "confirmed"}` | `orders.confirm` | `api-action-state-transitions` |
 
 </details>
 
@@ -723,12 +796,19 @@ Their requests and responses are in
 
   </details>
 
+  <details>
+  <summary>With reflectapi</summary>
+
+  The lint [`lints::request_is_object`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.request_is_object.html) checks it.
+
+  </details>
+
 - A request MUST NOT carry arguments in the URL's query or path.
-  `[api-no-query-or-path-parameters]`
+  `[api-arguments-not-in-url]`
 - Where every argument of a call is optional and none is given, the body
   MUST be the empty object, `{}`, or left out, and a server MUST read a
   body left out as `{}`.
-  `[api-empty-body]`
+  `[api-body-empty]`
 - An entity with one fixed key MUST be identified by a plain field: `id`,
   or `<entity>_id` where the request also names other entities.
   `[api-id-field]`
@@ -759,13 +839,105 @@ Their requests and responses are in
 
 - Every field name and enum value, of a request and of a response, MUST be
   written in `snake_case`.
-  `[api-snake-case]`
+  `[api-name-snake-case]`
+
+  <details>
+  <summary>With reflectapi</summary>
+
+  The lint [`lints::names_snake_case`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.names_snake_case.html) checks it.
+
+  </details>
+
+- An enum value taken from an outside standard, such as an ISO 3166 country
+  code, MAY keep the form that standard gives it.
+  `[api-enum-outside-codes-keep-form]`
+
+  <details>
+  <summary>With reflectapi</summary>
+
+  The lint [`lints::names_snake_case`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.names_snake_case.html) checks it.
+
+  </details>
+
+- An enum some of whose cases carry fields, and a call's error type, SHOULD
+  write the case in a field named `kind`, beside the case's fields, unless
+  the standard names another field for it, such as `action` on an `ingest`
+  item.
+  `[api-enum-kind-tag]`
+
+  <details open>
+  <summary>Example</summary>
+
+  `{"kind": "reschedule", "date": "2026-12-01"}`,
+  `{"kind": "reassign", "courier_id": "c-7"}`, and an error,
+  `{"kind": "not_found"}`
+
+  </details>
+
+  <details>
+  <summary>Reasoning</summary>
+
+  - Every case is an object, with fields or without, so a case can gain
+    fields later without breaking clients.
+  - A client tells the cases apart by one field: TypeScript narrows a union
+    on `kind`, and other languages match on it.
+  - `kind`, not `type`, which is a keyword in Rust and TypeScript.
+
+  </details>
+
+  <details>
+  <summary>With reflectapi</summary>
+
+  The lint [`lints::enums_kind_tag`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.enums_kind_tag.html) checks it.
+
+  </details>
+
+- An enum each of whose cases holds one value SHOULD write the case as the
+  one key of an object, holding the value, as an identity and a filter's way
+  of matching do.
+  `[api-enum-one-value-cases]`
+
+  <details open>
+  <summary>Example</summary>
+
+  `{"sku": "A-1"}`, `{"starts_with": "A-"}`
+
+  </details>
+
+  <details>
+  <summary>With reflectapi</summary>
+
+  The lint [`lints::enums_kind_tag`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.enums_kind_tag.html) checks it.
+
+  </details>
+
+<details>
+<summary>With reflectapi</summary>
+
+- An enum with fields, or a route's error, takes
+  `#[serde(tag = "kind", rename_all = "snake_case")]`. serde can't write a
+  case that holds a bare value, such as a `String`, beside `kind`: give the
+  case named fields, `NotFound { id: String }`, or write it as
+  `#[serde(tag = "kind", content = "value")]`.
+- An enum of one-value cases takes serde's default form, with
+  `#[serde(rename_all = "snake_case")]`.
+- An enum without data is a plain string in either form.
+
+</details>
+
+  <details open>
+  <summary>Example</summary>
+
+  `"NZ"`, `"AUS"`, `"EUR"`
+
+  </details>
+
 - A server MUST accept a request body in JSON.
-  `[api-json-requests]`
+  `[api-body-json]`
 - A performance-sensitive server SHOULD also accept a request body in
   MessagePack, and a client SHOULD send MessagePack to a server that accepts
   it.
-  `[api-msgpack-requests]`
+  `[api-body-msgpack]`
 
 <details>
 <summary>Reasoning</summary>
@@ -876,7 +1048,7 @@ if:
 - The `if` of a write of several items MUST apply to the request as a
   whole, the same to every item, and its `abort` MUST abort the write of
   every item when it applies to any.
-  `[api-many-if-per-request]`
+  `[api-if-many-whole-request]`
 
 #### Defaults and action sets
 
@@ -887,7 +1059,7 @@ if:
 - A call MAY offer only some of an `if` field's actions, but MUST NOT change
   a default: a call that doesn't offer a field's default MUST require the
   client to send the field.
-  `[api-no-redefined-defaults]`
+  `[api-if-defaults-not-redefined]`
 
   <details>
   <summary>Example</summary>
@@ -898,11 +1070,12 @@ if:
   send `if: { not_exists: ignore }`. reflectapi's types enforce this.
 
   </details>
+
 - A call MUST offer, for `exists` or for `not_exists`, a set of that field's
   own actions, and MUST NOT add an action of its own: for `exists`, any of
   `abort`, `ignore`, `replace` and `update`, plain or with fields; for
   `not_exists`, `abort`, `ignore` or both.
-  `[api-action-sets-fixed]`
+  `[api-if-action-sets-fixed]`
 
   <details>
   <summary>With reflectapi</summary>
@@ -944,9 +1117,10 @@ if:
   has the rest of the standard's types.
 
   </details>
+
 - A call MUST offer only the actions it implements, and MUST NOT carry out
   one action as another, such as `replace` as `update`.
-  `[api-only-implemented-actions]`
+  `[api-if-only-implemented-actions]`
 - A call MUST carry out `replace` as an overwrite, resetting to their
   defaults the fields the request leaves out, and `update` as a patch,
   keeping their stored values; both MUST insert when the entity doesn't
@@ -972,7 +1146,7 @@ if:
 - A write the server may process more than once, such as from a queue that
   delivers at least once, MUST offer only an idempotent action set, one
   without `abort`, and MUST NOT offer an `{ edition: number }` condition.
-  `[api-idempotent-writes]`
+  `[api-write-idempotent]`
 
   <details>
   <summary>Reasoning</summary>
@@ -1017,7 +1191,7 @@ request, `filter_by` and `order_by`.
 - The filters of a request MUST combine with AND: a result matches every
   filter the request gives, and a filter the request leaves out MUST NOT
   narrow the results.
-  `[api-filters-combine-with-and]`
+  `[api-filter-and]`
 - The value of a filter MUST say how it matches, as one of the ways the call
   offers for that property, and MUST NOT be a bare value.
   `[api-filter-says-how-it-matches]`
@@ -1082,7 +1256,7 @@ request, `filter_by` and `order_by`.
 
 - A filter for a span, such as a period of time, SHOULD take `gte` and
   `lt`: its start included and its end excluded.
-  `[api-span-half-open]`
+  `[api-filter-span-half-open]`
 
   <details>
   <summary>Reasoning</summary>
@@ -1192,7 +1366,7 @@ request, `filter_by` and `order_by`.
 - A server MUST refuse a request whose `cursor` was issued for a different
   `filter_by` or `order_by` than the request gives: a cursor is bound to the
   filters and the order of the request that got it.
-  `[api-cursor-bound-to-query]`
+  `[api-page-cursor-bound-to-query]`
 
   <details open>
   <summary>Example</summary>
@@ -1381,7 +1555,7 @@ struct UpdatedAtFilter {
   `[api-traceparent-sent]`
 - An application-specific header MUST start with the organisation's prefix,
   the same one in all of its APIs, and MUST NOT start with `x-`.
-  `[api-own-header-prefix]`
+  `[api-header-own-prefix]`
 
   <details open>
   <summary>Example</summary>
@@ -1391,14 +1565,21 @@ struct UpdatedAtFilter {
 
   </details>
 
+  <details>
+  <summary>With reflectapi</summary>
+
+  The lint [`lints::header_names_no_x_prefix`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.header_names_no_x_prefix.html) checks it.
+
+  </details>
+
 - An application-specific header MUST NOT carry a security-sensitive value;
   it MAY carry one that identifies a caller without authenticating it, such
   as a public store key.
-  `[api-own-headers-not-sensitive]`
+  `[api-header-own-not-sensitive]`
 - A call MUST NOT take input from a header its client sets, other than
   `content-type`, `content-length`, `accept`, `authorization`,
   `traceparent` and the application-specific ones.
-  `[api-no-other-input-headers]`
+  `[api-header-no-other-inputs]`
 
   <details>
   <summary>Reasoning</summary>
@@ -1415,7 +1596,7 @@ struct UpdatedAtFilter {
   server sets, such as the client's address from a proxy or an identity
   from a private network, and a header that HTTP clients send on their own,
   such as `origin` and `user-agent`.
-  `[api-network-headers]`
+  `[api-header-network-read]`
 
   <details open>
   <summary>Example</summary>
@@ -1441,7 +1622,7 @@ struct UpdatedAtFilter {
 - A server MUST rely on a header the network sets only where every request
   reaches it through the component that sets the header, and that component
   replaces any value the client sent.
-  `[api-network-headers-trusted]`
+  `[api-header-network-trusted]`
 
   <details>
   <summary>Reasoning</summary>
@@ -1455,7 +1636,14 @@ struct UpdatedAtFilter {
 
 - A server MUST read header names without regard to case, and a client
   SHOULD send them in lower-case `kebab-case`.
-  `[api-header-names-case]`
+  `[api-header-name-case]`
+
+  <details>
+  <summary>With reflectapi</summary>
+
+  The lint [`lints::header_names_kebab_case`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.header_names_kebab_case.html) checks it.
+
+  </details>
 
 <details>
 <summary>With reflectapi</summary>
@@ -1473,23 +1661,23 @@ send it.
 
 - A server MUST answer a call that completed with `200`, whatever the
   call's effects.
-  `[api-200-for-success]`
+  `[api-status-200-for-success]`
 - Each case of a call's error type, the failures the call declares in its
   signature (see [Errors](#errors)), MUST answer with one status, among
   `401`, `403`, `404`, `409` and `422`, as the table below gives them.
-  `[api-error-statuses]`
+  `[api-status-error-cases]`
 - A server MUST answer `400` to a request whose body or headers can't be
   parsed into the call's types, `405` to a method the call doesn't take, and
   `415` to a content type that is neither JSON nor MessagePack; a case of a
   call's error type MUST NOT use these, nor `413`.
-  `[api-server-statuses]`
+  `[api-status-server-own]`
 - A server MUST answer `500` to an internal error, and `503` when it isn't
   ready, or when a service it depends on is unavailable, so that it can't
   answer correctly or completely.
-  `[api-500-and-503]`
+  `[api-status-500-and-503]`
 - A server MUST NOT answer with any other status, a `3xx` redirect
   included.
-  `[api-no-other-statuses]`
+  `[api-status-no-others]`
 
   <details>
   <summary>Reasoning</summary>
@@ -1545,16 +1733,33 @@ send it.
 
   </details>
 
-- The body of a successful response MUST be an object, even when it is
-  empty or has one field.
+- The body of a call's response MUST be an object, even when it is empty or
+  has one field: its output on success, and a value of its error type on
+  failure.
   `[api-response-is-object]`
+
+  <details>
+  <summary>Reasoning</summary>
+
+  An object can gain fields later without breaking clients; a string, a
+  number or a list can't. A failure is no different: an error that is a bare
+  string, `"not_found"`, can't later carry the id it missed.
+
+  </details>
+
+  <details>
+  <summary>With reflectapi</summary>
+
+  The lint [`lints::response_is_object`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.response_is_object.html) checks it.
+
+  </details>
 
 ### Errors
 
 - A call that can fail MUST have one error type, part of its signature like
   its input and its output, and the body of its error response MUST be a
   value of that type, serialized as an output is.
-  `[api-typed-errors]`
+  `[api-error-typed]`
 
   <details>
   <summary>Example</summary>
@@ -1564,17 +1769,41 @@ send it.
 
   ```jsonc
   // 404: a case without data
-  "not_found"
+  { "kind": "not_found" }
 
   // 409: a case with data
-  { "conflict": { "name": "Rex" } }
+  { "kind": "conflict", "name": "Rex" }
   ```
+
+  </details>
+
+- Each failure a client can tell apart MUST be a case of its own in the
+  call's error type.
+  `[api-error-case-per-failure]`
+
+  <details open>
+  <summary>Example</summary>
+
+  A call that can miss the branch or the product it is given fails with
+  `{"kind": "branch_not_found"}` or `{"kind": "product_not_found"}`, not with
+  one `{"kind": "not_found"}`, nor with
+  `{"kind": "not_found", "entity": "branch"}`.
+
+  </details>
+
+  <details>
+  <summary>Reasoning</summary>
+
+  A client tells failures apart by the case (see
+  [`api-error-matched-by-value`](#api-error-matched-by-value)). Failures that share a
+  case can be told apart only by reading its data, such as a string naming
+  the entity, which a generated client can't match on as it matches cases.
 
   </details>
 
 - A client MUST tell the cases of a call's error type by the value in the
   body, not by the status.
-  `[api-match-error-value]`
+  `[api-error-matched-by-value]`
 
   <details>
   <summary>Reasoning</summary>
@@ -1586,7 +1815,7 @@ send it.
 
 - A client MUST report a `400`, `405`, `413`, `415` or `5xx` response as a
   failure of the request, not as a value of the call's error type.
-  `[api-failures-not-errors]`
+  `[api-failure-not-error]`
 
   <details>
   <summary>Reasoning</summary>
@@ -1597,10 +1826,10 @@ send it.
   </details>
 
 - An error MUST NOT carry security-sensitive information.
-  `[api-errors-not-sensitive]`
+  `[api-error-not-sensitive]`
 - The body of an error SHOULD NOT carry a trace ID: the `traceparent`
   response header carries it.
-  `[api-trace-id-in-header]`
+  `[api-error-trace-id-in-header]`
 
 <details>
 <summary>With reflectapi</summary>
@@ -1608,7 +1837,9 @@ send it.
 A handler returns `Result<Output, Error>`, and the error type is in the
 schema. Every generated client gives the caller the route's error as a typed
 value, kept apart from network and server failures: see
-[Errors](../concepts/errors.md).
+[Errors](../concepts/errors.md). The error enum takes
+`#[serde(tag = "kind", rename_all = "snake_case")]` beside
+`#[derive(reflectapi::ResponseError)]`, so that each case is an object.
 
 </details>
 
@@ -1617,7 +1848,7 @@ value, kept apart from network and server failures: see
 - A paginated call MUST take the page a request asks for in one field of
   the request, `page`, with a `cursor` and a `limit`, both optional, and
   MUST return the first page to a request without a `cursor`.
-  `[api-cursor-and-limit]`
+  `[api-page-cursor-and-limit]`
 
   <details open>
   <summary>Example</summary>
@@ -1629,22 +1860,22 @@ value, kept apart from network and server failures: see
 - A paginated response MUST have a top-level `pagination` object, whose
   `next_cursor` is set while more results follow, and is empty, `null` or
   absent when none do.
-  `[api-next-cursor]`
+  `[api-page-next-cursor]`
 - A client MUST ask for the next page by sending the last response's
   `next_cursor` as the `cursor` of the `page` of its next request to the
   same call.
-  `[api-next-page-by-cursor]`
+  `[api-page-next-by-cursor]`
 - A server MUST read `limit` as the largest number of results to return; it
   MAY return fewer, even while more follow, and MAY change the largest
   `limit` it accepts, for each call.
-  `[api-limit-is-a-maximum]`
+  `[api-page-limit-is-maximum]`
 - A client MUST tell whether more results follow by `next_cursor`, and MUST
   NOT tell it by comparing the number of results with `limit`.
-  `[api-end-by-cursor-not-count]`
+  `[api-page-end-by-cursor]`
 - A paginated response SHOULD NOT carry a total count of the results: a
   client that needs one calls the resource's `count` (see
   [`count`](#count)).
-  `[api-no-total-count]`
+  `[api-page-no-total-count]`
 
   <details>
   <summary>Reasoning</summary>
@@ -1658,7 +1889,7 @@ value, kept apart from network and server failures: see
 - Backward pagination SHOULD NOT be implemented until it is needed; where
   it is, `pagination` MUST carry a `previous_cursor`, which follows the
   rules of `next_cursor` in the other direction.
-  `[api-backward-pagination]`
+  `[api-page-backward]`
 
   <details>
   <summary>Reasoning</summary>
@@ -1671,7 +1902,7 @@ value, kept apart from network and server failures: see
 
 - A collection at the root of a response MUST be wrapped in `items`, whether
   it is paginated or not.
-  `[api-root-list-in-items]`
+  `[api-items-at-root]`
 
   <details>
   <summary>Reasoning</summary>
@@ -1688,7 +1919,7 @@ value, kept apart from network and server failures: see
 
 - A nested list MAY be a plain list where it isn't expected to grow, and
   SHOULD be wrapped in `items` where it may be paginated later.
-  `[api-nested-list-in-items]`
+  `[api-items-nested]`
 
   <details>
   <summary>Reasoning</summary>
@@ -1850,7 +2081,7 @@ refer to carries all of them in one body: the call's own entities under
 - In a body that carries entities of several types, an entity MUST refer to
   an entity of another type by that entity's identity, and MUST NOT embed a
   copy of it.
-  `[api-refer-by-identity]`
+  `[api-referred-by-identity]`
 
   <details open>
   <summary>Example</summary>
@@ -2198,10 +2429,10 @@ out for client generation or to serve, as it is or as an OpenAPI document
 
 - An API's schema SHOULD be code first: defined by the server's code, not
   written apart from it.
-  `[api-code-first]`
+  `[api-schema-code-first]`
 - A call's name SHOULD appear in the server's code as one whole string, so
   that a text search finds the call's implementation.
-  `[api-call-names-whole-strings]`
+  `[api-call-name-whole-string]`
 
   <details open>
   <summary>Example</summary>
@@ -2212,7 +2443,7 @@ out for client generation or to serve, as it is or as an OpenAPI document
 
 - A client that a server's owner provides, such as for TypeScript or Rust,
   MUST be generated from the server's schema, not written by hand.
-  `[api-generated-clients]`
+  `[api-client-generated]`
 
   <details>
   <summary>Reasoning</summary>
@@ -2226,7 +2457,7 @@ out for client generation or to serve, as it is or as an OpenAPI document
 
 - A server's owner SHOULD publish its generated clients as packages, where
   they are used outside the server's own repository.
-  `[api-published-clients]`
+  `[api-client-published]`
 
 <details>
 <summary>With reflectapi</summary>
@@ -2237,8 +2468,141 @@ out for client generation or to serve, as it is or as an OpenAPI document
   [`.name("products.list")`](https://docs.rs/reflectapi/latest/reflectapi/struct.RouteBuilder.html#method.name).
 - `reflectapi codegen` writes the TypeScript, Python and Rust clients from
   the schema: see [Generated Clients](../clients/index.md).
+- [`reflectapi::conventions::lints`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/index.html)
+  checks a schema against the rules of this standard that its shape can
+  show, each lint naming its rule: see [Lints](./conventions.md#lints).
 
 </details>
+
+### Type names
+
+- A type that one call alone uses, as its request, its response or its
+  error, SHOULD be named after the call, in `PascalCase`, with the suffix
+  `Request`, `Response` or `Error`.
+  `[api-type-named-after-call]`
+
+  <details open>
+  <summary>Example</summary>
+
+  `products.search` takes a `ProductsSearchRequest`, returns a
+  `ProductsSearchResponse`, and fails with a `ProductsSearchError`;
+  `products.search-v2` takes a `ProductsSearchV2Request`. A `Product`, which
+  several calls return, keeps a name of its own.
+
+  </details>
+
+  <details>
+  <summary>Reasoning</summary>
+
+  The name says which call a type belongs to, in the server's code and in
+  every generated client, and a text search for the call finds its types.
+  No two calls' types can then collide on a name.
+
+  </details>
+
+  <details>
+  <summary>With reflectapi</summary>
+
+  The lint [`lints::call_type_names`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.call_type_names.html) checks it.
+
+  </details>
+
+- A type's name SHOULD NOT end with the kind of type it is, such as `Enum`
+  or `Struct`.
+  `[api-type-no-kind-suffix]`
+
+  <details open>
+  <summary>Example</summary>
+
+  `OrderStatus`, not `OrderStatusEnum`
+
+  </details>
+
+  <details>
+  <summary>With reflectapi</summary>
+
+  The lint [`lints::type_names_no_kind_suffix`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.type_names_no_kind_suffix.html) checks it.
+
+  </details>
+
+- A case of an error type SHOULD NOT end with `Error`.
+  `[api-error-case-no-error-suffix]`
+
+  <details open>
+  <summary>Example</summary>
+
+  `ProductsInsertError::BrandNotFound`, not
+  `ProductsInsertError::BrandNotFoundError`
+
+  </details>
+
+  <details>
+  <summary>Reasoning</summary>
+
+  The type already says what it is: the suffix repeats it in every use.
+
+  </details>
+
+  <details>
+  <summary>With reflectapi</summary>
+
+  The lint [`lints::error_cases_no_error_suffix`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.error_cases_no_error_suffix.html) checks it.
+
+  </details>
+
+- A type's name, as clients see it, SHOULD have at most two modules before
+  it; a module that is a version, such as `v2`, isn't counted.
+  `[api-type-path-depth]`
+
+  <details open>
+  <summary>Example</summary>
+
+  `pets::Pet`, `auth::groups_insert::Request`, not
+  `billing_core::pricing::policy::BrandRate`
+
+  </details>
+
+  <details>
+  <summary>Reasoning</summary>
+
+  A type's path becomes namespaces in every generated client: TypeScript
+  writes `auth.groups_insert.Request`, and Python imports it from there. A
+  deep path makes every caller's code longer, and shows how the server's code
+  is organised, which clients don't need and the server may change.
+
+  </details>
+
+  <details>
+  <summary>With reflectapi</summary>
+
+  [`Builder::glob_rename_types`](https://docs.rs/reflectapi/latest/reflectapi/struct.Builder.html#method.glob_rename_types)
+  gives clients a shorter path without moving the code:
+  `.glob_rename_types("billing_core::pricing::policy::*", "billing::")`.
+
+  The lint [`lints::type_path_depth`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.type_path_depth.html) checks it.
+
+  </details>
+
+- A module in a type's name SHOULD NOT say how the server's code is
+  organised, such as `models`, `types`, `requests`, `responses` or `errors`.
+  `[api-type-modules-not-implementation]`
+
+  <details open>
+  <summary>Example</summary>
+
+  `messaging::Conversation`, not `messaging::models::Conversation`
+
+  </details>
+
+  <details>
+  <summary>With reflectapi</summary>
+
+  `.glob_rename_types("messaging::models::*", "messaging::")` drops the
+  module from the schema.
+
+  The lint [`lints::type_modules_not_implementation`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.type_modules_not_implementation.html) checks it.
+
+  </details>
 
 ## Exceptions
 

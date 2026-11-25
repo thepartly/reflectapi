@@ -5,11 +5,25 @@ use std::fmt;
 pub struct ValidationError {
     pub pointer: ValidationPointer,
     pub message: String,
+    /// The id of the rule the error enforces, such as `api-call-name-form`
+    /// for a rule of the API design standard. A validator can then be
+    /// relaxed for one rule by filtering on it.
+    pub rule: Option<String>,
 }
 
 impl ValidationError {
     pub fn new(pointer: ValidationPointer, message: String) -> ValidationError {
-        ValidationError { pointer, message }
+        ValidationError {
+            pointer,
+            message,
+            rule: None,
+        }
+    }
+
+    /// Names the rule the error enforces.
+    pub fn with_rule(mut self, rule: impl Into<String>) -> ValidationError {
+        self.rule = Some(rule.into());
+        self
     }
 }
 

@@ -1,6 +1,6 @@
 <svg class="glance" viewBox="0 0 780 512" width="780" height="512" role="img" aria-labelledby="glance-title glance-desc" xmlns="http://www.w3.org/2000/svg">
 <title id="glance-title">The API design standard at a glance</title>
-<desc id="glance-desc">A request: POST /api/v1/orders.list, always POST, with the major version and a call name of resource and verb; content-type JSON or MessagePack; authorization, the only header for authentication; traceparent, returned in the response; and the input, always an object in the body. A response: 200 for every success, with the list wrapped in items and pagination holding the next cursor, null at the end. An error: a 4xx status chosen by the error case, and a body that is the call's typed error value, such as not_found with the id.</desc>
+<desc id="glance-desc">A request: POST /api/v1/orders.list, always POST, with the major version and a call name of resource and verb; content-type JSON or MessagePack; authorization, the only header for authentication; traceparent, returned in the response; and the input, always an object in the body. A response: 200 for every success, with the list wrapped in items and pagination holding the next cursor, null at the end. An error: a 4xx status chosen by the error case, and a body that is the call's typed error value, an object whose kind is not_found, with the id.</desc>
 <style>.glance { --g-fg: #131414; --g-dim: #6E6F70; --g-note: #494B4D; --g-code: #F7F7F7;
   --g-border: #E0E2E2; --g-accent: #E88542; --g-key: #A8501A;
   display: block; width: 100%; min-width: 640px; height: auto; }
@@ -27,7 +27,7 @@ html.coal .glance, html.navy .glance, html.ayu .glance { --g-fg: #F7F7F7; --g-di
 <line class="glance-arrow" x1="512" y1="343.1" x2="273.6" y2="343.1" marker-end="url(#glance-head)"/>
 <line class="glance-arrow" x1="512" y1="366.1" x2="357.6" y2="366.1" marker-end="url(#glance-head)"/>
 <line class="glance-arrow" x1="512" y1="449.1" x2="214.8" y2="449.1" marker-end="url(#glance-head)"/>
-<line class="glance-arrow" x1="512" y1="472.1" x2="282.0" y2="472.1" marker-end="url(#glance-head)"/>
+<line class="glance-arrow" x1="512" y1="472.1" x2="332.4" y2="472.1" marker-end="url(#glance-head)"/>
 <line class="glance-arrow" x1="38.8" y1="22" x2="38.8" y2="110.0" marker-end="url(#glance-head)"/>
 <line class="glance-arrow" x1="93.4" y1="44" x2="93.4" y2="110.0" marker-end="url(#glance-head)"/>
 <line class="glance-arrow" x1="177.4" y1="66" x2="177.4" y2="110.0" marker-end="url(#glance-head)"/>
@@ -54,7 +54,7 @@ html.coal .glance, html.navy .glance, html.ayu .glance { --g-fg: #F7F7F7; --g-di
 <text class="glance-section" x="454" y="431" text-anchor="end">ERROR</text>
 <text class="glance-mono" y="454"><tspan class="glance-code" x="22.0">HTTP/1.1 </tspan><tspan class="glance-key" x="97.6">404</tspan><tspan class="glance-code" x="122.8"> Not Found</tspan></text>
 <text class="glance-note" x="520" y="454">A 4xx, chosen by the error&#x27;s case</text>
-<text class="glance-mono" y="477"><tspan class="glance-key" x="22.0">{&quot;not_found&quot;: {&quot;id&quot;: &quot;e7fe…&quot;}}</tspan></text>
+<text class="glance-mono" y="477"><tspan class="glance-key" x="22.0">{&quot;kind&quot;: &quot;not_found&quot;, &quot;id&quot;: &quot;e7fe…&quot;}</tspan></text>
 <text class="glance-note" x="520" y="477">A value of the call&#x27;s error type</text>
 <text class="glance-note" x="22.0" y="16">Always POST</text>
 <text class="glance-note" x="64.0" y="38">Major version</text>

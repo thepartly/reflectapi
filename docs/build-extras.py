@@ -90,6 +90,11 @@ def check_standard() -> list[str]:
                 kind = "a rule without an id" if bullet else "outside a rule"
                 errors.append(f"{where}: {marked[1]} {kind}: {paragraph[0].strip()[:60]}")
             if tag:
+                words = tag[1].split("-")[1:]
+                if len(words) > 5:
+                    errors.append(f"{where}: the id {tag[1]} has more than five words after `api-`")
+                if {"prefer", "avoid"} & set(words):
+                    errors.append(f"{where}: the id {tag[1]} says how firm the rule is")
                 if tag[1] in ids:
                     errors.append(f"{where}: the id {tag[1]} is also at line {ids[tag[1]]}")
                 ids[tag[1]] = start
@@ -116,12 +121,68 @@ def check_standard() -> list[str]:
     return errors
 
 
+LINTS = docs.parent / "reflectapi" / "src" / "conventions" / "lints.rs"
+LINT_DOCS = "https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.{}.html"
+
+
+def lint_rules() -> dict[str, list[str]]:
+    """The lints of `reflectapi::conventions::lints`, by the rules their doc
+    comments name."""
+    rules, doc = {}, []
+    for line in LINTS.read_text().splitlines():
+        stripped = line.strip()
+        if stripped.startswith("///"):
+            doc.append(stripped)
+            continue
+        if fn := re.match(r"pub fn (\w+)\(", stripped):
+            for rule in re.findall(r"`\[(api-[a-z0-9-]+)\]`", " ".join(doc)):
+                rules.setdefault(rule, []).append(fn[1])
+        if not stripped.startswith("#["):
+            doc = []
+    return rules
+
+
+def rule_items(text: str) -> dict[str, str]:
+    """Each rule's bullet with what is indented under it, by the rule's id."""
+    lines, items = text.splitlines(), {}
+    for at, line in enumerate(lines):
+        tag = RULE_TAG.match(line)
+        if not tag:
+            continue
+        start = at
+        while start > 0 and not re.match(r"(-|\d+\.) ", lines[start]):
+            start -= 1
+        end = at + 1
+        while end < len(lines) and (not lines[end].strip() or lines[end].startswith("  ")):
+            end += 1
+        items[tag[1]] = "\n".join(lines[start:end])
+    return items
+
+
+def check_lints() -> list[str]:
+    """Every rule a lint checks names that lint, and names no other."""
+    items, errors = rule_items((src / "design" / "standard.md").read_text()), []
+    rules = lint_rules()
+    for rule, lints in rules.items():
+        if rule not in items:
+            errors.append(f"lints.rs names {rule}, which the standard doesn't have")
+            continue
+        for lint in lints:
+            if LINT_DOCS.format(lint) not in items[rule]:
+                errors.append(f"standard.md: {rule} doesn't name its lint, `lints::{lint}`")
+    for rule, item in items.items():
+        for lint in re.findall(r"conventions/lints/fn\.(\w+)\.html", item):
+            if lint not in rules.get(rule, []):
+                errors.append(f"standard.md: {rule} names `lints::{lint}`, which checks another rule")
+    return errors
+
+
 def main() -> int:
     if not book.is_dir():
         print(f"{book} does not exist: run `mdbook build` first", file=sys.stderr)
         return 1
 
-    if errors := check_standard():
+    if errors := check_standard() + check_lints():
         print("\n".join(errors), file=sys.stderr)
         return 1
 
@@ -150,6 +211,10 @@ def main() -> int:
         "# reflectapi",
         "",
         f"> {description[1] if description else ''}",
+        "",
+        "When designing, implementing or reviewing an API, follow the API Design "
+        f"Standard: {SITE}design/standard.html. Each of its rules has a stable id, "
+        "such as `[api-call-name-form]`, which is also the rule's anchor on that page.",
         "",
         f"The whole guide as one file: {SITE}llms-full.txt",
         "API reference: https://docs.rs/reflectapi",

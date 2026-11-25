@@ -163,12 +163,14 @@ struct PetName {
 }
 
 #[derive(Debug, serde::Serialize, reflectapi::Output, reflectapi::ResponseError)]
+#[serde(tag = "kind", rename_all = "snake_case")]
 enum PetsInsertError {
     #[reflectapi(status = 409)]
     Exists,
 }
 
 #[derive(Debug, serde::Serialize, reflectapi::Output, reflectapi::ResponseError)]
+#[serde(tag = "kind", rename_all = "snake_case")]
 enum PetsRemoveError {
     #[reflectapi(status = 404)]
     NotFound,
@@ -240,11 +242,11 @@ On the wire, with Rex not yet stored:
 | Request | Result |
 |---|---|
 | `pets.insert {"name": "Rex", "kind": "dog"}` | inserted |
-| `pets.insert {"name": "Rex", "kind": "cat"}` | `409`: no `if`, so the default, `abort` |
+| `pets.insert {"name": "Rex", "kind": "cat"}` | `409`, `{"kind": "exists"}`: no `if`, so the default, `abort` |
 | `pets.insert {"if": {"exists": "replace"}, "name": "Rex", "kind": "cat"}` | Rex is now a cat |
 | `pets.insert {"if": {"exists": "ignore"}, …}` | `400`: `ignore` isn't in the set |
 | `pets.remove {"if": {"not_exists": "ignore"}, "name": "Max"}` | succeeds, nothing removed |
-| `pets.remove {"name": "Max"}` | `404`: the default, `abort` |
+| `pets.remove {"name": "Max"}` | `404`, `{"kind": "not_found"}`: the default, `abort` |
 
 ### Choosing a set
 
@@ -283,3 +285,66 @@ assert!(serde_json::from_str::<PetsImport>(r#"{"name": "Rex"}"#).is_err());
 
 The full catalogue of sets, with their defaults, is in the
 [`actions` documentation](https://docs.rs/reflectapi/latest/reflectapi/conventions/conflict/actions/index.html).
+
+## Lints
+
+[`conventions::lints`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/index.html)
+checks a schema against the rules of the [standard](./standard.md) that its
+shape can show. Each lint is a function for `Builder::validate` and checks
+one rule; an error names its rule in `ValidationError::rule`, and its message
+links to it.
+
+```rust,ignore
+use reflectapi::conventions::lints;
+
+let mut builder = api();
+for lint in lints::ALL {
+    builder = builder.validate(*lint);
+}
+let (schema, routers) = builder.build()?;
+```
+
+| Lint | Rule |
+|---|---|
+| `call_name_form` | [`api-call-name-form`](./standard.md#api-call-name-form) |
+| `call_names_kebab_case` | [`api-call-name-kebab-case`](./standard.md#api-call-name-kebab-case) |
+| `call_resource_levels` | [`api-resource-two-levels`](./standard.md#api-resource-two-levels) |
+| `call_version_suffix`: `groups.v2.insert`, not `groups.insert-v2` | [`api-call-version-suffix`](./standard.md#api-call-version-suffix) |
+| `call_actions_standard`: `create`, `delete`, `fetch`, `upsert` and other words a standard action replaces | [`api-insert-not-create`](./standard.md#api-insert-not-create), [`api-remove-not-delete`](./standard.md#api-remove-not-delete), [`api-action-standard`](./standard.md#api-action-standard) |
+| `call_actions_not_parameters`: `search-by-name`, `update-password` | [`api-action-not-parameters`](./standard.md#api-action-not-parameters) |
+| `request_is_object` | [`api-arguments-in-body-object`](./standard.md#api-arguments-in-body-object) |
+| `response_is_object`: the output, and the error, whose cases without data are strings unless written in `kind` | [`api-response-is-object`](./standard.md#api-response-is-object) |
+| `names_snake_case`: an enum value in capitals, such as `NZ`, passes | [`api-name-snake-case`](./standard.md#api-name-snake-case), [`api-enum-outside-codes-keep-form`](./standard.md#api-enum-outside-codes-keep-form) |
+| `enums_kind_tag`: an enum with fields, and an error type, written in `kind` | [`api-enum-kind-tag`](./standard.md#api-enum-kind-tag), [`api-enum-one-value-cases`](./standard.md#api-enum-one-value-cases) |
+| `header_names_kebab_case` | [`api-header-name-case`](./standard.md#api-header-name-case) |
+| `header_names_no_x_prefix` | [`api-header-own-prefix`](./standard.md#api-header-own-prefix) |
+| `call_type_names`: a type named as a call's request, response or error, `…Request`, `…Response` or `…Error`, names its call | [`api-type-named-after-call`](./standard.md#api-type-named-after-call) |
+| `type_names_no_kind_suffix` | [`api-type-no-kind-suffix`](./standard.md#api-type-no-kind-suffix) |
+| `type_path_depth`: two modules at most, a version not counted | [`api-type-path-depth`](./standard.md#api-type-path-depth) |
+| `type_modules_not_implementation`: no `models`, `types`, `errors` and the like | [`api-type-modules-not-implementation`](./standard.md#api-type-modules-not-implementation) |
+| `error_cases_no_error_suffix` | [`api-error-case-no-error-suffix`](./standard.md#api-error-case-no-error-suffix) |
+
+A lint reports what the standard rules out, and leaves what it can't judge:
+
+- Actions are checked against the words a standard action replaces, not a
+  list of allowed ones, so an application's own action, such as
+  `orders.confirm`, passes.
+- `call_type_names` checks only a type that one call alone uses and that is
+  named as a call's, with the suffix `Request`, `Response` or `Error`. Such a
+  name ends with the call's action and uses the call's words in their order:
+  `ProductsSearchRequest`, or `SearchRequest` in a module of its own, for
+  `products.search`; a version may be left out. A type the call takes as it
+  is, such as a `Product`, isn't checked.
+
+To relax a lint, wrap it in a function of your own that drops the errors you
+accept, such as those of calls not yet migrated:
+
+```rust,ignore
+fn call_actions_standard(schema: &reflectapi::Schema) -> Vec<reflectapi::ValidationError> {
+    lints::call_actions_standard(schema)
+        .into_iter()
+        .filter(|error| !error.to_string().starts_with("uploads.delete:"))
+        .collect()
+}
+```
+
