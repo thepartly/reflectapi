@@ -1,0 +1,62 @@
+<svg class="glance" viewBox="0 0 780 512" width="780" height="512" role="img" aria-labelledby="glance-title glance-desc" xmlns="http://www.w3.org/2000/svg">
+<title id="glance-title">The API design standard at a glance</title>
+<desc id="glance-desc">A request: POST /api/v1/orders.list, always POST, with the major version and a call name of resource and verb; content-type JSON or MessagePack; authorization, the only header for authentication; traceparent, returned in the response; and the input, always an object in the body. A response: 200 for every success, with the list wrapped in items and pagination holding the next cursor, null at the end. An error: a 4xx status chosen by the error case, and a body that is the call's typed error value, an object whose kind is not_found, with the id.</desc>
+<style>.glance { --g-fg: #131414; --g-dim: #6E6F70; --g-note: #494B4D; --g-code: #F7F7F7;
+  --g-border: #E0E2E2; --g-accent: #E88542; --g-key: #A8501A;
+  display: block; width: 100%; min-width: 640px; height: auto; }
+html.coal .glance, html.navy .glance, html.ayu .glance { --g-fg: #F7F7F7; --g-dim: #8B8D8E;
+  --g-note: #B2B5B6; --g-code: #1B1C1C; --g-border: #26282A; --g-key: #E88542; }
+.alt .glance { --g-code: #FFFFFF; }
+.glance-panel { fill: var(--g-code); stroke: var(--g-border); }
+.glance-mono { font-family: "Geist Mono", ui-monospace, "Courier New", monospace; font-size: 14px; }
+.glance-code { fill: var(--g-fg); }
+.glance-dim { fill: var(--g-dim); }
+.glance-key { fill: var(--g-key); font-weight: 500; }
+.glance-section { font-family: "Geist Mono", ui-monospace, monospace; font-size: 11px;
+  letter-spacing: .08em; fill: var(--g-dim); }
+.glance-note { font-family: "Geist", "Helvetica Neue", Arial, sans-serif; font-size: 14px; fill: var(--g-note); }
+.glance-arrow { stroke: var(--g-accent); stroke-width: 1.25; }
+.glance-head { fill: var(--g-accent); }</style>
+<defs><marker id="glance-head" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="glance-head" d="M0,0 L8,4 L0,8 z"/></marker></defs>
+<rect class="glance-panel" x="0.5" y="78.5" width="470" height="432" rx="8"/>
+<line class="glance-arrow" x1="512" y1="145.1" x2="282.0" y2="145.1" marker-end="url(#glance-head)"/>
+<line class="glance-arrow" x1="512" y1="168.1" x2="273.6" y2="168.1" marker-end="url(#glance-head)"/>
+<line class="glance-arrow" x1="512" y1="191.1" x2="231.6" y2="191.1" marker-end="url(#glance-head)"/>
+<line class="glance-arrow" x1="512" y1="237.1" x2="374.4" y2="237.1" marker-end="url(#glance-head)"/>
+<line class="glance-arrow" x1="512" y1="297.1" x2="156.0" y2="297.1" marker-end="url(#glance-head)"/>
+<line class="glance-arrow" x1="512" y1="343.1" x2="273.6" y2="343.1" marker-end="url(#glance-head)"/>
+<line class="glance-arrow" x1="512" y1="366.1" x2="357.6" y2="366.1" marker-end="url(#glance-head)"/>
+<line class="glance-arrow" x1="512" y1="449.1" x2="214.8" y2="449.1" marker-end="url(#glance-head)"/>
+<line class="glance-arrow" x1="512" y1="472.1" x2="332.4" y2="472.1" marker-end="url(#glance-head)"/>
+<line class="glance-arrow" x1="38.8" y1="22" x2="38.8" y2="110.0" marker-end="url(#glance-head)"/>
+<line class="glance-arrow" x1="93.4" y1="44" x2="93.4" y2="110.0" marker-end="url(#glance-head)"/>
+<line class="glance-arrow" x1="177.4" y1="66" x2="177.4" y2="110.0" marker-end="url(#glance-head)"/>
+<text class="glance-section" x="454" y="104" text-anchor="end">REQUEST</text>
+<text class="glance-mono" y="127"><tspan class="glance-key" x="22.0">POST</tspan><tspan class="glance-code" x="55.6"> </tspan><tspan class="glance-key" x="64.0">/api/v1</tspan><tspan class="glance-code" x="122.8">/</tspan><tspan class="glance-key" x="131.2">orders.list</tspan></text>
+<text class="glance-mono" y="150"><tspan class="glance-dim" x="22.0">content-type</tspan><tspan class="glance-code" x="122.8">: application/json</tspan></text>
+<text class="glance-note" x="520" y="150">JSON, or MessagePack</text>
+<text class="glance-mono" y="173"><tspan class="glance-key" x="22.0">authorization</tspan><tspan class="glance-code" x="131.2">: Bearer &lt;token&gt;</tspan></text>
+<text class="glance-note" x="520" y="173">The only header for authentication</text>
+<text class="glance-mono" y="196"><tspan class="glance-key" x="22.0">traceparent</tspan><tspan class="glance-code" x="114.4">: 00-4bf9…-01</tspan></text>
+<text class="glance-note" x="520" y="196">Trace context, returned in the response</text>
+<text class="glance-mono" y="219"></text>
+<text class="glance-mono" y="242"><tspan class="glance-key" x="22.0">{&quot;page&quot;: {&quot;cursor&quot;: &quot;eyJ…&quot;, &quot;limit&quot;: 20}}</tspan></text>
+<text class="glance-note" x="520" y="242">Input: always an object in the body</text>
+<text class="glance-section" x="454" y="279" text-anchor="end">RESPONSE</text>
+<text class="glance-mono" y="302"><tspan class="glance-code" x="22.0">HTTP/1.1 </tspan><tspan class="glance-key" x="97.6">200</tspan><tspan class="glance-code" x="122.8"> OK</tspan></text>
+<text class="glance-note" x="520" y="302">200 for every success</text>
+<text class="glance-mono" y="325"><tspan class="glance-code" x="22.0">{</tspan></text>
+<text class="glance-mono" y="348"><tspan class="glance-code" x="22.0">  </tspan><tspan class="glance-key" x="38.8">&quot;items&quot;</tspan><tspan class="glance-code" x="97.6">: [{&quot;id&quot;: &quot;e7fe…&quot;}],</tspan></text>
+<text class="glance-note" x="520" y="348">Lists are wrapped in items</text>
+<text class="glance-mono" y="371"><tspan class="glance-code" x="22.0">  </tspan><tspan class="glance-key" x="38.8">&quot;pagination&quot;</tspan><tspan class="glance-code" x="139.6">: {&quot;next_cursor&quot;: &quot;eyJ…&quot;}</tspan></text>
+<text class="glance-note" x="520" y="371">Next page, or null at the end</text>
+<text class="glance-mono" y="394"><tspan class="glance-code" x="22.0">}</tspan></text>
+<text class="glance-section" x="454" y="431" text-anchor="end">ERROR</text>
+<text class="glance-mono" y="454"><tspan class="glance-code" x="22.0">HTTP/1.1 </tspan><tspan class="glance-key" x="97.6">404</tspan><tspan class="glance-code" x="122.8"> Not Found</tspan></text>
+<text class="glance-note" x="520" y="454">A 4xx, chosen by the error&#x27;s case</text>
+<text class="glance-mono" y="477"><tspan class="glance-key" x="22.0">{&quot;kind&quot;: &quot;not_found&quot;, &quot;id&quot;: &quot;e7fe…&quot;}</tspan></text>
+<text class="glance-note" x="520" y="477">A value of the call&#x27;s error type</text>
+<text class="glance-note" x="22.0" y="16">Always POST</text>
+<text class="glance-note" x="64.0" y="38">Major version</text>
+<text class="glance-note" x="131.2" y="60">Call name: resource.verb</text>
+</svg>

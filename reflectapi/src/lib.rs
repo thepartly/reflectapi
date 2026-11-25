@@ -50,12 +50,18 @@
 //! ## Where things are
 //!
 //! - Types: derive [`Input`] for what a route reads and [`Output`] for what it
-//!   returns, beside serde's derives. A route's error derives `StatusCode`.
+//!   returns, beside serde's derives. A route's error derives [`ResponseError`].
 //! - Routes: [`Builder`] (feature `builder`) registers handlers and builds the
 //!   schema and the [`Router`]s.
 //! - Serving: [`axum`] (feature `axum`) or [`dispatch`] for any other server.
 //! - Types with meaning to clients: [`Option`] (absent, null or a value),
 //!   [`Empty`], [`Infallible`].
+//! - [`Raw`] (feature `json`): a value kept as the JSON it arrived as.
+//! - [`Encoded`] (feature `json`): a typed value encoded into a string, for
+//!   clients to pass back without reading, such as a cursor.
+//! - Types for one opinionated style of API, such as cursor pagination and
+//!   `if` clauses on writes, and lints against the API design standard: the
+//!   separate crate [`reflectapi-conventions`](https://docs.rs/reflectapi-conventions).
 //! - Generating clients: the `reflectapi` CLI (`cargo binstall reflectapi-cli`),
 //!   or `reflectapi::codegen` (feature `codegen`).
 //! - The complete example: the
@@ -69,10 +75,16 @@
 )]
 
 mod empty;
+#[cfg(feature = "json")]
+mod encoded;
 mod impls;
 mod infallible;
 mod option;
+#[cfg(feature = "json")]
+mod raw;
 mod traits;
+#[cfg(feature = "json")]
+mod transcode;
 mod validation;
 
 #[cfg(feature = "rt")]
@@ -91,17 +103,24 @@ pub mod dispatch;
 pub mod codegen;
 
 #[cfg(feature = "builder")]
+#[allow(deprecated)]
+pub use self::builder::StatusCode;
+#[cfg(feature = "builder")]
 pub use self::builder::{
     BuildError, BuildErrors, BuildMode, Builder, ContentType, DispatchOnly, Event, EventId,
-    IntoResult, InvalidEventId, RouteBuilder, Router, StatusCode, StreamItem, WithSchema,
+    IntoResult, InvalidEventId, ResponseError, RouteBuilder, Router, StreamItem, WithSchema,
 };
 #[cfg(feature = "builder")]
 use self::builder::{Handler, HandlerCallback};
 pub use empty::*;
+#[cfg(feature = "json")]
+pub use encoded::Encoded;
 pub use infallible::*;
 pub use option::*;
+#[cfg(feature = "json")]
+pub use raw::Raw;
 #[cfg(feature = "builder")]
-pub use reflectapi_derive::StatusCode;
+pub use reflectapi_derive::ResponseError;
 pub use reflectapi_derive::{Input, Output};
 pub use traits::*;
 pub use validation::*;
@@ -117,4 +136,5 @@ pub use reflectapi_schema::*;
 #[cfg(feature = "builder")]
 pub mod __private {
     pub use http;
+    pub use serde;
 }

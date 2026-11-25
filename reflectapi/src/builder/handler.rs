@@ -142,7 +142,7 @@ where
         I: Input + serde::de::DeserializeOwned + Send + 'static,
         H: Input + serde::de::DeserializeOwned + Send + 'static,
         O: Output + serde::ser::Serialize + Send + 'static,
-        E: Output + serde::ser::Serialize + crate::StatusCode + Send + 'static,
+        E: crate::ResponseError + Send + 'static,
     {
         // inject system header requirements used by the handler wrapper
         input_headers.push(http::header::CONTENT_TYPE);
@@ -172,7 +172,7 @@ where
         I: Input + serde::de::DeserializeOwned + Send + 'static,
         H: Input + serde::de::DeserializeOwned + Send + 'static,
         O: StreamItem + Send + 'static,
-        E1: Output + serde::ser::Serialize + crate::StatusCode + Send + 'static,
+        E1: crate::ResponseError + Send + 'static,
         S: Send + 'static,
     {
         // inject system header requirements used by the handler wrapper
@@ -295,7 +295,7 @@ where
         I: Input + serde::de::DeserializeOwned,
         H: Input + serde::de::DeserializeOwned,
         O: Output + serde::ser::Serialize,
-        E: Output + serde::ser::Serialize + crate::StatusCode,
+        E: crate::ResponseError,
         F: Fn(S, I, H) -> Fut,
         Fut: Future<Output = R> + Send + 'static,
         R: crate::IntoResult<O, E>,
@@ -336,10 +336,10 @@ where
         let code = match output {
             UntaggedResult::Ok(_) => http::StatusCode::OK,
             UntaggedResult::Err(err) => {
-                add_headers(&mut response_headers, err.response_headers());
-                let custom_error = err.status_code();
+                add_headers(&mut response_headers, err.headers());
+                let custom_error = err.status();
                 if custom_error == http::StatusCode::OK {
-                    // It means a user has implemented ToStatusCode trait for their
+                    // It means a user has implemented ResponseError for their
                     // type incorrectly. It is a protocol error to return 200 status
                     // code for an error response, as the client will not be able
                     // to "cast" the response body to the correct type.
@@ -367,7 +367,7 @@ where
         I: Input + serde::de::DeserializeOwned,
         H: Input + serde::de::DeserializeOwned,
         O: StreamItem,
-        E1: Output + serde::ser::Serialize + crate::StatusCode,
+        E1: crate::ResponseError,
         F: Fn(S, I, H) -> Fut,
         Fut: Future<Output = Result<St, E1>>,
         St: Stream<Item = O> + Send + 'static,
@@ -404,9 +404,9 @@ where
                             http::header::CONTENT_TYPE,
                             http::HeaderValue::from_static("application/json"),
                         );
-                        add_headers(&mut response_headers, err.response_headers());
+                        add_headers(&mut response_headers, err.headers());
                         HandlerOutput {
-                            code: err.status_code(),
+                            code: err.status(),
                             body: body.into(),
                             headers: response_headers,
                         }

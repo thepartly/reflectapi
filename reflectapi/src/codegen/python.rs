@@ -2447,7 +2447,7 @@ fn build_python_generation(
     // refs, since these are module-level definitions.
     let rebuild_models: Vec<String> = rendered_type_keys
         .iter()
-        .filter(|n| !n.starts_with("std::") && !n.starts_with("reflectapi::"))
+        .filter(|n| !n.starts_with("std::") && !super::is_reflectapi_type(n))
         .map(|n| python_class_name(n, &class_names))
         .collect();
     // Generate testing utilities if requested

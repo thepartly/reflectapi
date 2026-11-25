@@ -85,8 +85,8 @@ async fn handler(state: S, input: I, headers: H) -> R
   `Result<Output, Error>`. These are the two forms
   [`IntoResult`](https://docs.rs/reflectapi/latest/reflectapi/trait.IntoResult.html)
   accepts. The error type implements
-  [`StatusCode`](https://docs.rs/reflectapi/latest/reflectapi/trait.StatusCode.html),
-  which gives the HTTP status of its response. See [Errors](./errors.md).
+  [`ResponseError`](https://docs.rs/reflectapi/latest/reflectapi/trait.ResponseError.html),
+  which gives the HTTP status and headers of its response. See [Errors](./errors.md).
 
 The handler must be `Copy`, `Send` and `Sync`, and its future `Send`: an `async
 fn` item works, as does a closure that captures nothing. Anything else it needs
@@ -123,7 +123,7 @@ struct GetUserRequest {
     id: u32,
 }
 
-#[derive(Serialize, Output, reflectapi::StatusCode)]
+#[derive(Serialize, Output, reflectapi::ResponseError)]
 enum GetUserError {
     /// No user has this id.
     #[reflectapi(status = 404)]

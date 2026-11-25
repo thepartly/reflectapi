@@ -427,7 +427,7 @@ The headers apply to successful and failed responses alike. Declaring a header
 doesn't mean the server sends it: it may be added by infrastructure in front of
 the server, and clients read it from whatever response arrived. A route's error
 can set headers, such as a `retry-after`, through
-`StatusCode::response_headers` (see
+`ResponseError::headers` (see
 [A route's error](../getting-started/attributes.md#a-routes-error)); a
 successful response's come from that infrastructure.
 

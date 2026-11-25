@@ -33,6 +33,7 @@ from reflectapi_runtime import AsyncApiStream
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiDateTime
 from reflectapi_runtime import ReflectapiEmpty
+from reflectapi_runtime import ReflectapiInfallible
 from reflectapi_runtime import ReflectapiPartialModel
 from reflectapi_runtime import (
     externally_tagged_json_schema as _externally_tagged_json_schema,
@@ -62,11 +63,11 @@ class AsyncHealthClient:
 
     async def check(
         self,
-    ) -> ApiResponse[Any, myapi.HealthCheckFail, myapi.proto.ResponseHeaders]:
+    ) -> ApiResponse[Any, Any, myapi.proto.ResponseHeaders]:
         """Check the health of the service
 
         Returns:
-            ApiResponse[Any, myapi.HealthCheckFail, myapi.proto.ResponseHeaders]: Success=Any, Error=myapi.HealthCheckFail
+            ApiResponse[Any, Any, myapi.proto.ResponseHeaders]: Response containing Any data
         """
         path = "/health.check"
 
@@ -75,7 +76,6 @@ class AsyncHealthClient:
             path,
             params=params if params else None,
             response_model=None,
-            error_model=myapi.HealthCheckFail,
             response_headers_model=myapi.proto.ResponseHeaders,
         )
 
@@ -103,7 +103,7 @@ class AsyncPetsClient:
             params=params if params else None,
             headers_model=headers,
             item_model=myapi.model.output.Pet,
-            error_model=None,
+            error_model=myapi.proto.UnauthorizedError,
             response_headers_model=myapi.proto.ResponseHeaders,
         )
 
@@ -175,11 +175,15 @@ class AsyncPetsClient:
     async def get_first(
         self,
         headers: Optional[myapi.proto.Headers] = None,
-    ) -> ApiResponse[myapi.model.output.Pet | None, None, myapi.proto.ResponseHeaders]:
+    ) -> ApiResponse[
+        myapi.model.output.Pet | None,
+        myapi.proto.UnauthorizedError,
+        myapi.proto.ResponseHeaders,
+    ]:
         """Fetch first pet, if any exists
 
         Returns:
-            ApiResponse[myapi.model.output.Pet | None, None, myapi.proto.ResponseHeaders]: Success=myapi.model.output.Pet | None, Error=None
+            ApiResponse[myapi.model.output.Pet | None, myapi.proto.UnauthorizedError, myapi.proto.ResponseHeaders]: Success=myapi.model.output.Pet | None, Error=myapi.proto.UnauthorizedError
         """
         path = "/pets.get-first"
 
@@ -189,7 +193,7 @@ class AsyncPetsClient:
             params=params if params else None,
             headers_model=headers,
             response_model=myapi.model.output.Pet | None,
-            error_model=None,
+            error_model=myapi.proto.UnauthorizedError,
             response_headers_model=myapi.proto.ResponseHeaders,
         )
 
@@ -299,11 +303,11 @@ class HealthClient:
 
     def check(
         self,
-    ) -> ApiResponse[Any, myapi.HealthCheckFail, myapi.proto.ResponseHeaders]:
+    ) -> ApiResponse[Any, Any, myapi.proto.ResponseHeaders]:
         """Check the health of the service
 
         Returns:
-            ApiResponse[Any, myapi.HealthCheckFail, myapi.proto.ResponseHeaders]: Success=Any, Error=myapi.HealthCheckFail
+            ApiResponse[Any, Any, myapi.proto.ResponseHeaders]: Response containing Any data
         """
         path = "/health.check"
 
@@ -312,7 +316,6 @@ class HealthClient:
             path,
             params=params if params else None,
             response_model=None,
-            error_model=myapi.HealthCheckFail,
             response_headers_model=myapi.proto.ResponseHeaders,
         )
 
@@ -340,7 +343,7 @@ class PetsClient:
             params=params if params else None,
             headers_model=headers,
             item_model=myapi.model.output.Pet,
-            error_model=None,
+            error_model=myapi.proto.UnauthorizedError,
             response_headers_model=myapi.proto.ResponseHeaders,
         )
 
@@ -412,11 +415,15 @@ class PetsClient:
     def get_first(
         self,
         headers: Optional[myapi.proto.Headers] = None,
-    ) -> ApiResponse[myapi.model.output.Pet | None, None, myapi.proto.ResponseHeaders]:
+    ) -> ApiResponse[
+        myapi.model.output.Pet | None,
+        myapi.proto.UnauthorizedError,
+        myapi.proto.ResponseHeaders,
+    ]:
         """Fetch first pet, if any exists
 
         Returns:
-            ApiResponse[myapi.model.output.Pet | None, None, myapi.proto.ResponseHeaders]: Success=myapi.model.output.Pet | None, Error=None
+            ApiResponse[myapi.model.output.Pet | None, myapi.proto.UnauthorizedError, myapi.proto.ResponseHeaders]: Success=myapi.model.output.Pet | None, Error=myapi.proto.UnauthorizedError
         """
         path = "/pets.get-first"
 
@@ -426,7 +433,7 @@ class PetsClient:
             params=params if params else None,
             headers_model=headers,
             response_model=myapi.model.output.Pet | None,
-            error_model=None,
+            error_model=myapi.proto.UnauthorizedError,
             response_headers_model=myapi.proto.ResponseHeaders,
         )
 

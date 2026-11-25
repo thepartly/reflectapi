@@ -7,9 +7,6 @@
       "name": "health.check",
       "path": "",
       "description": "Check the health of the service",
-      "error_type": {
-        "name": "myapi::HealthCheckFail"
-      },
       "response_headers": {
         "name": "myapi::proto::ResponseHeaders"
       },
@@ -631,13 +628,6 @@
         "description": "64-bit floating point number"
       },
       {
-        "kind": "struct",
-        "name": "myapi::HealthCheckFail",
-        "fields": {
-          "named": []
-        }
-      },
-      {
         "kind": "enum",
         "name": "myapi::model::Behavior",
         "variants": [
@@ -803,21 +793,6 @@
       },
       {
         "kind": "struct",
-        "name": "myapi::proto::InternalError",
-        "fields": {
-          "named": [
-            {
-              "name": "message",
-              "type": {
-                "name": "std::string::String"
-              },
-              "required": true
-            }
-          ]
-        }
-      },
-      {
-        "kind": "struct",
         "name": "myapi::proto::Paginated",
         "parameters": [
           {
@@ -898,20 +873,6 @@
           {
             "name": "Unauthorized",
             "fields": "none"
-          },
-          {
-            "name": "Internal",
-            "fields": {
-              "unnamed": [
-                {
-                  "name": "0",
-                  "type": {
-                    "name": "myapi::proto::InternalError"
-                  },
-                  "required": true
-                }
-              ]
-            }
           }
         ]
       },
@@ -1000,18 +961,14 @@
         }
       },
       {
-        "kind": "struct",
+        "kind": "enum",
         "name": "myapi::proto::UnauthorizedError",
-        "fields": {
-          "unnamed": [
-            {
-              "name": "0",
-              "type": {
-                "name": "std::tuple::Tuple0"
-              }
-            }
-          ]
-        }
+        "variants": [
+          {
+            "name": "Unauthorized",
+            "fields": "none"
+          }
+        ]
       },
       {
         "kind": "struct",
@@ -1055,6 +1012,12 @@
         "fields": "none"
       },
       {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
         "kind": "enum",
         "name": "std::option::Option",
         "description": "Optional nullable type",
@@ -1090,11 +1053,6 @@
         "kind": "primitive",
         "name": "std::string::String",
         "description": "UTF-8 encoded string"
-      },
-      {
-        "kind": "primitive",
-        "name": "std::tuple::Tuple0",
-        "description": "Unit type"
       },
       {
         "kind": "primitive",

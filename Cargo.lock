@@ -1657,6 +1657,7 @@ version = "0.26.0"
 dependencies = [
  "anyhow",
  "axum",
+ "base64 0.22.1",
  "bytes",
  "check_keyword",
  "chrono",
@@ -1694,6 +1695,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "reflectapi-conventions"
+version = "0.26.0"
+dependencies = [
+ "reflectapi",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "reflectapi-demo"
 version = "0.1.0"
 dependencies = [
@@ -1710,6 +1720,7 @@ dependencies = [
  "indexmap",
  "insta",
  "reflectapi",
+ "reflectapi-conventions",
  "rmp-serde",
  "serde",
  "serde_json",

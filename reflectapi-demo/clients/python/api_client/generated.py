@@ -16,10 +16,6 @@ from ._client import Client
 
 from . import myapi
 
-from .myapi import MyapiHealthCheckFail
-
-from . import myapi
-
 from .myapi.model import (
     MyapiModelBehavior,
     MyapiModelBehaviorAggressiveVariant,
@@ -42,12 +38,10 @@ from . import myapi
 
 from .myapi.proto import (
     MyapiProtoHeaders,
-    MyapiProtoInternalError,
     MyapiProtoPaginated,
     MyapiProtoPetsCreateError,
     MyapiProtoPetsCreateErrorInvalidIdentityVariant,
     MyapiProtoPetsListError,
-    MyapiProtoPetsListErrorInternal,
     MyapiProtoPetsListErrorInvalidCursor,
     MyapiProtoPetsListErrorUnauthorized,
     MyapiProtoPetsListRequest,
@@ -57,6 +51,7 @@ from .myapi.proto import (
     MyapiProtoPetsUpdateErrorValidationVariant,
     MyapiProtoPetsUpdateRequest,
     MyapiProtoResponseHeaders,
+    MyapiProtoUnauthorizedError,
     MyapiProtoValidationA,
     MyapiProtoValidationError,
     MyapiProtoValidationErrorValidationAVariant,
@@ -69,7 +64,6 @@ _rebuild_models()
 __all__ = [
     "AsyncClient",
     "Client",
-    "MyapiHealthCheckFail",
     "MyapiModelBehavior",
     "MyapiModelBehaviorAggressiveVariant",
     "MyapiModelBehaviorOtherVariant",
@@ -80,12 +74,10 @@ __all__ = [
     "MyapiModelKindDog",
     "MyapiModelOutputPet",
     "MyapiProtoHeaders",
-    "MyapiProtoInternalError",
     "MyapiProtoPaginated",
     "MyapiProtoPetsCreateError",
     "MyapiProtoPetsCreateErrorInvalidIdentityVariant",
     "MyapiProtoPetsListError",
-    "MyapiProtoPetsListErrorInternal",
     "MyapiProtoPetsListErrorInvalidCursor",
     "MyapiProtoPetsListErrorUnauthorized",
     "MyapiProtoPetsListRequest",
@@ -95,6 +87,7 @@ __all__ = [
     "MyapiProtoPetsUpdateErrorValidationVariant",
     "MyapiProtoPetsUpdateRequest",
     "MyapiProtoResponseHeaders",
+    "MyapiProtoUnauthorizedError",
     "MyapiProtoValidationA",
     "MyapiProtoValidationError",
     "MyapiProtoValidationErrorValidationAVariant",

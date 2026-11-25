@@ -165,6 +165,42 @@ pub(super) fn validate_response_enums(schema: &crate::Schema) -> anyhow::Result<
     Ok(())
 }
 
+/// One of reflectapi's own types, which a client gets from reflectapi's
+/// runtime rather than generating. Only these three: any other name under
+/// `reflectapi::`, such as a `reflectapi-conventions` type renamed there, is
+/// generated like an application's.
+pub(crate) fn is_reflectapi_type(name: &str) -> bool {
+    matches!(
+        name,
+        "reflectapi::Option" | "reflectapi::Empty" | "reflectapi::Infallible"
+    )
+}
+
+/// `template`, a target-language type such as `FixedSizeArray<T, N>`, with
+/// each identifier that names a parameter replaced by its argument. One pass
+/// over the template's own text, so an argument is never searched again: `T`
+/// replaced by `Node` can't then have an `N` found inside it, and `T1`
+/// doesn't match inside `T11`.
+fn substitute_type_parameters(template: &str, arguments: &[(&str, String)]) -> String {
+    let mut out = String::with_capacity(template.len());
+    let mut rest = template;
+    while let Some(start) = rest.find(|c: char| c.is_alphanumeric() || c == '_') {
+        out.push_str(&rest[..start]);
+        rest = &rest[start..];
+        let end = rest
+            .find(|c: char| !(c.is_alphanumeric() || c == '_'))
+            .unwrap_or(rest.len());
+        let word = &rest[..end];
+        match arguments.iter().find(|(name, _)| *name == word) {
+            Some((_, argument)) => out.push_str(argument),
+            None => out.push_str(word),
+        }
+        rest = &rest[end..];
+    }
+    out.push_str(rest);
+    out
+}
+
 fn bind_type_parameters(
     child: &crate::TypeReference,
     parent: &crate::Type,
@@ -392,6 +428,27 @@ pub fn strip_boilerplate(src: &str) -> String {
     }
 
     stripped
+}
+
+#[cfg(test)]
+mod substitution_tests {
+    use super::substitute_type_parameters as subst;
+
+    #[test]
+    fn replaces_whole_identifiers_once() {
+        let args = [("T1", "A".to_string()), ("T11", "B".into())];
+        assert_eq!(subst("[T1, T11]", &args), "[A, B]");
+        let args = [("N", "3".to_string()), ("T", "Node".into())];
+        assert_eq!(
+            subst("FixedSizeArray<T, N>", &args),
+            "FixedSizeArray<Node, 3>"
+        );
+        let args = [("K", "string".to_string()), ("V", "number".into())];
+        assert_eq!(
+            subst("{ [key in K]: V }", &args),
+            "{ [key in string]: number }"
+        );
+    }
 }
 
 #[cfg(test)]

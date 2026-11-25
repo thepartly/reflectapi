@@ -1,13 +1,17 @@
 #[macro_use]
 mod assert;
 mod basic;
+mod build_checks;
+mod conventions;
 mod enums;
 mod generics;
 mod namespace;
+mod raw;
 mod serde;
 mod type_overrides;
 
 mod test_lib;
+mod type_parameters;
 
 use std::collections::BTreeSet;
 

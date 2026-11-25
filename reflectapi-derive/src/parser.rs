@@ -420,10 +420,10 @@ pub(crate) fn parse_variant_attributes(
                 // #[reflectapi(sunset = "...")]
                 parse_date(cx, SUNSET, &meta, &mut deprecation.sunset)?;
             } else if meta.path == STATUS {
-                // #[reflectapi(status = 404)]: the StatusCode derive's, which checks it
+                // #[reflectapi(status = 404)]: the ResponseError derive's, which checks it
                 meta.value()?.parse::<syn::Expr>()?;
             } else if meta.path == TRANSPARENT {
-                // #[reflectapi(transparent)]: the StatusCode derive's
+                // #[reflectapi(transparent)]: the ResponseError derive's
             } else {
                 let path = meta.path.to_token_stream().to_string();
                 return Err(meta.error(format_args!("unknown reflect variant attribute `{path}`")));

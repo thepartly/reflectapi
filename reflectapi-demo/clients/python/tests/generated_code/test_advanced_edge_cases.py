@@ -27,7 +27,6 @@ from tests.package_imports import (
     MyapiProtoPetsListError as PetsListError,
     MyapiProtoPetsListErrorInvalidCursor as PetsListErrorInvalidCursor,
     MyapiProtoPetsListErrorUnauthorized as PetsListErrorUnauthorized,
-    MyapiProtoPetsListErrorInternal as PetsListErrorInternal,
     MyapiProtoPetsUpdateError as PetsUpdateError,
     MyapiProtoPetsRemoveError as PetsRemoveError,
 )
@@ -367,7 +366,6 @@ class TestEnumEdgeCases:
         list_errors = [
             PetsListError(root=PetsListErrorInvalidCursor()),
             PetsListError(root=PetsListErrorUnauthorized()),
-            PetsListError(root=PetsListErrorInternal(message="test")),
         ]
         update_errors = [
             PetsUpdateError(root="NotFound"),
@@ -382,7 +380,6 @@ class TestEnumEdgeCases:
         assert {error.root.kind for error in list_errors} == {
             "InvalidCursor",
             "Unauthorized",
-            "Internal",
         }
         assert {error.root for error in update_errors} == {"NotFound", "NotAuthorized"}
 

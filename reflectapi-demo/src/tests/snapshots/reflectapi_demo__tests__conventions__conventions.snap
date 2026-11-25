@@ -1,0 +1,870 @@
+---
+source: reflectapi-demo/src/tests/conventions.rs
+expression: schema
+---
+{
+  "format_version": 1,
+  "name": "",
+  "functions": [
+    {
+      "name": "pets.list",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi::pagination::PageRequest",
+        "arguments": [
+          {
+            "name": "std::string::String"
+          }
+        ]
+      },
+      "output_kind": "complete",
+      "output_type": {
+        "name": "reflectapi::pagination::ForwardPaginatedList",
+        "arguments": [
+          {
+            "name": "reflectapi::identity::IdentityData",
+            "arguments": [
+              {
+                "name": "reflectapi_demo::tests::conventions::PetId"
+              },
+              {
+                "name": "reflectapi_demo::tests::conventions::PetData"
+              }
+            ]
+          },
+          {
+            "name": "std::string::String"
+          }
+        ]
+      },
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    },
+    {
+      "name": "pets.insert",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi::conflict::Conditional",
+        "arguments": [
+          {
+            "name": "reflectapi::identity::IdentityData",
+            "arguments": [
+              {
+                "name": "reflectapi_demo::tests::conventions::PetId"
+              },
+              {
+                "name": "reflectapi_demo::tests::conventions::PetData"
+              }
+            ]
+          },
+          {
+            "name": "reflectapi::conflict::IfConflictOnInsert",
+            "arguments": [
+              {
+                "name": "reflectapi::conflict::actions::UpdateWithOrAbort",
+                "arguments": [
+                  {
+                    "name": "reflectapi_demo::tests::conventions::PetData"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "output_kind": "complete",
+      "output_type": {
+        "name": "reflectapi::identity::Identity",
+        "arguments": [
+          {
+            "name": "reflectapi_demo::tests::conventions::PetId"
+          }
+        ]
+      },
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    },
+    {
+      "name": "pets.replace-all",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi::conflict::Conditional",
+        "arguments": [
+          {
+            "name": "reflectapi_demo::tests::conventions::PetData"
+          },
+          {
+            "name": "reflectapi::conflict::matching::IfConflictOnInsertMany",
+            "arguments": [
+              {
+                "name": "reflectapi::conflict::actions::ReplaceOrAbort"
+              }
+            ]
+          }
+        ]
+      },
+      "output_kind": "complete",
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    },
+    {
+      "name": "pets.update",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi::conflict::ConditionalRequired",
+        "arguments": [
+          {
+            "name": "reflectapi::identity::IdentityData",
+            "arguments": [
+              {
+                "name": "reflectapi_demo::tests::conventions::PetId"
+              },
+              {
+                "name": "reflectapi_demo::tests::conventions::PetData"
+              }
+            ]
+          },
+          {
+            "name": "reflectapi::conflict::matching::IfConflictOnUpdateRequired",
+            "arguments": [
+              {
+                "name": "reflectapi::conflict::actions::Ignore"
+              }
+            ]
+          }
+        ]
+      },
+      "output_kind": "complete",
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    },
+    {
+      "name": "pets.remove",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi::conflict::Conditional",
+        "arguments": [
+          {
+            "name": "reflectapi::identity::Identity",
+            "arguments": [
+              {
+                "name": "reflectapi_demo::tests::conventions::PetId"
+              }
+            ]
+          },
+          {
+            "name": "reflectapi::conflict::matching::IfConflictOnRemove",
+            "arguments": [
+              {
+                "name": "reflectapi::conflict::actions::AbortOrIgnore"
+              }
+            ]
+          }
+        ]
+      },
+      "output_kind": "complete",
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::conflict::Conditional",
+        "description": "A write of `data` with an `if` clause, whose absence takes the clause's\ndefaults: `{\"if\": {…}, …data}`. The aliases above, such as\n[`InsertOrElse`], name its usual clauses.",
+        "parameters": [
+          {
+            "name": "T"
+          },
+          {
+            "name": "If"
+          }
+        ],
+        "fields": {
+          "named": [
+            {
+              "name": "if",
+              "type": {
+                "name": "If"
+              }
+            },
+            {
+              "name": "data",
+              "type": {
+                "name": "T"
+              },
+              "required": true,
+              "flattened": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::conflict::ConditionalRequired",
+        "description": "A write of `data` whose `if` is required, as is the action in it:\n`{\"if\": {…}, …data}`. A route whose set has no default takes it, through\none of the aliases above, such as [`InsertOrElseRequired`].\n\n```\nuse reflectapi_conventions::conflict::{actions, InsertOrElseRequired, RemoveOrElseRequired};\n\n#[derive(serde::Deserialize, reflectapi::Input)]\nstruct Pet {\nname: String,\n}\n\ntype PetsImport = InsertOrElseRequired<Pet, actions::ReplaceOrIgnore>;\n\nlet insert: PetsImport =\nserde_json::from_str(r#\"{\"if\": {\"exists\": \"ignore\"}, \"name\": \"Rex\"}\"#).unwrap();\nassert_eq!(insert.if_.exists, actions::ReplaceOrIgnore::Ignore);\n\n// Without `if`, refused.\nassert!(serde_json::from_str::<PetsImport>(r#\"{\"name\": \"Rex\"}\"#).is_err());\n\n// A remove that only ignores a missing pet: the client says so.\nlet remove: RemoveOrElseRequired<Pet, actions::Ignore> =\nserde_json::from_str(r#\"{\"if\": {\"not_exists\": \"ignore\"}, \"name\": \"Rex\"}\"#).unwrap();\nassert_eq!(remove.if_.not_exists, actions::Ignore::Ignore);\n```",
+        "parameters": [
+          {
+            "name": "T"
+          },
+          {
+            "name": "If"
+          }
+        ],
+        "fields": {
+          "named": [
+            {
+              "name": "if",
+              "type": {
+                "name": "If"
+              },
+              "required": true
+            },
+            {
+              "name": "data",
+              "type": {
+                "name": "T"
+              },
+              "required": true,
+              "flattened": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::conflict::IfConflictOnInsert",
+        "description": "The `if` of an insert, of one entity or several.",
+        "parameters": [
+          {
+            "name": "C"
+          }
+        ],
+        "fields": {
+          "named": [
+            {
+              "name": "exists",
+              "type": {
+                "name": "C"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi::conflict::actions::AbortOrIgnore",
+        "variants": [
+          {
+            "name": "abort",
+            "fields": "none"
+          },
+          {
+            "name": "ignore",
+            "fields": "none"
+          }
+        ]
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi::conflict::actions::Ignore",
+        "variants": [
+          {
+            "name": "ignore",
+            "fields": "none"
+          }
+        ]
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi::conflict::actions::ReplaceOrAbort",
+        "variants": [
+          {
+            "name": "replace",
+            "fields": "none"
+          },
+          {
+            "name": "abort",
+            "fields": "none"
+          }
+        ]
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi::conflict::actions::UpdateWithOrAbort",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "variants": [
+          {
+            "name": "update",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          },
+          {
+            "name": "abort",
+            "fields": "none"
+          }
+        ]
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi::conflict::matching::EditionMatchCondition",
+        "description": "A [`MatchCondition`] that can only be `{\"edition\": n}`.",
+        "variants": [
+          {
+            "name": "edition",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "u64"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::conflict::matching::IfConflictOnInsertMany",
+        "description": "The `if` of an insert of several entities: the action for each listed\nitem that exists, and what the parent must match, `exists` by default.",
+        "parameters": [
+          {
+            "name": "C"
+          }
+        ],
+        "fields": {
+          "named": [
+            {
+              "name": "exists",
+              "type": {
+                "name": "C"
+              }
+            },
+            {
+              "name": "parent_matches",
+              "type": {
+                "name": "reflectapi::conflict::matching::MatchCondition"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::conflict::matching::IfConflictOnRemove",
+        "description": "The `if` of a remove: the action when the entity doesn't exist, and the\nedition it must be at, if any.",
+        "parameters": [
+          {
+            "name": "C"
+          }
+        ],
+        "fields": {
+          "named": [
+            {
+              "name": "not_exists",
+              "type": {
+                "name": "C"
+              }
+            },
+            {
+              "name": "matches",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "reflectapi::conflict::matching::EditionMatchCondition"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::conflict::matching::IfConflictOnUpdateRequired",
+        "description": "The `if` of [`UpdateOrElseRequired`]: [`IfConflictOnUpdate`] with\n`not_exists` required.",
+        "parameters": [
+          {
+            "name": "C"
+          }
+        ],
+        "fields": {
+          "named": [
+            {
+              "name": "not_exists",
+              "type": {
+                "name": "C"
+              },
+              "required": true
+            },
+            {
+              "name": "matches",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "reflectapi::conflict::matching::EditionMatchCondition"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "reflectapi::conflict::matching::MatchCondition",
+        "description": "What the checked entity must be: `exists`, or `{\"edition\": n}`, existing\nat edition `n`.",
+        "variants": [
+          {
+            "name": "exists",
+            "fields": "none"
+          },
+          {
+            "name": "edition",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "u64"
+                  },
+                  "required": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::identity::Identity",
+        "description": "A request or response naming one entity: `{\"identity\": …}`.\n\nFor an entity that can be identified in more than one way, `I` saying\nwhich, such as an enum of an ID or an external code, and for the items of\na bulk write. An entity with one fixed key takes it as a plain field, such\nas `id`, instead.",
+        "parameters": [
+          {
+            "name": "I"
+          }
+        ],
+        "fields": {
+          "named": [
+            {
+              "name": "identity",
+              "type": {
+                "name": "I"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::identity::IdentityData",
+        "description": "An entity's identity beside its data, whose fields are flattened in:\n`{\"identity\": …, \"name\": …}`.\n\nFor the same cases as [`Identity`]; with an `if` clause around it, it is\none item of a bulk write.",
+        "parameters": [
+          {
+            "name": "I"
+          },
+          {
+            "name": "D"
+          }
+        ],
+        "fields": {
+          "named": [
+            {
+              "name": "identity",
+              "type": {
+                "name": "I"
+              },
+              "required": true
+            },
+            {
+              "name": "data",
+              "type": {
+                "name": "D"
+              },
+              "required": true,
+              "flattened": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::pagination::PageRequest",
+        "description": "The page a list request asks for.",
+        "parameters": [
+          {
+            "name": "C"
+          }
+        ],
+        "fields": {
+          "named": [
+            {
+              "name": "cursor",
+              "description": "Where to start: a `next_cursor` from an earlier response, or none for\nthe first page.",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "C"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "limit",
+              "description": "How many items to return, at most. The server may return fewer, even\nwhen more follow: only an absent `next_cursor` means the end.",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "std::num::NonZeroU32"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::conventions::PetData",
+        "fields": {
+          "named": [
+            {
+              "name": "name",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::conventions::PetId",
+        "fields": {
+          "unnamed": [
+            {
+              "name": "0",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "primitive",
+        "name": "std::num::NonZeroU32",
+        "description": "32-bit non-zero unsigned integer",
+        "fallback": {
+          "name": "u32"
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "std::option::Option",
+        "description": "Optional nullable type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "representation": "none",
+        "variants": [
+          {
+            "name": "None",
+            "description": "The value is not provided, i.e. null",
+            "fields": "none"
+          },
+          {
+            "name": "Some",
+            "description": "The value is provided and set to some value",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "u32",
+        "description": "32-bit unsigned integer"
+      },
+      {
+        "kind": "primitive",
+        "name": "u64",
+        "description": "64-bit unsigned integer"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::identity::Identity",
+        "description": "A request or response naming one entity: `{\"identity\": …}`.\n\nFor an entity that can be identified in more than one way, `I` saying\nwhich, such as an enum of an ID or an external code, and for the items of\na bulk write. An entity with one fixed key takes it as a plain field, such\nas `id`, instead.",
+        "parameters": [
+          {
+            "name": "I"
+          }
+        ],
+        "fields": {
+          "named": [
+            {
+              "name": "identity",
+              "type": {
+                "name": "I"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::identity::IdentityData",
+        "description": "An entity's identity beside its data, whose fields are flattened in:\n`{\"identity\": …, \"name\": …}`.\n\nFor the same cases as [`Identity`]; with an `if` clause around it, it is\none item of a bulk write.",
+        "parameters": [
+          {
+            "name": "I"
+          },
+          {
+            "name": "D"
+          }
+        ],
+        "fields": {
+          "named": [
+            {
+              "name": "identity",
+              "type": {
+                "name": "I"
+              },
+              "required": true
+            },
+            {
+              "name": "data",
+              "type": {
+                "name": "D"
+              },
+              "required": true,
+              "flattened": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::pagination::ForwardPaginatedList",
+        "description": "A page of a list, read forward with [`PageRequest::cursor`].",
+        "parameters": [
+          {
+            "name": "D"
+          },
+          {
+            "name": "C"
+          }
+        ],
+        "fields": {
+          "named": [
+            {
+              "name": "items",
+              "type": {
+                "name": "std::vec::Vec",
+                "arguments": [
+                  {
+                    "name": "D"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "name": "pagination",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "reflectapi::pagination::ForwardPagination",
+                    "arguments": [
+                      {
+                        "name": "C"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi::pagination::ForwardPagination",
+        "description": "Where the next page of a [`ForwardPaginatedList`] starts.",
+        "parameters": [
+          {
+            "name": "C"
+          }
+        ],
+        "fields": {
+          "named": [
+            {
+              "name": "next_cursor",
+              "description": "The cursor of the next page, if there is one.",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "C"
+                  }
+                ]
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::conventions::PetData",
+        "fields": {
+          "named": [
+            {
+              "name": "name",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::conventions::PetId",
+        "fields": {
+          "unnamed": [
+            {
+              "name": "0",
+              "type": {
+                "name": "std::string::String"
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "std::option::Option",
+        "description": "Optional nullable type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "representation": "none",
+        "variants": [
+          {
+            "name": "None",
+            "description": "The value is not provided, i.e. null",
+            "fields": "none"
+          },
+          {
+            "name": "Some",
+            "description": "The value is provided and set to some value",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "std::vec::Vec",
+        "description": "Expandable array type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -2053,18 +2053,17 @@ fn resolve_type_ref(
     let type_def = schema.get_type(type_ref.name())?;
 
     assert_eq!(type_def.parameters().len(), type_ref.arguments().len());
-    for (type_def_param, type_ref_param) in type_def.parameters().zip(type_ref.arguments.iter()) {
-        if implementation.contains(type_def_param.name.as_str()) {
-            // Ensure only the first occurence of the type parameter is replaced.
-            // For example, this can cause trouble for large tuples where T1 erroneously matches T11.
-            // I think ideally we shouldn't be doing this by string substitution...
-            implementation = implementation.replacen(
-                type_def_param.name.as_str(),
-                type_ref_to_ts_ref(type_ref_param, schema, names).as_str(),
-                1,
-            );
-        }
-    }
+    let arguments = type_def
+        .parameters()
+        .zip(type_ref.arguments.iter())
+        .map(|(param, argument)| {
+            (
+                param.name.as_str(),
+                type_ref_to_ts_ref(argument, schema, names),
+            )
+        })
+        .collect::<Vec<_>>();
+    implementation = super::substitute_type_parameters(&implementation, &arguments);
 
     Some(implementation)
 }

@@ -104,7 +104,7 @@ Enable a feature of the `reflectapi` crate to use the types of another crate:
 | `uuid` | `uuid::Uuid` | `string` |
 | `url` | `url::Url` | `string` |
 | `rust_decimal` | `rust_decimal::Decimal` | `string` |
-| `json` | `serde_json::Value`; `serde_json::Map` as a map | `any` |
+| `json` | `serde_json::Value`; `serde_json::Map` as a map; [`reflectapi::Raw<T>`](#raw-json) as the `T`; [`reflectapi::Encoded<T>`](#encoded-values) as a string | `any`; the `T`'s type; `string` |
 | `indexmap` | `IndexMap<K, V>`, `IndexSet<T>`, as maps and sets | `Record<K, V>`, `Array<T>` |
 
 ```bash
@@ -155,6 +155,10 @@ variant and a union of them.
 
 - `rename`, `rename_all` and the other serde attributes on variants and
   fields are reflected too.
+- An untagged unit variant, such as `Empty` above, is written as `null`.
+  `build()` refuses two of them in one enum, since `null` reads back as the
+  first, and one inside an `Option` or `reflectapi::Option`, since `null`
+  reads back as `None`.
 - An enum whose responses may gain variants can be marked
   `#[reflectapi(open)]`, so that clients keep values with unfamiliar tags; see
   [Enum evolution](../getting-started/attributes.md#enum-evolution).
@@ -271,6 +275,56 @@ is the error type of a route that can't fail. See
 assert_eq!(serde_json::to_string(&reflectapi::Empty {}).unwrap(), "{}");
 assert_eq!(serde_json::to_string(&()).unwrap(), "null");
 ```
+
+## Raw JSON
+
+[`reflectapi::Raw<T>`](https://docs.rs/reflectapi/latest/reflectapi/struct.Raw.html),
+with the `json` feature, is a `T` kept as the JSON it arrived as. The schema
+and the clients see a `T`; the server keeps the text, so it can store or
+forward the value unchanged, read a few fields with `peek` or decode it with
+`decode`. Fields and enum variants the server's own types don't know survive.
+
+With a MessagePack request or response the value is converted to and from
+JSON text: key order and every field survive, but the text isn't kept byte
+for byte, and a value JSON can't represent, such as binary data or NaN, is an
+error.
+
+## Encoded values
+
+[`reflectapi::Encoded<T>`](https://docs.rs/reflectapi/latest/reflectapi/struct.Encoded.html),
+with the `json` feature, is a typed value encoded into a string, for clients
+to store and send back without reading it, such as a page cursor. The server works with the typed `T`; the
+wire, the schema and the clients see a `string`: `T` as JSON, then base64url
+without padding.
+
+```rust
+use reflectapi::Encoded;
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct Cursor {
+    after_id: u64,
+}
+
+let cursor = Encoded(Cursor { after_id: 42 });
+assert_eq!(serde_json::to_string(&cursor).unwrap(), r#""eyJhZnRlcl9pZCI6NDJ9""#);
+```
+
+In a generic type, a parameter used only inside `Encoded`, such as `C` in a
+field `Option<Encoded<C>>`, is left out of the schema with its arguments, so
+clients never see the type it holds.
+
+It is encoded, not secret: anyone can decode the string and send back a
+changed one. Check what you decode as you would any other input, and don't
+put in it anything the client mustn't see.
+
+## Conventions
+
+The separate crate
+[`reflectapi-conventions`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/index.html)
+has the types behind the
+[API Design Standard](../design/standard.md): cursor pagination, identity
+envelopes and conflict resolution. See [Convention Types](../design/conventions.md)
+for how to use them.
 
 ## Types reflectapi doesn't know
 

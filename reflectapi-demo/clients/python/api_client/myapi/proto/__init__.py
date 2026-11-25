@@ -31,6 +31,7 @@ from reflectapi_runtime import AsyncApiStream
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiDateTime
 from reflectapi_runtime import ReflectapiEmpty
+from reflectapi_runtime import ReflectapiInfallible
 from reflectapi_runtime import ReflectapiPartialModel
 from reflectapi_runtime import (
     externally_tagged_json_schema as _externally_tagged_json_schema,
@@ -80,14 +81,6 @@ class MyapiProtoHeaders(BaseModel):
     )
 
     authorization: str = Field(description="Authorization header")
-
-
-class MyapiProtoInternalError(BaseModel):
-    model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
-    )
-
-    message: str
 
 
 class MyapiProtoPaginated(ReflectapiPartialModel, Generic[T]):
@@ -269,26 +262,10 @@ class MyapiProtoPetsListErrorUnauthorized(BaseModel):
         self.__pydantic_fields_set__.update({"kind"})
 
 
-class MyapiProtoPetsListErrorInternal(BaseModel):
-    model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
-    )
-
-    kind: Literal["Internal"] = Field(
-        default="Internal", description="Discriminator field"
-    )
-    message: str
-
-    def model_post_init(self, _context: Any) -> None:
-        self.__pydantic_fields_set__.update({"kind"})
-
-
 class MyapiProtoPetsListError(RootModel):
     root: Annotated[
         Union[
-            MyapiProtoPetsListErrorInvalidCursor,
-            MyapiProtoPetsListErrorUnauthorized,
-            MyapiProtoPetsListErrorInternal,
+            MyapiProtoPetsListErrorInvalidCursor, MyapiProtoPetsListErrorUnauthorized
         ],
         Field(discriminator="kind"),
     ]
@@ -367,6 +344,10 @@ class MyapiProtoPetsUpdateError(RootModel[MyapiProtoPetsUpdateErrorVariants]):
         )
 
 
+class MyapiProtoUnauthorizedError(str, Enum):
+    UNAUTHORIZED = "Unauthorized"
+
+
 class MyapiProtoValidationErrorValidationAVariant(BaseModel):
     """ValidationA variant"""
 
@@ -422,12 +403,10 @@ class MyapiProtoValidationError(RootModel[MyapiProtoValidationErrorVariants]):
 
 # Public aliases for this module
 Headers = MyapiProtoHeaders
-InternalError = MyapiProtoInternalError
 Paginated = MyapiProtoPaginated
 PetsCreateError = MyapiProtoPetsCreateError
 PetsCreateErrorInvalidIdentityVariant = MyapiProtoPetsCreateErrorInvalidIdentityVariant
 PetsListError = MyapiProtoPetsListError
-PetsListErrorInternal = MyapiProtoPetsListErrorInternal
 PetsListErrorInvalidCursor = MyapiProtoPetsListErrorInvalidCursor
 PetsListErrorUnauthorized = MyapiProtoPetsListErrorUnauthorized
 PetsListRequest = MyapiProtoPetsListRequest
@@ -437,20 +416,18 @@ PetsUpdateError = MyapiProtoPetsUpdateError
 PetsUpdateErrorValidationVariant = MyapiProtoPetsUpdateErrorValidationVariant
 PetsUpdateRequest = MyapiProtoPetsUpdateRequest
 ResponseHeaders = MyapiProtoResponseHeaders
+UnauthorizedError = MyapiProtoUnauthorizedError
 ValidationA = MyapiProtoValidationA
 ValidationError = MyapiProtoValidationError
 ValidationErrorValidationAVariant = MyapiProtoValidationErrorValidationAVariant
 
 __all__ = [
     "Headers",
-    "InternalError",
     "MyapiProtoHeaders",
-    "MyapiProtoInternalError",
     "MyapiProtoPaginated",
     "MyapiProtoPetsCreateError",
     "MyapiProtoPetsCreateErrorInvalidIdentityVariant",
     "MyapiProtoPetsListError",
-    "MyapiProtoPetsListErrorInternal",
     "MyapiProtoPetsListErrorInvalidCursor",
     "MyapiProtoPetsListErrorUnauthorized",
     "MyapiProtoPetsListRequest",
@@ -460,6 +437,7 @@ __all__ = [
     "MyapiProtoPetsUpdateErrorValidationVariant",
     "MyapiProtoPetsUpdateRequest",
     "MyapiProtoResponseHeaders",
+    "MyapiProtoUnauthorizedError",
     "MyapiProtoValidationA",
     "MyapiProtoValidationError",
     "MyapiProtoValidationErrorValidationAVariant",
@@ -467,7 +445,6 @@ __all__ = [
     "PetsCreateError",
     "PetsCreateErrorInvalidIdentityVariant",
     "PetsListError",
-    "PetsListErrorInternal",
     "PetsListErrorInvalidCursor",
     "PetsListErrorUnauthorized",
     "PetsListRequest",
@@ -477,6 +454,7 @@ __all__ = [
     "PetsUpdateErrorValidationVariant",
     "PetsUpdateRequest",
     "ResponseHeaders",
+    "UnauthorizedError",
     "ValidationA",
     "ValidationError",
     "ValidationErrorValidationAVariant",

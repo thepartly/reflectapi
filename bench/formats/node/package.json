@@ -1,0 +1,15 @@
+{
+  "name": "reflectapi-format-bench",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bench": "node bench.mjs",
+    "dump": "DUMP=../rust/data node bench.mjs"
+  },
+  "dependencies": {
+    "@msgpack/msgpack": "3.1.3",
+    "cbor-x": "1.6.9",
+    "cborg": "4.5.8",
+    "msgpackr": "1.12.1"
+  }
+}

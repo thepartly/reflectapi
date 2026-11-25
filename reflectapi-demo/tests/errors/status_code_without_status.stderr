@@ -1,7 +1,0 @@
-error: variant `Conflict` gives no status: add `#[reflectapi(status = 404)]`, or `#[reflectapi(transparent)]` to take its field's
-
-         = help: see https://reflectapi.rs/getting-started/attributes.html#a-routes-error
- --> tests/errors/status_code_without_status.rs:5:5
-  |
-5 |     Conflict,
-  |     ^^^^^^^^

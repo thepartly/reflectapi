@@ -1,0 +1,7 @@
+error: status 500: only a variant named `InternalError` answers 500, the server's failure
+
+         = help: see https://reflectapi.rs/getting-started/attributes.html#a-routes-error
+ --> tests/errors/response_error_500_not_internal_error.rs:3:40
+  |
+3 |     #[reflectapi(output_skip, status = 500)]
+  |                                        ^^^

@@ -31,6 +31,7 @@ from reflectapi_runtime import AsyncApiStream
 from reflectapi_runtime import AsyncClientBase, ClientBase, ApiResponse
 from reflectapi_runtime import ReflectapiDateTime
 from reflectapi_runtime import ReflectapiEmpty
+from reflectapi_runtime import ReflectapiInfallible
 from reflectapi_runtime import ReflectapiPartialModel
 from reflectapi_runtime import (
     externally_tagged_json_schema as _externally_tagged_json_schema,
@@ -52,16 +53,7 @@ StdNumNonZeroI32 = Annotated[int, "Rust NonZero i32 type"]
 StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 
 
-class MyapiHealthCheckFail(BaseModel):
-    model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
-    )
-
-
-# Public aliases for this module
-HealthCheckFail = MyapiHealthCheckFail
-
 from . import model
 from . import proto
 
-__all__ = ["HealthCheckFail", "MyapiHealthCheckFail", "model", "proto"]
+__all__ = ["model", "proto"]

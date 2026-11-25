@@ -12,10 +12,6 @@ from __future__ import annotations
 
 from . import myapi
 
-from .myapi import MyapiHealthCheckFail
-
-from . import myapi
-
 from .myapi.model import (
     MyapiModelBehavior,
     MyapiModelBehaviorAggressiveVariant,
@@ -38,12 +34,10 @@ from . import myapi
 
 from .myapi.proto import (
     MyapiProtoHeaders,
-    MyapiProtoInternalError,
     MyapiProtoPaginated,
     MyapiProtoPetsCreateError,
     MyapiProtoPetsCreateErrorInvalidIdentityVariant,
     MyapiProtoPetsListError,
-    MyapiProtoPetsListErrorInternal,
     MyapiProtoPetsListErrorInvalidCursor,
     MyapiProtoPetsListErrorUnauthorized,
     MyapiProtoPetsListRequest,
@@ -53,6 +47,7 @@ from .myapi.proto import (
     MyapiProtoPetsUpdateErrorValidationVariant,
     MyapiProtoPetsUpdateRequest,
     MyapiProtoResponseHeaders,
+    MyapiProtoUnauthorizedError,
     MyapiProtoValidationA,
     MyapiProtoValidationError,
     MyapiProtoValidationErrorValidationAVariant,
@@ -60,20 +55,17 @@ from .myapi.proto import (
 
 
 def rebuild_models() -> None:
-    myapi.myapi = myapi
     myapi.model.myapi = myapi
     myapi.model.input.myapi = myapi
     myapi.model.output.myapi = myapi
     myapi.proto.myapi = myapi
     errors: list[str] = []
     for _model in [
-        MyapiHealthCheckFail,
         MyapiModelBehavior,
         MyapiModelKind,
         MyapiModelInputPet,
         MyapiModelOutputPet,
         MyapiProtoHeaders,
-        MyapiProtoInternalError,
         MyapiProtoPaginated,
         MyapiProtoPetsCreateError,
         MyapiProtoPetsListError,
@@ -83,6 +75,7 @@ def rebuild_models() -> None:
         MyapiProtoPetsUpdateError,
         MyapiProtoPetsUpdateRequest,
         MyapiProtoResponseHeaders,
+        MyapiProtoUnauthorizedError,
         MyapiProtoValidationA,
         MyapiProtoValidationError,
     ]:

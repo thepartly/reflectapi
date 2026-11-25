@@ -14,7 +14,6 @@ from tests.package_imports import (
     MyapiProtoPetsListError as PetsListError,
     MyapiProtoPetsListErrorInvalidCursor as PetsListErrorInvalidCursor,
     MyapiProtoPetsListErrorUnauthorized as PetsListErrorUnauthorized,
-    MyapiProtoPetsListErrorInternal as PetsListErrorInternal,
     MyapiProtoPetsUpdateError as PetsUpdateError,
     MyapiProtoPetsRemoveError as PetsRemoveError,
 )
@@ -102,13 +101,11 @@ class TestErrorEnums:
         """Test PetsListError tagged union values."""
         invalid_cursor = PetsListError(root=PetsListErrorInvalidCursor())
         unauthorized = PetsListError(root=PetsListErrorUnauthorized())
-        internal = PetsListError(root=PetsListErrorInternal(message="boom"))
 
-        expected_values = {"InvalidCursor", "Unauthorized", "Internal"}
+        expected_values = {"InvalidCursor", "Unauthorized"}
         actual_values = {
             invalid_cursor.root.kind,
             unauthorized.root.kind,
-            internal.root.kind,
         }
         assert actual_values == expected_values
 

@@ -35,6 +35,8 @@
     --sidebar-non-existant: var(--steel);
     --sidebar-active: var(--night);
     --sidebar-spacer: var(--steel);
+    --sidebar-header-border-color: var(--mist);
+    --sidebar-hover-bg: rgba(232, 133, 66, 0.14);
     --scrollbar: var(--steel);
     --icons: var(--muted);
     --icons-hover: var(--night);
@@ -72,6 +74,8 @@
     --sidebar-non-existant: var(--muted);
     --sidebar-active: var(--paper);
     --sidebar-spacer: var(--ink);
+    --sidebar-header-border-color: var(--ink);
+    --sidebar-hover-bg: rgba(232, 133, 66, 0.2);
     --scrollbar: var(--ink);
     --icons: var(--steel);
     --icons-hover: var(--paper);
@@ -198,7 +202,9 @@ code, pre, .hljs { font-family: var(--font-mono); }
 /* Syntax colours, as on the landing page: keywords in reflectapi's orange,
    strings green, types slate blue, comments and attributes grey. */
 
-.light .hljs, .rust .hljs { color: var(--night); }
+/* pre only: mdBook 0.5 also gives inline code the hljs class, which keeps
+   its own colour. */
+.light pre .hljs, .rust pre .hljs { color: var(--night); }
 .light .hljs-keyword, .rust .hljs-keyword,
 .light .hljs-selector-tag, .rust .hljs-selector-tag,
 .light .hljs-literal, .rust .hljs-literal { color: #A8501A; font-weight: 500; }
@@ -223,7 +229,7 @@ code, pre, .hljs { font-family: var(--font-mono); }
 .light .hljs-quote, .rust .hljs-quote { color: #8B8D8E; font-style: italic; }
 .light .hljs-deletion, .rust .hljs-deletion { color: #A8501A; }
 
-.coal .hljs, .navy .hljs, .ayu .hljs { color: var(--paper); }
+.coal pre .hljs, .navy pre .hljs, .ayu pre .hljs { color: var(--paper); }
 .coal .hljs-keyword, .navy .hljs-keyword, .ayu .hljs-keyword,
 .coal .hljs-selector-tag, .navy .hljs-selector-tag, .ayu .hljs-selector-tag,
 .coal .hljs-literal, .navy .hljs-literal, .ayu .hljs-literal { color: var(--claw); font-weight: 500; }
@@ -307,6 +313,28 @@ code, pre, .hljs { font-family: var(--font-mono); }
     margin-left: -13px;
 }
 
+/* Hover: an orange tint across the sidebar's full width, whatever the
+   entry's indent. The shadow spreads sideways and is clipped to the row;
+   the scrollbox clips it at the sidebar's edges. */
+
+.chapter-link-wrapper:hover {
+    background: var(--sidebar-hover-bg);
+    box-shadow: 0 0 0 100vmax var(--sidebar-hover-bg);
+    clip-path: inset(0 -100vmax);
+}
+
+/* The current page's headings, listed under it: a hairline, not a bar */
+
+.on-this-page {
+    border-inline-start-width: 1px;
+    margin-left: 12px;
+    padding-left: 10px;
+}
+
+.on-this-page a { font-size: 0.93em; }
+
+.chapter a.current-header { font-weight: 500; }
+
 /* Previous / next */
 
 .nav-chapters { border-radius: var(--radius); background: transparent; }
@@ -323,3 +351,40 @@ code, pre, .hljs { font-family: var(--font-mono); }
     .content { font-size: 1.6rem; }
     .content h1 { font-size: 2em; }
 }
+
+/* The standard's annotated example: scrolls sideways on narrow screens */
+
+.glance-wrap { overflow-x: auto; margin: 1.5em 0; }
+
+/* Folded blocks: what explains a rule, beside it, under a mono label like the
+   section labels */
+
+.content details {
+    margin: 0.8em 0 1.2em;
+    border-left: 2px solid var(--code-border);
+    padding-left: 14px;
+}
+.content details > summary {
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-size: 0.8em;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+.content details > summary:hover { color: var(--fg); }
+.content details[open] > summary { margin-bottom: 0.6em; }
+
+/* A rule's id, closing its statement: a quiet link to the rule. The rule a
+   link led to is marked. */
+
+.content a.rule-tag { text-decoration: none; white-space: nowrap; }
+.content a.rule-tag code {
+    background: none;
+    padding: 0;
+    font-size: 0.75em;
+    color: var(--muted);
+}
+.content a.rule-tag:hover code { color: var(--inline-code-color); }
+.content li:target { box-shadow: -14px 0 0 var(--bg), -17px 0 0 var(--claw); }

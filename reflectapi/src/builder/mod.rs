@@ -4,14 +4,21 @@ mod mode;
 mod result;
 
 use core::fmt;
-use std::{borrow::Borrow, collections::BTreeSet, error::Error, marker::PhantomData};
+use std::{
+    borrow::Borrow,
+    collections::{BTreeSet, HashMap},
+    error::Error,
+    marker::PhantomData,
+};
 
 pub use event::{Event, EventId, InvalidEventId, StreamItem};
 use futures_util::Stream;
 pub use handler::*;
 pub use mode::{BuildMode, DispatchOnly, WithSchema};
 use reflectapi_schema::Pattern;
-pub use result::{IntoResult, StatusCode};
+#[allow(deprecated)]
+pub use result::StatusCode;
+pub use result::{IntoResult, ResponseError};
 use serde::{de::DeserializeOwned, ser::Serialize};
 
 use crate::{Input, Output};
@@ -200,7 +207,7 @@ where
         I: Input + DeserializeOwned + Send + 'static,
         H: Input + DeserializeOwned + Send + 'static,
         O: Output + Serialize + Send + 'static,
-        E: Output + Serialize + StatusCode + Send + 'static,
+        E: ResponseError + Send + 'static,
     {
         let rb = builder(self.route_defaults());
         if rb.sse_keep_alive.is_some() {
@@ -242,7 +249,7 @@ where
         I: Input + DeserializeOwned + Send + 'static,
         H: Input + DeserializeOwned + Send + 'static,
         O: StreamItem + Send + 'static,
-        E1: Output + Serialize + StatusCode + Send + 'static,
+        E1: ResponseError + Send + 'static,
     {
         let rb = builder(self.route_defaults());
         match M::register_function::<I, H, O::Data, E1>(&rb, &mut self.schema, true) {
@@ -473,6 +480,7 @@ where
     ) -> std::result::Result<(crate::Schema, Vec<Router<S>>), crate::BuildErrors> {
         self.errors
             .extend(dedup_types(&mut self.schema, RENAME_COLLISION));
+        drop_unused_type_parameters(&mut self.schema);
         self.schema.input_types.sort_types();
         self.schema.output_types.sort_types();
 
@@ -484,10 +492,13 @@ where
         self.errors.extend(validate_response_headers(&self.schema));
         self.errors.extend(validate_deprecation_dates(&self.schema));
         self.errors.extend(validate_flattened_options(&self.schema));
+        self.errors.extend(validate_untagged_units(&self.schema));
 
         let (mut schema, routers) = self.into_parts()?;
         schema.consolidate_types();
-        let errors = dedup_types(&mut schema, CONSOLIDATION_COLLISION);
+        let mut errors = dedup_types(&mut schema, CONSOLIDATION_COLLISION);
+        // On the consolidated names, which the clients are generated from.
+        errors.extend(validate_module_names(&schema));
         if !errors.is_empty() {
             return Err(crate::BuildErrors(errors));
         }
@@ -683,6 +694,182 @@ fn dedup_types(schema: &mut crate::Schema, cause: &str) -> Vec<BuildError> {
     errors
 }
 
+/// Drops the type parameters a struct's or enum's schema doesn't use, and the
+/// matching arguments wherever it is used. A parameter that reflection erases,
+/// such as `C` in a field `Option<Encoded<C>>`, which reflects as
+/// `Option<String>`, is then not in the schema, and neither is a type only
+/// reachable through it: clients never see a type that exists only on the
+/// server. Built-in types (primitives) keep their parameters.
+fn drop_unused_type_parameters(schema: &mut crate::Schema) {
+    for side in [Side::Input, Side::Output] {
+        let mut roots: Vec<&mut crate::TypeReference> = Vec::new();
+        let typespace = match side {
+            Side::Input => {
+                for f in schema.functions.iter_mut() {
+                    roots.extend(f.input_type.as_mut());
+                    roots.extend(f.input_headers.as_mut());
+                }
+                &mut schema.input_types
+            }
+            Side::Output => {
+                for f in schema.functions.iter_mut() {
+                    match &mut f.output_type {
+                        crate::OutputType::Complete { output_type } => {
+                            roots.extend(output_type.as_mut())
+                        }
+                        crate::OutputType::Stream { item_type } => roots.push(item_type),
+                    }
+                    roots.extend(f.error_type.as_mut());
+                    roots.extend(f.response_headers.as_mut());
+                }
+                &mut schema.output_types
+            }
+        };
+        drop_unused_type_parameters_in(typespace, roots);
+    }
+}
+
+#[derive(Clone, Copy)]
+enum Side {
+    Input,
+    Output,
+}
+
+fn drop_unused_type_parameters_in(
+    typespace: &mut crate::Typespace,
+    mut roots: Vec<&mut crate::TypeReference>,
+) {
+    let reachable_before = reachable_types(typespace, roots.iter().map(|r| &**r));
+    let mut dropped_any = false;
+    loop {
+        // Which parameter positions each generic struct or enum doesn't use.
+        let mut dropped: HashMap<String, Vec<usize>> = HashMap::new();
+        for ty in typespace.types() {
+            let parameters: Vec<&str> = match ty {
+                crate::Type::Struct(s) => s.parameters().map(|p| p.name.as_str()).collect(),
+                crate::Type::Enum(e) => e.parameters().map(|p| p.name.as_str()).collect(),
+                crate::Type::Primitive(_) => continue,
+            };
+            if parameters.is_empty() {
+                continue;
+            }
+            let mut used = BTreeSet::new();
+            for_each_field_type(ty, |type_ref| collect_names(type_ref, &mut used));
+            let unused: Vec<usize> = parameters
+                .iter()
+                .enumerate()
+                .filter(|(_, name)| !used.contains(**name))
+                .map(|(index, _)| index)
+                .collect();
+            if !unused.is_empty() {
+                dropped.insert(ty.name().to_owned(), unused);
+            }
+        }
+        if dropped.is_empty() {
+            break;
+        }
+        dropped_any = true;
+
+        let names: Vec<String> = typespace.types().map(|ty| ty.name().to_owned()).collect();
+        for name in &names {
+            let Some(ty) = typespace.get_type_mut(name) else {
+                continue;
+            };
+            if let Some(unused) = dropped.get(name) {
+                let parameters = match ty {
+                    crate::Type::Struct(s) => &mut s.parameters,
+                    crate::Type::Enum(e) => &mut e.parameters,
+                    crate::Type::Primitive(_) => unreachable!("primitives keep their parameters"),
+                };
+                remove_positions(parameters, unused);
+            }
+            for_each_field_type_mut(ty, |type_ref| drop_arguments(type_ref, &dropped));
+        }
+        for root in roots.iter_mut() {
+            drop_arguments(root, &dropped);
+        }
+    }
+    if !dropped_any {
+        return;
+    }
+    // Types only reachable through a dropped argument go; types nothing used
+    // before are left as they were.
+    let reachable_after = reachable_types(typespace, roots.iter().map(|r| &**r));
+    for name in reachable_before.difference(&reachable_after) {
+        typespace.remove_type(name);
+    }
+}
+
+fn remove_positions<T>(items: &mut Vec<T>, positions: &[usize]) {
+    let mut index = 0;
+    items.retain(|_| {
+        let keep = !positions.contains(&index);
+        index += 1;
+        keep
+    });
+}
+
+fn drop_arguments(type_ref: &mut crate::TypeReference, dropped: &HashMap<String, Vec<usize>>) {
+    if let Some(unused) = dropped.get(&type_ref.name) {
+        remove_positions(&mut type_ref.arguments, unused);
+    }
+    for argument in &mut type_ref.arguments {
+        drop_arguments(argument, dropped);
+    }
+}
+
+fn collect_names<'a>(type_ref: &'a crate::TypeReference, names: &mut BTreeSet<&'a str>) {
+    names.insert(&type_ref.name);
+    for argument in &type_ref.arguments {
+        collect_names(argument, names);
+    }
+}
+
+/// The type of every field of a struct or an enum's variants, and a
+/// primitive's fallback.
+fn for_each_field_type<'a>(ty: &'a crate::Type, mut f: impl FnMut(&'a crate::TypeReference)) {
+    match ty {
+        crate::Type::Struct(s) => s.fields().for_each(|field| f(&field.type_ref)),
+        crate::Type::Enum(e) => e
+            .variants()
+            .flat_map(|v| v.fields())
+            .for_each(|field| f(&field.type_ref)),
+        crate::Type::Primitive(p) => p.fallback().into_iter().for_each(f),
+    }
+}
+
+fn for_each_field_type_mut(ty: &mut crate::Type, mut f: impl FnMut(&mut crate::TypeReference)) {
+    match ty {
+        crate::Type::Struct(s) => s.fields.iter_mut().for_each(|field| f(&mut field.type_ref)),
+        crate::Type::Enum(e) => e
+            .variants
+            .iter_mut()
+            .flat_map(|v| v.fields.iter_mut())
+            .for_each(|field| f(&mut field.type_ref)),
+        crate::Type::Primitive(p) => p.fallback.iter_mut().for_each(f),
+    }
+}
+
+/// The names of the types reachable from `roots`, through fields, arguments
+/// and fallbacks.
+fn reachable_types<'a>(
+    typespace: &crate::Typespace,
+    roots: impl Iterator<Item = &'a crate::TypeReference>,
+) -> BTreeSet<String> {
+    let mut seen = BTreeSet::new();
+    let mut pending: Vec<crate::TypeReference> = roots.cloned().collect();
+    while let Some(type_ref) = pending.pop() {
+        pending.extend(type_ref.arguments.iter().cloned());
+        if !seen.insert(type_ref.name.clone()) {
+            continue;
+        }
+        if let Some(ty) = typespace.get_type(&type_ref.name) {
+            for_each_field_type(ty, |field_type| pending.push(field_type.clone()));
+        }
+    }
+    seen
+}
+
 /// Field and variant dates are checked when their type is derived; route
 /// dates come from the builder and are only checked here.
 fn validate_deprecation_dates(schema: &crate::Schema) -> Vec<BuildError> {
@@ -738,6 +925,192 @@ fn validate_flattened_options(schema: &crate::Schema) -> Vec<BuildError> {
         }
     }
     errors
+}
+
+/// Rejects untagged unit variants that lose data. Such a variant is written as
+/// `null`, so two in one enum can't be told apart (`null` reads back as the
+/// first), and one inside an `Option` reads back as `None`. One `null` variant
+/// elsewhere is a value of its own, and allowed.
+fn validate_untagged_units(schema: &crate::Schema) -> Vec<BuildError> {
+    let mut errors = BTreeSet::new();
+    for typespace in [&schema.input_types, &schema.output_types] {
+        for ty in typespace.types() {
+            if let crate::Type::Enum(e) = ty {
+                if let [first, rest @ ..] = null_variants(e).as_slice() {
+                    if !rest.is_empty() {
+                        let all = std::iter::once(first)
+                            .chain(rest)
+                            .map(|v| format!("`{v}`"))
+                            .collect::<Vec<_>>()
+                            .join(", ");
+                        errors.insert(format!(
+                            "`{}`: variants {all} are untagged units, so each is written as `null`, and `null` reads back as `{first}`",
+                            e.name()
+                        ));
+                    }
+                }
+            }
+            let fields: Vec<(String, &crate::Field)> = match ty {
+                crate::Type::Struct(s) => {
+                    s.fields().map(|f| (f.serde_name().to_owned(), f)).collect()
+                }
+                crate::Type::Enum(e) => e
+                    .variants()
+                    .flat_map(|v| {
+                        v.fields()
+                            .map(move |f| (format!("{}.{}", v.name(), f.serde_name()), f))
+                    })
+                    .collect(),
+                crate::Type::Primitive(_) => continue,
+            };
+            for (path, field) in fields {
+                let location = format!("`{}.{path}`", ty.name());
+                check_optional_null(&field.type_ref, typespace, &location, &mut errors);
+            }
+        }
+    }
+    for f in &schema.functions {
+        let inputs = [
+            ("input", f.input_type()),
+            ("input headers", f.input_headers()),
+        ];
+        let outputs = [
+            (
+                "output",
+                match f.output_type() {
+                    crate::OutputType::Complete { output_type } => output_type.as_ref(),
+                    crate::OutputType::Stream { item_type } => Some(item_type),
+                },
+            ),
+            ("error", f.error_type.as_ref()),
+            ("response headers", f.response_headers()),
+        ];
+        for (typespace, refs) in [
+            (&schema.input_types, &inputs[..]),
+            (&schema.output_types, &outputs[..]),
+        ] {
+            for (what, type_ref) in refs {
+                if let Some(type_ref) = type_ref {
+                    let location = format!("route `{}` {what}", f.name);
+                    check_optional_null(type_ref, typespace, &location, &mut errors);
+                }
+            }
+        }
+    }
+    errors
+        .into_iter()
+        .map(|error| BuildError::Other(error.into()))
+        .collect()
+}
+
+/// The variants of `e` written as `null`: its unit variants if it is
+/// untagged, else its unit variants marked `#[serde(untagged)]`. The options'
+/// own `None` are what they mean, and not counted.
+fn null_variants(e: &crate::Enum) -> Vec<&str> {
+    if matches!(e.name(), "std::option::Option" | "reflectapi::Option") {
+        return Vec::new();
+    }
+    let untagged = matches!(e.representation, crate::Representation::None);
+    e.variants()
+        .filter(|v| matches!(v.fields, crate::Fields::None) && (untagged || v.untagged))
+        .map(|v| v.name())
+        .collect()
+}
+
+/// Reports an `Option` or `reflectapi::Option`, anywhere in `type_ref`,
+/// holding an enum with a variant written as `null`.
+fn check_optional_null(
+    type_ref: &crate::TypeReference,
+    typespace: &crate::Typespace,
+    location: &str,
+    errors: &mut BTreeSet<String>,
+) {
+    if matches!(
+        type_ref.name.as_str(),
+        "std::option::Option" | "reflectapi::Option"
+    ) {
+        if let Some(inner) = type_ref.arguments.first() {
+            if let Some(crate::Type::Enum(e)) = typespace.get_type(&inner.name) {
+                if let Some(variant) = null_variants(e).first() {
+                    errors.insert(format!(
+                        "{location} is `{}<{}>`, and `{}::{variant}` is an untagged unit, written as `null`, which reads back as `None`",
+                        type_ref.name,
+                        e.name(),
+                        e.name(),
+                    ));
+                }
+            }
+        }
+    }
+    for argument in &type_ref.arguments {
+        check_optional_null(argument, typespace, location, errors);
+    }
+}
+
+/// Rejects a reference the TypeScript and Python clients would resolve to the
+/// wrong module. They look a name up from the innermost scope outward, so in
+/// a type inside `c`, a reference to `a::b::X` breaks when a module `c::a`
+/// exists: `a::…` is read as `c::a::…`. Nesting a module under a top-level
+/// one's name is fine while nothing in its scope refers to the top-level one.
+fn validate_module_names(schema: &crate::Schema) -> Vec<BuildError> {
+    let types = || {
+        schema
+            .input_types
+            .types()
+            .chain(schema.output_types.types())
+    };
+    // Every module a type is in: `a` and `a::b` for `a::b::X`.
+    let modules: BTreeSet<String> = types()
+        .flat_map(|ty| {
+            let segments: Vec<&str> = ty.name().split("::").collect();
+            (1..segments.len())
+                .map(|end| segments[..end].join("::"))
+                .collect::<Vec<_>>()
+        })
+        .collect();
+
+    let mut errors = BTreeSet::new();
+    for ty in types() {
+        let segments: Vec<&str> = ty.name().split("::").collect();
+        let module = &segments[..segments.len() - 1];
+        let mut references = Vec::new();
+        match ty {
+            crate::Type::Struct(s) => {
+                references.extend(s.fields().map(|f| &f.type_ref));
+            }
+            crate::Type::Enum(e) => {
+                references.extend(e.variants().flat_map(|v| v.fields()).map(|f| &f.type_ref));
+            }
+            crate::Type::Primitive(_) => continue,
+        }
+        while let Some(type_ref) = references.pop() {
+            references.extend(&type_ref.arguments);
+            let Some(root) = type_ref.name.split("::").next() else {
+                continue;
+            };
+            if !type_ref.name.contains("::") {
+                // A type parameter, or a type outside any module.
+                continue;
+            }
+            // The innermost enclosing module with a child named `root`.
+            if let Some(shadowing) = (1..=module.len())
+                .rev()
+                .map(|end| format!("{}::{root}", module[..end].join("::")))
+                .find(|candidate| modules.contains(candidate))
+            {
+                errors.insert(format!(
+                    "`{}` refers to `{}`, but inside `{}` the TypeScript and Python clients read `{root}::…` as `{shadowing}::…`; rename one of the modules with `rename_types`",
+                    ty.name(),
+                    type_ref.name,
+                    module.join("::"),
+                ));
+            }
+        }
+    }
+    errors
+        .into_iter()
+        .map(|error| BuildError::Other(error.into()))
+        .collect()
 }
 
 /// Checks each distinct `response_headers` type: a non-generic struct of

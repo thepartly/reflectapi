@@ -42,7 +42,7 @@ jobs:
       - name: Install mdBook
         run: |
           if ! command -v mdbook &> /dev/null; then
-            cargo install mdbook --version "~0.4" --locked
+            cargo install mdbook --version "~0.5" --locked
           fi
 
       - name: Build mdBook documentation
