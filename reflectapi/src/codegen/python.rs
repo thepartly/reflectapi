@@ -4282,8 +4282,7 @@ fn collect_group_fields(
             reject_null: false,
         }),
         // A unit type such as `()` flattens to no keys.
-        Layout::Unknown(Opaque::Primitive(name))
-            if name == reflectapi_schema::wire::layout::UNIT => {}
+        Layout::Unknown(Opaque::Primitive(name)) if name == crate::wire::layout::UNIT => {}
         Layout::Unknown(Opaque::Primitive(name)) => anyhow::bail!(
             "python codegen: cannot flatten primitive type '{name}' \
              (only structs, internally-tagged enums, and unit types \

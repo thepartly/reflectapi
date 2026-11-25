@@ -30,6 +30,8 @@
 .light, .rust {
     --bg: #FFFFFF;
     --fg: var(--night);
+    --claw-wash: #FCEDE3;          /* the orange at 15% on white: a fill */
+    --diagram-strong: var(--ink);  /* a diagram's crate outline */
     --sidebar-bg: var(--paper);
     --sidebar-fg: var(--ink);
     --sidebar-non-existant: var(--steel);
@@ -69,6 +71,8 @@
 .coal, .navy, .ayu {
     --bg: var(--night);
     --fg: var(--paper);
+    --claw-wash: #3E2B1D;          /* the orange at 20% on Partly Black */
+    --diagram-strong: var(--steel);
     --sidebar-bg: #1B1C1C;
     --sidebar-fg: var(--mist);
     --sidebar-non-existant: var(--muted);
@@ -388,3 +392,27 @@ code, pre, .hljs { font-family: var(--font-mono); }
 }
 .content a.rule-tag:hover code { color: var(--inline-code-color); }
 .content li:target { box-shadow: -14px 0 0 var(--bg), -17px 0 0 var(--claw); }
+
+/*
+ * Diagrams. A ```mermaid block says what a node is, `class wire accent`, and
+ * these rules draw it in the palette, light or dark: `accent` is what the
+ * diagram is about (an orange hairline and wash; the text stays the theme's),
+ * `crate` a crate outside the one drawn, `planned` something not built yet
+ * (dashed). Frames get an orange hairline. Mermaid's own rules select by id,
+ * so these need !important.
+ */
+.mermaid .node.accent :is(rect, polygon, circle, ellipse, path) {
+    fill: var(--claw-wash) !important;
+    stroke: var(--claw) !important;
+    stroke-width: 2px !important;
+}
+.mermaid .node.crate :is(rect, polygon, circle, ellipse, path) {
+    fill: var(--bg) !important;
+    stroke: var(--diagram-strong) !important;
+}
+.mermaid .node.planned :is(rect, polygon, circle, ellipse, path) {
+    stroke-dasharray: 5 4 !important;
+}
+.mermaid .cluster rect {
+    stroke: var(--claw) !important;
+}

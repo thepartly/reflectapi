@@ -136,6 +136,12 @@
     diagrams.push(diagram);
   }
   if (diagrams.length > 0) {
+    // Mermaid sizes each box by measuring its text, so wait for the book's
+    // font: measured in the fallback font, Geist's wider text overflows.
+    // `fonts.ready` alone resolves at once if Geist hasn't started loading,
+    // so ask for it; a failed load leaves the fallback, which still fits.
+    await document.fonts.load('16px "Geist"').catch(() => {});
+    await document.fonts.ready;
     await mermaid.run({ nodes: diagrams });
   }
 </script>

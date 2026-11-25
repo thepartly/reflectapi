@@ -27,8 +27,6 @@ mod rename;
 mod subst;
 pub mod transforms;
 mod visit;
-#[doc(hidden)]
-pub mod wire;
 
 pub use self::codegen::*;
 pub use self::deprecation::{validate_deprecation_dates, Deprecation, InvalidDeprecationDate};
@@ -59,13 +57,16 @@ use std::{
 /// Within a version, changes are additive: an older reader may ignore them
 /// and still generate a client that makes the same requests and accepts the
 /// same responses, with the same method, path, headers and body. A new
-/// description, deprecation, `format` or `distinct` is additive, since it
-/// only refines types and docs. A change that an older reader would get wrong
-/// by ignoring it bumps the version. Examples are a new route kind, a new
-/// variant of a schema enum, a field that changes the wire shape of a type,
-/// as `untagged` or `open` do, and a field that changes how a route is called,
-/// such as an HTTP method. Removing or renaming a field, or changing what a
-/// missing field means, bumps it too.
+/// description, deprecation or `distinct` is additive, since it only refines
+/// types and docs. A change that an older reader would get wrong by ignoring
+/// it bumps the version. Examples are a new route kind, a new variant of a
+/// schema enum, a field that changes the wire shape of a type, as `untagged`
+/// or `open` do, and a field that changes how a route is called, such as an
+/// HTTP method. Removing or renaming a field, or changing what a missing field
+/// means, bumps it too, unless every reader already treats the field as
+/// missing the same way: `Primitive.format` went without a bump, since its
+/// value always followed from the type's name, and readers derive it from
+/// the name when it's absent.
 pub const SCHEMA_FORMAT_VERSION: u32 = 1;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -766,10 +767,12 @@ pub enum SerializationMode {
 #[non_exhaustive]
 pub struct TypeReference {
     pub name: String,
-    /**
-     * References to actual types to use instead of the type parameters
-     * declared on the referred generic type
-     */
+    /// What fills the type parameters declared on the referred generic type,
+    /// in order. Each is usually a reference to a type, but a parameter of a
+    /// const generic gets its value, written as the reference's name: `[u8; 3]`
+    /// is `std::array::Array` with the arguments `u8` and `3`. Such a name
+    /// refers to no type in the typespace, so a reader that doesn't know the
+    /// referred type follows its fallback instead.
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub arguments: Vec<TypeReference>,
 }
@@ -998,14 +1001,6 @@ pub struct Primitive {
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub fallback: Option<TypeReference>,
 
-    /// What a value is on the wire, beyond its JSON type: a format from the
-    /// OpenAPI format registry, such as `uuid`, `date-time`, `date`,
-    /// `date-time-local` (no offset) or `uri`, or another name a type
-    /// chooses. Clients keep the meaning it gives (OpenAPI's `format`, a
-    /// named type) without each knowing the Rust type.
-    #[serde(skip_serializing_if = "Option::is_none", default)]
-    pub format: Option<String>,
-
     #[serde(
         skip_serializing_if = "LanguageSpecificTypeCodegenConfig::is_serialization_default",
         default
@@ -1025,21 +1020,8 @@ impl Primitive {
             description,
             parameters,
             fallback,
-            format: None,
             codegen_config: Default::default(),
         }
-    }
-
-    /// Sets what a value is on the wire, as a JSON Schema `format` such as
-    /// `uuid` or `date-time`; see [`Primitive::format`].
-    pub fn with_format(mut self, format: impl Into<String>) -> Self {
-        self.format = Some(format.into());
-        self
-    }
-
-    /// What a value is on the wire beyond its JSON type, if the type says.
-    pub fn format(&self) -> Option<&str> {
-        self.format.as_deref()
     }
 
     pub fn name(&self) -> &str {
@@ -1805,9 +1787,20 @@ mod tests {
             description: String::new(),
             parameters: vec![],
             fallback: None,
-            format: None,
             codegen_config: LanguageSpecificTypeCodegenConfig::default(),
         })
+    }
+
+    /// 0.26 wrote a primitive's `format`; the name says the same, so a reader
+    /// now ignores it.
+    #[test]
+    fn a_primitive_written_with_a_format_still_reads() {
+        let primitive: Primitive =
+            serde_json::from_str(r#"{"name": "uuid::Uuid", "format": "uuid"}"#).unwrap();
+        assert_eq!(primitive.name(), "uuid::Uuid");
+        assert!(!serde_json::to_string(&primitive)
+            .unwrap()
+            .contains("format"));
     }
 
     /// Regression: `remove_type` used to drop only the removed key

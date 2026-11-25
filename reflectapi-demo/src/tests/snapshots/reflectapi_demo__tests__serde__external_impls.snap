@@ -188,8 +188,7 @@ expression: schema
         "description": "URL value type",
         "fallback": {
           "name": "std::string::String"
-        },
-        "format": "uri"
+        }
       }
     ]
   },
@@ -359,8 +358,7 @@ expression: schema
         "description": "URL value type",
         "fallback": {
           "name": "std::string::String"
-        },
-        "format": "uri"
+        }
       }
     ]
   }

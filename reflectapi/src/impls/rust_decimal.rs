@@ -6,8 +6,7 @@ fn reflectapi_rust_decimal(schema: &mut crate::Typespace) -> String {
             "Decimal value type".into(),
             vec![],
             Some("std::string::String".into()),
-        )
-        .with_format("decimal");
+        );
         schema.insert_type(type_def.into());
     }
     type_name.into()

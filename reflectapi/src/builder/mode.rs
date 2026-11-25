@@ -1,5 +1,5 @@
+use crate::wire::headers::request_headers;
 use http::HeaderName;
-use reflectapi_schema::wire::headers::request_headers;
 
 use crate::{Function, Input, Output, OutputType, Schema, TypeReference, Typespace};
 

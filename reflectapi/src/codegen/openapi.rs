@@ -793,7 +793,7 @@ impl Converter<'_> {
     }
 
     /// Header parameters for a request headers type, as
-    /// [`reflectapi_schema::wire::headers::request_headers`] finds them, by name. The
+    /// [`crate::wire::headers::request_headers`] finds them, by name. The
     /// builder refuses a type whose headers it can't find, so only a schema
     /// written otherwise has one; its headers are left undescribed.
     fn convert_headers(
@@ -801,7 +801,7 @@ impl Converter<'_> {
         schema: &crate::Schema,
         type_ref: &crate::TypeReference,
     ) -> Vec<Parameter> {
-        let mut headers = reflectapi_schema::wire::headers::request_headers(type_ref, &|name| {
+        let mut headers = crate::wire::headers::request_headers(type_ref, &|name| {
             schema.input_types.get_type(name)
         })
         .unwrap_or_default();
@@ -1669,7 +1669,7 @@ fn primitive_fallback_type_ref(
     // with their own OpenAPI representation (usize, chrono::DateTime,
     // HashSet<T> -> Vec<T>, ...) must keep their richer schema instead of being
     // collapsed to the wire fallback.
-    reflectapi_schema::wire::layout::pointee(primitive, ty_ref)
+    crate::wire::layout::pointee(primitive, ty_ref)
 }
 
 fn sanitize_description(description: &str) -> String {

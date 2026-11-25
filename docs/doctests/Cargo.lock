@@ -970,6 +970,7 @@ dependencies = [
  "reflectapi",
  "reflectapi-conventions",
  "reqwest",
+ "rmp-serde",
  "serde",
  "serde_json",
  "tokio",

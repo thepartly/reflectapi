@@ -87,8 +87,7 @@ expression: schema
         ],
         "fallback": {
           "name": "std::string::String"
-        },
-        "format": "date-time"
+        }
       },
       {
         "kind": "struct",

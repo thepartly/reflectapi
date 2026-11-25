@@ -21,6 +21,7 @@
 
 ### Changed
 
+- **Breaking: `Primitive::format` is removed**, with `Primitive::with_format`. A primitive's format always followed from its name, `uuid::Uuid` is a UUID, and the generators already read it from a table of names for a schema without it; that table is now the only source. The schema JSON stays at format 1: a 0.26 schema's `format` keys are ignored, and a 0.26 reader derives the format from the name, as it did for a schema without them. A primitive of your own no longer declares a format in the schema: map it in the tool instead, such as a TypeScript type override.
 - **Breaking: a route's error implements `ResponseError`, and its derive is `#[derive(reflectapi::ResponseError)]`.** `ResponseError` gives the response's `status()` and the `headers()` it adds, none by default, and has `Output` and `Serialize` as supertraits, so a handler's error is bound by `ResponseError` alone. To migrate:
   - `#[derive(reflectapi::StatusCode)]` becomes `#[derive(reflectapi::ResponseError)]`, with the same attributes and checks.
   - An `impl StatusCode` with `response_headers` becomes an `impl ResponseError` with `status` and `headers`.

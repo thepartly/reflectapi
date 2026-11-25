@@ -86,6 +86,14 @@ mod traits;
 #[cfg(feature = "json")]
 mod transcode;
 mod validation;
+// How serde lays out a reflected type: for the builder, which reads a route's
+// headers by it, and the code generators.
+#[cfg(any(feature = "builder", feature = "codegen"))]
+#[doc(hidden)]
+pub mod wire;
+// What the schema promises a client, built on `wire`: for the code generators.
+#[cfg(feature = "codegen")]
+pub(crate) mod contract;
 
 #[cfg(feature = "rt")]
 pub mod rt;
