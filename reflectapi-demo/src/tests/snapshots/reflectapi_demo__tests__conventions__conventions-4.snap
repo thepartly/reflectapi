@@ -1,0 +1,530 @@
+---
+source: reflectapi-demo/src/tests/conventions.rs
+expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/pets.insert": {
+      "description": "",
+      "post": {
+        "operationId": "pets.insert",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/reflectapi_demo.tests.conventions.PetData"
+                      },
+                      {
+                        "description": "An entity's identity beside its data, whose fields are flattened in:\n`{\"identity\": …, \"name\": …}`.\n\nFor the same cases as [`Identity`]; with an `if` clause around it, it is\none item of a bulk write.",
+                        "type": "object",
+                        "title": "reflectapi.conventions.identity.IdentityData<reflectapi_demo.tests.conventions.PetId, reflectapi_demo.tests.conventions.PetData>",
+                        "required": [
+                          "identity"
+                        ],
+                        "properties": {
+                          "identity": {
+                            "$ref": "#/components/schemas/std.string.String"
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "description": "A write of `data` with an `if` clause, whose absence takes the clause's\ndefaults: `{\"if\": {…}, …data}`. The aliases above, such as\n[`InsertOrElse`], name its usual clauses.",
+                    "type": "object",
+                    "title": "reflectapi.conventions.conflict.Conditional<reflectapi.conventions.identity.IdentityData<reflectapi_demo.tests.conventions.PetId, reflectapi_demo.tests.conventions.PetData>, reflectapi.conventions.conflict.IfConflictOnInsert<reflectapi.conventions.conflict.actions.UpdateWithOrAbort<reflectapi_demo.tests.conventions.PetData>>>",
+                    "properties": {
+                      "if": {
+                        "description": "The `if` of an insert, of one entity or several.",
+                        "type": "object",
+                        "title": "reflectapi.conventions.conflict.IfConflictOnInsert<reflectapi.conventions.conflict.actions.UpdateWithOrAbort<reflectapi_demo.tests.conventions.PetData>>",
+                        "properties": {
+                          "exists": {
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "title": "update<reflectapi_demo.tests.conventions.PetData>",
+                                "required": [
+                                  "update"
+                                ],
+                                "properties": {
+                                  "update": {
+                                    "$ref": "#/components/schemas/reflectapi_demo.tests.conventions.PetData"
+                                  }
+                                }
+                              },
+                              {
+                                "const": "abort"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "A request or response naming one entity: `{\"identity\": …}`.\n\nFor an entity that can be identified in more than one way, `I` saying\nwhich, such as an enum of an ID or an external code, and for the items of\na bulk write. An entity with one fixed key takes it as a plain field, such\nas `id`, instead.",
+                  "type": "object",
+                  "title": "reflectapi.conventions.identity.Identity<reflectapi_demo.tests.conventions.PetId>",
+                  "required": [
+                    "identity"
+                  ],
+                  "properties": {
+                    "identity": {
+                      "$ref": "#/components/schemas/std.string.String"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pets.list": {
+      "description": "",
+      "post": {
+        "operationId": "pets.list",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "description": "The page a list request asks for.",
+                "type": "object",
+                "title": "reflectapi.conventions.pagination.PageRequest<std.string.String>",
+                "properties": {
+                  "cursor": {
+                    "description": "Where to start: a `next_cursor` from an earlier response, or none for\nthe first page.",
+                    "oneOf": [
+                      {
+                        "description": "Null",
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "#/components/schemas/std.string.String"
+                      }
+                    ]
+                  },
+                  "limit": {
+                    "description": "How many items to return, at most. The server may return fewer, even\nwhen more follow: only an absent `next_cursor` means the end.",
+                    "oneOf": [
+                      {
+                        "description": "Null",
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "#/components/schemas/u32"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "A page of a list, read forward with [`PageRequest::cursor`].",
+                  "type": "object",
+                  "title": "reflectapi.conventions.pagination.ForwardPaginatedList<reflectapi.conventions.identity.IdentityData<reflectapi_demo.tests.conventions.PetId, reflectapi_demo.tests.conventions.PetData>, std.string.String>",
+                  "required": [
+                    "items",
+                    "pagination"
+                  ],
+                  "properties": {
+                    "items": {
+                      "description": "Expandable array type",
+                      "type": "array",
+                      "items": {
+                        "allOf": [
+                          {
+                            "$ref": "#/components/schemas/reflectapi_demo.tests.conventions.PetData"
+                          },
+                          {
+                            "description": "An entity's identity beside its data, whose fields are flattened in:\n`{\"identity\": …, \"name\": …}`.\n\nFor the same cases as [`Identity`]; with an `if` clause around it, it is\none item of a bulk write.",
+                            "type": "object",
+                            "title": "reflectapi.conventions.identity.IdentityData<reflectapi_demo.tests.conventions.PetId, reflectapi_demo.tests.conventions.PetData>",
+                            "required": [
+                              "identity"
+                            ],
+                            "properties": {
+                              "identity": {
+                                "$ref": "#/components/schemas/std.string.String"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "pagination": {
+                      "oneOf": [
+                        {
+                          "description": "Null",
+                          "type": "null"
+                        },
+                        {
+                          "description": "Where the next page of a [`ForwardPaginatedList`] starts.",
+                          "type": "object",
+                          "title": "reflectapi.conventions.pagination.ForwardPagination<std.string.String>",
+                          "required": [
+                            "next_cursor"
+                          ],
+                          "properties": {
+                            "next_cursor": {
+                              "description": "The cursor of the next page, if there is one.",
+                              "oneOf": [
+                                {
+                                  "description": "Null",
+                                  "type": "null"
+                                },
+                                {
+                                  "$ref": "#/components/schemas/std.string.String"
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pets.remove": {
+      "description": "",
+      "post": {
+        "operationId": "pets.remove",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "description": "A request or response naming one entity: `{\"identity\": …}`.\n\nFor an entity that can be identified in more than one way, `I` saying\nwhich, such as an enum of an ID or an external code, and for the items of\na bulk write. An entity with one fixed key takes it as a plain field, such\nas `id`, instead.",
+                    "type": "object",
+                    "title": "reflectapi.conventions.identity.Identity<reflectapi_demo.tests.conventions.PetId>",
+                    "required": [
+                      "identity"
+                    ],
+                    "properties": {
+                      "identity": {
+                        "$ref": "#/components/schemas/std.string.String"
+                      }
+                    }
+                  },
+                  {
+                    "description": "A write of `data` with an `if` clause, whose absence takes the clause's\ndefaults: `{\"if\": {…}, …data}`. The aliases above, such as\n[`InsertOrElse`], name its usual clauses.",
+                    "type": "object",
+                    "title": "reflectapi.conventions.conflict.Conditional<reflectapi.conventions.identity.Identity<reflectapi_demo.tests.conventions.PetId>, reflectapi.conventions.conflict.matching.IfConflictOnRemove<reflectapi.conventions.conflict.actions.AbortOrIgnore>>",
+                    "properties": {
+                      "if": {
+                        "description": "The `if` of a remove: the action when the entity doesn't exist, and the\nedition it must be at, if any.",
+                        "type": "object",
+                        "title": "reflectapi.conventions.conflict.matching.IfConflictOnRemove<reflectapi.conventions.conflict.actions.AbortOrIgnore>",
+                        "properties": {
+                          "matches": {
+                            "oneOf": [
+                              {
+                                "description": "Null",
+                                "type": "null"
+                              },
+                              {
+                                "$ref": "#/components/schemas/reflectapi.conventions.conflict.matching.EditionMatchCondition"
+                              }
+                            ]
+                          },
+                          "not_exists": {
+                            "$ref": "#/components/schemas/reflectapi.conventions.conflict.actions.AbortOrIgnore"
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "empty object",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pets.replace-all": {
+      "description": "",
+      "post": {
+        "operationId": "pets.replace-all",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/reflectapi_demo.tests.conventions.PetData"
+                  },
+                  {
+                    "description": "A write of `data` with an `if` clause, whose absence takes the clause's\ndefaults: `{\"if\": {…}, …data}`. The aliases above, such as\n[`InsertOrElse`], name its usual clauses.",
+                    "type": "object",
+                    "title": "reflectapi.conventions.conflict.Conditional<reflectapi_demo.tests.conventions.PetData, reflectapi.conventions.conflict.matching.IfConflictOnInsertMany<reflectapi.conventions.conflict.actions.ReplaceOrAbort>>",
+                    "properties": {
+                      "if": {
+                        "description": "The `if` of an insert of several entities: the action for each listed\nitem that exists, and what the parent must match, `exists` by default.",
+                        "type": "object",
+                        "title": "reflectapi.conventions.conflict.matching.IfConflictOnInsertMany<reflectapi.conventions.conflict.actions.ReplaceOrAbort>",
+                        "properties": {
+                          "exists": {
+                            "$ref": "#/components/schemas/reflectapi.conventions.conflict.actions.ReplaceOrAbort"
+                          },
+                          "parent_matches": {
+                            "$ref": "#/components/schemas/reflectapi.conventions.conflict.matching.MatchCondition"
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "empty object",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pets.update": {
+      "description": "",
+      "post": {
+        "operationId": "pets.update",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/reflectapi_demo.tests.conventions.PetData"
+                      },
+                      {
+                        "description": "An entity's identity beside its data, whose fields are flattened in:\n`{\"identity\": …, \"name\": …}`.\n\nFor the same cases as [`Identity`]; with an `if` clause around it, it is\none item of a bulk write.",
+                        "type": "object",
+                        "title": "reflectapi.conventions.identity.IdentityData<reflectapi_demo.tests.conventions.PetId, reflectapi_demo.tests.conventions.PetData>",
+                        "required": [
+                          "identity"
+                        ],
+                        "properties": {
+                          "identity": {
+                            "$ref": "#/components/schemas/std.string.String"
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "description": "A write of `data` whose `if` is required, as is the action in it:\n`{\"if\": {…}, …data}`. A route whose set has no default takes it, through\none of the aliases above, such as [`InsertOrElseRequired`].\n\n```\nuse reflectapi::conventions::conflict::{actions, InsertOrElseRequired, RemoveOrElseRequired};\n\n#[derive(serde::Deserialize, reflectapi::Input)]\nstruct Pet {\nname: String,\n}\n\ntype PetsImport = InsertOrElseRequired<Pet, actions::ReplaceOrIgnore>;\n\nlet insert: PetsImport =\nserde_json::from_str(r#\"{\"if\": {\"exists\": \"ignore\"}, \"name\": \"Rex\"}\"#).unwrap();\nassert_eq!(insert.if_.exists, actions::ReplaceOrIgnore::Ignore);\n\n// Without `if`, refused.\nassert!(serde_json::from_str::<PetsImport>(r#\"{\"name\": \"Rex\"}\"#).is_err());\n\n// A remove that only ignores a missing pet: the client says so.\nlet remove: RemoveOrElseRequired<Pet, actions::Ignore> =\nserde_json::from_str(r#\"{\"if\": {\"not_exists\": \"ignore\"}, \"name\": \"Rex\"}\"#).unwrap();\nassert_eq!(remove.if_.not_exists, actions::Ignore::Ignore);\n```",
+                    "type": "object",
+                    "title": "reflectapi.conventions.conflict.ConditionalRequired<reflectapi.conventions.identity.IdentityData<reflectapi_demo.tests.conventions.PetId, reflectapi_demo.tests.conventions.PetData>, reflectapi.conventions.conflict.matching.IfConflictOnUpdateRequired<reflectapi.conventions.conflict.actions.Ignore>>",
+                    "required": [
+                      "if"
+                    ],
+                    "properties": {
+                      "if": {
+                        "description": "The `if` of [`UpdateOrElseRequired`]: [`IfConflictOnUpdate`] with\n`not_exists` required.",
+                        "type": "object",
+                        "title": "reflectapi.conventions.conflict.matching.IfConflictOnUpdateRequired<reflectapi.conventions.conflict.actions.Ignore>",
+                        "required": [
+                          "not_exists"
+                        ],
+                        "properties": {
+                          "matches": {
+                            "oneOf": [
+                              {
+                                "description": "Null",
+                                "type": "null"
+                              },
+                              {
+                                "$ref": "#/components/schemas/reflectapi.conventions.conflict.matching.EditionMatchCondition"
+                              }
+                            ]
+                          },
+                          "not_exists": {
+                            "$ref": "#/components/schemas/reflectapi.conventions.conflict.actions.Ignore"
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "200 OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "empty object",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "reflectapi.conventions.conflict.actions.AbortOrIgnore": {
+        "oneOf": [
+          {
+            "const": "abort"
+          },
+          {
+            "const": "ignore"
+          }
+        ]
+      },
+      "reflectapi.conventions.conflict.actions.Ignore": {
+        "oneOf": [
+          {
+            "const": "ignore"
+          }
+        ]
+      },
+      "reflectapi.conventions.conflict.actions.ReplaceOrAbort": {
+        "oneOf": [
+          {
+            "const": "replace"
+          },
+          {
+            "const": "abort"
+          }
+        ]
+      },
+      "reflectapi.conventions.conflict.matching.EditionMatchCondition": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "edition",
+            "required": [
+              "edition"
+            ],
+            "properties": {
+              "edition": {
+                "$ref": "#/components/schemas/u64"
+              }
+            }
+          }
+        ]
+      },
+      "reflectapi.conventions.conflict.matching.MatchCondition": {
+        "oneOf": [
+          {
+            "const": "exists"
+          },
+          {
+            "type": "object",
+            "title": "edition",
+            "required": [
+              "edition"
+            ],
+            "properties": {
+              "edition": {
+                "$ref": "#/components/schemas/u64"
+              }
+            }
+          }
+        ]
+      },
+      "reflectapi_demo.tests.conventions.PetData": {
+        "type": "object",
+        "title": "reflectapi_demo.tests.conventions.PetData",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "$ref": "#/components/schemas/std.string.String"
+          }
+        }
+      },
+      "std.string.String": {
+        "description": "UTF-8 encoded string",
+        "type": "string"
+      },
+      "u32": {
+        "description": "32-bit unsigned integer",
+        "type": "integer",
+        "format": "uint32",
+        "minimum": 0,
+        "maximum": 4294967295
+      },
+      "u64": {
+        "description": "64-bit unsigned integer",
+        "type": "integer",
+        "format": "uint64",
+        "minimum": 0
+      }
+    }
+  }
+}

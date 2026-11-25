@@ -31,6 +31,15 @@
 - [Serving with celld and Cloudflare Workers](./serving/workers.md)
 - [Integrating Other Servers](./serving/other-servers.md)
 
+# API Design
+
+- [API Design Standard](./design/standard.md)
+- [Convention Types](./design/conventions.md)
+
+# Background
+
+- [The Rust Forge 2025 Talk](./talk.md)
+
 # Contributing
 
 - [Architecture](./architecture.md)

@@ -59,6 +59,8 @@
 //! - [`Raw`] (feature `json`): a value kept as the JSON it arrived as.
 //! - [`Encoded`] (feature `json`): a typed value encoded into a string, for
 //!   clients to pass back without reading, such as a cursor.
+//! - [`conventions`] (feature `conventions`): types for one opinionated style
+//!   of API, such as cursor pagination and `if` clauses on writes.
 //! - Generating clients: the `reflectapi` CLI (`cargo binstall reflectapi-cli`),
 //!   or `reflectapi::codegen` (feature `codegen`).
 //! - The complete example: the
@@ -71,7 +73,14 @@
     html_favicon_url = "https://reflectapi.rs/reflectapi-logo.png"
 )]
 
+// The derives write `::reflectapi::…` paths, so the crate can derive for its
+// own types.
+extern crate self as reflectapi;
+
 mod bounded;
+#[cfg(feature = "conventions")]
+#[cfg_attr(docsrs, doc(cfg(feature = "conventions")))]
+pub mod conventions;
 mod empty;
 #[cfg(feature = "json")]
 mod encoded;

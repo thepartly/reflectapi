@@ -178,6 +178,25 @@
   /* Sections */
   section.block { border-top: 1px solid var(--mist); padding: 88px 0; }
   section.block > .wrap > .label { color: var(--muted); }
+  /* one tinted section, for the companion topic */
+  section.block.alt { background: var(--paper); }
+  #design p.intro { color: var(--ink); font-size: 18px; }
+  #design p.intro + p.intro { margin-top: -16px; }
+  /* The standard at a glance: a preview beside the text, full size on click */
+  .design-body { display: grid; grid-template-columns: minmax(0, 720px) minmax(240px, 380px); gap: 56px; align-items: start; }
+  .glance-thumb { display: block; width: 100%; margin-top: -24px; padding: 14px; background: #FFFFFF; border: 1px solid var(--mist); border-radius: var(--radius); cursor: zoom-in; font: inherit; color: inherit; text-align: left; }
+  .glance-thumb:hover { border-color: var(--steel); }
+  .glance-thumb:focus-visible { outline: 2px solid var(--claw); outline-offset: 2px; }
+  .glance-thumb .glance { min-width: 0; pointer-events: none; }
+  .glance-dialog { border: 0; border-radius: var(--radius); padding: 36px 28px 28px; width: min(840px, 96vw); max-height: 92vh; overflow: auto; background: #FFFFFF; }
+  .glance-dialog::backdrop { background: rgba(19, 20, 20, .6); }
+  .glance-dialog .glance { --g-code: var(--paper); }
+  .glance-more { display: flex; justify-content: center; margin: 24px 0 0; }
+  .glance-close { position: absolute; top: 8px; right: 10px; width: 32px; height: 32px; border: 0; border-radius: 6px; background: none; font-size: 24px; line-height: 1; color: var(--muted); cursor: pointer; }
+  .glance-close:hover { color: var(--night); background: var(--paper); }
+  .glance-close:focus-visible { outline: 2px solid var(--claw); }
+  @media (max-width: 860px) { .design-body { grid-template-columns: 1fr; gap: 8px; } .glance-thumb { margin-top: 0; } }
+  #design p.intro strong { color: var(--night); font-weight: 600; }
   h2 { font-size: clamp(32px, 4vw, 48px); line-height: 1.08; margin: 16px 0 40px; max-width: 30ch; text-wrap: balance; }
   .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
   .card.mini pre { font-size: 12.5px; padding: 16px; }
@@ -200,6 +219,14 @@
   .row-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
   .row-cards pre { font-size: 12px; }
   .row-cards pre s { text-decoration-color: var(--muted); }
+  /* Copy buttons on the install commands, in the label row's right corner */
+  .card.copyable { position: relative; }
+  .copy { position: absolute; top: 6px; right: 8px; width: 30px; height: 30px; display: grid; place-items: center; padding: 0; border: 1px solid transparent; border-radius: 6px; background: none; color: var(--muted); cursor: pointer; }
+  .copy:hover { color: var(--night); background: #FFFFFF; border-color: var(--mist); }
+  .copy:focus-visible { outline: 2px solid var(--claw); outline-offset: 1px; }
+  .copy svg { width: 15px; height: 15px; }
+  .copy .done, .copy.copied .idle { display: none; }
+  .copy.copied .done { display: block; color: var(--claw-deep); }
   .start { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 0 0 32px; }
   ul.more-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   ul.more-list li { background: var(--paper); border: 1px solid var(--mist); border-radius: var(--radius); padding: 16px 18px; }
@@ -209,6 +236,11 @@
     color: var(--night); text-decoration: underline; text-decoration-color: var(--claw); text-decoration-thickness: 1.5px; text-underline-offset: 3px;
   }
   ul.more-list span { font-size: 15px; color: var(--ink); }
+  /* Text links: on hover or focus, deep orange with a thicker underline, as in the book */
+  p.more a:hover, p.intro a:hover, .row p a:hover, ul.more-list a:hover,
+  p.more a:focus-visible, p.intro a:focus-visible, .row p a:focus-visible, ul.more-list a:focus-visible {
+    color: var(--claw-deep); text-decoration-thickness: 2.5px;
+  }
   .feature { background: var(--paper); border: 1px solid var(--mist); border-radius: var(--radius); padding: 28px; }
   .feature h3 { font-size: 24px; line-height: 1.15; margin-bottom: 14px; }
   .feature p { margin: 0 0 18px; font-size: 16px; }
@@ -231,26 +263,30 @@
 
   /* The talk: the one dark band */
   section.talk { background: var(--night); color: var(--mist); padding: 88px 0; }
-  section.talk .talk-body { display: flex; gap: 56px; align-items: flex-start; }
+  section.talk .talk-body { display: flex; gap: 56px; align-items: center; }
   section.talk .talk-text p { max-width: 38em; }
-  section.talk .conf-logo { margin-top: 4px; }
-  section.talk .conf-logo { flex: none; }
-  section.talk .conf-logo:hover img { opacity: .8; }
-  section.talk .conf-logo img { height: 56px; display: block; }
-  section.talk .talk-body p { margin: 0 0 32px; }
+  /* The title slide as a video poster: a click plays the recording */
+  section.talk .talk-poster { position: relative; flex: none; display: block; width: 380px; aspect-ratio: 380 / 260; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--ink); }
+  /* the API design preview's proportions, so the two match; the slide's sides crop */
+  section.talk .talk-poster img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  section.talk .talk-poster .play { position: absolute; left: 12px; top: 12px; display: block; line-height: 0; }
+  section.talk .talk-poster .play svg { box-sizing: content-box; padding: 11px 10px 11px 12px; border-radius: 50%; background: rgba(19, 20, 20, .72); color: var(--paper); transition: background .15s; }
+  section.talk .talk-poster:hover .play svg, section.talk .talk-poster:focus-visible .play svg { background: var(--claw); color: var(--night); }
+  section.talk .talk-poster:focus-visible { outline: 2px solid var(--claw); outline-offset: 2px; }
+  section.talk .talk-body p { margin: 0 0 16px; }
   @media (max-width: 860px) {
-    /* The logo first, left-aligned like the text, then the paragraph and the button */
+    /* The paragraph and the button, then the poster */
     section.talk .talk-body { flex-direction: column; align-items: flex-start; gap: 24px; }
-    section.talk .conf-logo { order: -1; margin-top: 0; }
-    section.talk .conf-logo img { height: 44px; }
+    section.talk .talk-poster { width: 100%; max-width: 480px; }
   }
   section.talk .label { color: var(--steel); }
+  section.talk .talk-read { font-size: .875rem; color: var(--steel); text-decoration: underline; text-decoration-color: var(--steel); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+  section.talk .talk-read:hover { color: var(--paper); }
+  section.talk .talk-sep { margin: 0 10px; font-size: .875rem; color: var(--steel); }
   section.talk .label a { color: inherit; text-decoration: underline; text-decoration-color: var(--claw); text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
   section.talk .label a:hover { color: var(--paper); }
   section.talk h2 { color: var(--paper); margin-bottom: 20px; }
   section.talk p { max-width: 38em; margin: 0 0 32px; }
-  section.talk .button { border-color: var(--paper); color: var(--paper); }
-  section.talk .button:hover { background: var(--ink); }
 
   footer { padding: 40px 0 48px; background: var(--paper); border-top: 1px solid var(--mist); }
   footer .wrap { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-end; justify-content: space-between; }
@@ -710,6 +746,27 @@ api = <span class="fn">AsyncClient</span>(<span class="st">"https://api.example.
     </div>
   </section>
 
+  <section class="block alt" id="design">
+    <div class="wrap">
+      <h2>API Design Standard and Conventions</h2>
+      <div class="design-body">
+        <div>
+        <p class="intro">Proven across <a href="https://partly.com">Partly</a>'s data-rich products, services and apps. <a href="design/standard.html">Use it and save yourself a lot of time, or take it as a starting point and adapt it.</a></p>
+        <p class="intro">An API call needs a name, an input type and an output type, its errors included. That's it.</p>
+        <p class="intro">The standard cuts down almost all of HTTP's features and leaves one way to do each thing, so endpoints are <strong>easy to define</strong>, <strong>understand</strong> and <strong>implement</strong>, in <strong>any language</strong>, <strong>with reflectapi or without it</strong>.</p>
+        </div>
+        <button class="glance-thumb" type="button" aria-haspopup="dialog" aria-label="The standard at a glance: enlarge">
+          <!-- glance: docs/src/design/glance.svg, inlined by build-extras.py -->
+        </button>
+      </div>
+      <dialog class="glance-dialog" aria-label="The standard at a glance">
+        <button class="glance-close" type="button" aria-label="Close">&times;</button>
+        <div class="glance-slot"></div>
+        <p class="glance-more"><a class="button primary" href="design/standard.html">See all the details and conventions</a></p>
+      </dialog>
+    </div>
+  </section>
+
   <section class="talk" id="talk">
     <div class="wrap">
       <div class="label">Conference talk · <a href="https://rustforgeconf.com">Rust Forge 2025</a> · Wellington</div>
@@ -717,9 +774,12 @@ api = <span class="fn">AsyncClient</span>(<span class="st">"https://api.example.
       <div class="talk-body">
         <div class="talk-text">
           <p>Why reflectapi exists, why client generation through OpenAPI kept failing, and a live demo of a server change turning into a compile error in its client.</p>
-          <a class="button" href="https://www.youtube.com/watch?v=6Scgq9fBZQM&amp;t=21675s">Watch the talk</a>
+          <a class="talk-read" href="https://www.youtube.com/watch?v=6Scgq9fBZQM&amp;t=21675s">the video</a><span class="talk-sep" aria-hidden="true">·</span><a class="talk-read" href="talk.html">the transcript</a>
         </div>
-        <a class="conf-logo" href="https://rustforgeconf.com"><img src="rust-forge-logo.svg" alt="Rust Forge"></a>
+        <a class="talk-poster" href="https://www.youtube.com/watch?v=6Scgq9fBZQM&amp;t=21675s" aria-label="Watch the talk on YouTube">
+          <img src="talk/slide-02.webp" alt="The talk's title slide: Reflect Your Rust API into the World, with help from the Partly engineering team" width="1600" height="900" loading="lazy">
+          <span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></span>
+        </a>
       </div>
     </div>
   </section>
@@ -727,12 +787,14 @@ api = <span class="fn">AsyncClient</span>(<span class="st">"https://api.example.
     <div class="wrap">
       <h2>Get started</h2>
       <div class="start">
-        <div class="card mini">
+        <div class="card mini copyable" data-copy="cargo add reflectapi --features builder,axum">
           <span class="label">The crate, for the server</span>
+          <button class="copy" type="button" aria-label="Copy the command"><svg class="idle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><svg class="done" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></button>
 <pre><span class="cm">$</span> cargo add reflectapi --features builder,axum</pre>
         </div>
-        <div class="card mini">
+        <div class="card mini copyable" data-copy="cargo binstall reflectapi-cli">
           <span class="label">The CLI, for the clients</span>
+          <button class="copy" type="button" aria-label="Copy the command"><svg class="idle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><svg class="done" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></button>
 <pre><span class="cm">$</span> cargo binstall reflectapi-cli</pre>
         </div>
       </div>
@@ -793,6 +855,38 @@ api = <span class="fn">AsyncClient</span>(<span class="st">"https://api.example.
         next.focus();
       });
     }
+  }
+
+  // The standard at a glance: the preview's drawing moves into the dialog at
+  // full size, and back when it closes, so the page holds one copy.
+  const glanceDialog = document.querySelector(".glance-dialog");
+  const glanceThumb = document.querySelector(".glance-thumb");
+  const glance = glanceThumb?.querySelector("svg.glance");
+  if (glanceDialog && glance) {
+    glanceThumb.addEventListener("click", () => {
+      glanceDialog.querySelector(".glance-slot").append(glance);
+      glanceDialog.showModal();
+    });
+    glanceDialog.addEventListener("close", () => glanceThumb.prepend(glance));
+    glanceDialog.addEventListener("click", (e) => { if (e.target === glanceDialog) glanceDialog.close(); });
+    glanceDialog.querySelector(".glance-close").addEventListener("click", () => glanceDialog.close());
+  }
+
+  // Copy buttons: put the card's command on the clipboard, and show a check.
+  for (const button of document.querySelectorAll(".copy")) {
+    button.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(button.closest("[data-copy]").dataset.copy);
+      } catch {
+        return;
+      }
+      button.classList.add("copied");
+      button.setAttribute("aria-label", "Copied");
+      setTimeout(() => {
+        button.classList.remove("copied");
+        button.setAttribute("aria-label", "Copy the command");
+      }, 1500);
+    });
   }
 </script>
 </body>

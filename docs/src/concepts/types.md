@@ -106,6 +106,7 @@ Enable a feature of the `reflectapi` crate to use the types of another crate:
 | `rust_decimal` | `rust_decimal::Decimal` | `string` |
 | `json` | `serde_json::Value`; `serde_json::Map` as a map; [`reflectapi::Raw<T>`](#raw-json) as the `T`; [`reflectapi::Encoded<T>`](#encoded-values) as a string | `any`; the `T`'s type; `string` |
 | `indexmap` | `IndexMap<K, V>`, `IndexSet<T>`, as maps and sets | `Record<K, V>`, `Array<T>` |
+| `conventions` | [`reflectapi::conventions`](../design/conventions.md): pagination, identity envelopes, conflict clauses | their own types |
 
 ```bash
 cargo add reflectapi --features builder,chrono,uuid
@@ -363,9 +364,21 @@ let cursor = Encoded(Cursor { after_id: 42 });
 assert_eq!(serde_json::to_string(&cursor).unwrap(), r#""eyJhZnRlcl9pZCI6NDJ9""#);
 ```
 
+In a generic type, a parameter used only inside `Encoded`, such as `C` in a
+field `Option<Encoded<C>>`, is left out of the schema with its arguments, so
+clients never see the type it holds.
+
 It is encoded, not secret: anyone can decode the string and send back a
 changed one. Check what you decode as you would any other input, and don't
 put in it anything the client mustn't see.
+
+## Conventions
+
+[`reflectapi::conventions`](https://docs.rs/reflectapi/latest/reflectapi/conventions/index.html),
+with the `conventions` feature, has the types behind the
+[API Design Standard](../design/standard.md): cursor pagination, identity
+envelopes and conflict resolution. See [Convention Types](../design/conventions.md)
+for how to use them.
 
 ## Types reflectapi doesn't know
 

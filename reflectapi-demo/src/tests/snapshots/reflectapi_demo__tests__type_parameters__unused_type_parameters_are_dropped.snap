@@ -1,0 +1,216 @@
+---
+source: reflectapi-demo/src/tests/type_parameters.rs
+expression: schema
+---
+{
+  "format_version": 1,
+  "name": "",
+  "functions": [
+    {
+      "name": "pets.list",
+      "path": "",
+      "input_type": {
+        "name": "reflectapi_demo::tests::type_parameters::PageRequest"
+      },
+      "output_kind": "complete",
+      "output_type": {
+        "name": "reflectapi_demo::tests::type_parameters::Page",
+        "arguments": [
+          {
+            "name": "u32"
+          }
+        ]
+      },
+      "serialization": [
+        "json",
+        "msgpack"
+      ]
+    }
+  ],
+  "input_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Empty",
+        "description": "Struct object with no fields",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::type_parameters::PageRequest",
+        "fields": {
+          "named": [
+            {
+              "name": "cursor",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "std::option::Option",
+        "description": "Optional nullable type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "representation": "none",
+        "variants": [
+          {
+            "name": "None",
+            "description": "The value is not provided, i.e. null",
+            "fields": "none"
+          },
+          {
+            "name": "Some",
+            "description": "The value is provided and set to some value",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      }
+    ]
+  },
+  "output_types": {
+    "types": [
+      {
+        "kind": "struct",
+        "name": "reflectapi::Infallible",
+        "description": "Error object which is expected to be never returned",
+        "fields": "none"
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::type_parameters::Page",
+        "description": "`C` reaches `Pagination` only, so it goes from here once it goes there.",
+        "parameters": [
+          {
+            "name": "D"
+          }
+        ],
+        "fields": {
+          "named": [
+            {
+              "name": "items",
+              "type": {
+                "name": "std::vec::Vec",
+                "arguments": [
+                  {
+                    "name": "D"
+                  }
+                ]
+              },
+              "required": true
+            },
+            {
+              "name": "pagination",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "reflectapi_demo::tests::type_parameters::Pagination"
+                  }
+                ]
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "struct",
+        "name": "reflectapi_demo::tests::type_parameters::Pagination",
+        "fields": {
+          "named": [
+            {
+              "name": "next_cursor",
+              "type": {
+                "name": "std::option::Option",
+                "arguments": [
+                  {
+                    "name": "std::string::String"
+                  }
+                ]
+              },
+              "required": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "enum",
+        "name": "std::option::Option",
+        "description": "Optional nullable type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ],
+        "representation": "none",
+        "variants": [
+          {
+            "name": "None",
+            "description": "The value is not provided, i.e. null",
+            "fields": "none"
+          },
+          {
+            "name": "Some",
+            "description": "The value is provided and set to some value",
+            "fields": {
+              "unnamed": [
+                {
+                  "name": "0",
+                  "type": {
+                    "name": "T"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "std::string::String",
+        "description": "UTF-8 encoded string"
+      },
+      {
+        "kind": "primitive",
+        "name": "std::vec::Vec",
+        "description": "Expandable array type",
+        "parameters": [
+          {
+            "name": "T"
+          }
+        ]
+      },
+      {
+        "kind": "primitive",
+        "name": "u32",
+        "description": "32-bit unsigned integer"
+      }
+    ]
+  }
+}

@@ -98,6 +98,9 @@ codegen = [
 rt = ["dep:http", "dep:serde_json", "dep:bytes", "dep:url"]
 glob = ["reflectapi-schema/glob"]
 json = ["dep:serde_json", "serde_json/raw_value", "dep:base64"]
+# opinionated API types: pagination, identity envelopes and conflict
+# clauses
+conventions = []
 indexmap = ["dep:indexmap"]
 reqwest = ["dep:reqwest"]
 reqwest-middleware = ["dep:reqwest-middleware", "reqwest"]

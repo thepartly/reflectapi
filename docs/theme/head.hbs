@@ -25,9 +25,9 @@
 <script>
   document.addEventListener("DOMContentLoaded", () => {
     for (const id of ["default_theme", "rust", "navy", "ayu"]) {
-      document.getElementById(id)?.closest("li")?.remove();
+      document.getElementById(`mdbook-theme-${id}`)?.closest("li")?.remove();
     }
-    const dark = document.getElementById("coal");
+    const dark = document.getElementById("mdbook-theme-coal");
     if (dark) dark.textContent = "Dark";
 
     const title = document.querySelector(".menu-title");
@@ -40,6 +40,24 @@
         '<img class="light-logo" src="{{ path_to_root }}reflectapi-wordmark.svg" alt="reflectapi">' +
         '<img class="dark-logo" src="{{ path_to_root }}reflectapi-wordmark-dark.svg" alt="reflectapi">';
       title.replaceChildren(link);
+    }
+  });
+</script>
+{{!--
+  Folded reasoning (<details class="reasoning">) opens for printing, and folds
+  again after.
+--}}
+<script>
+  addEventListener("beforeprint", () => {
+    for (const d of document.querySelectorAll("details.reasoning:not([open])")) {
+      d.open = true;
+      d.dataset.printOpened = "";
+    }
+  });
+  addEventListener("afterprint", () => {
+    for (const d of document.querySelectorAll("details[data-print-opened]")) {
+      d.open = false;
+      delete d.dataset.printOpened;
     }
   });
 </script>

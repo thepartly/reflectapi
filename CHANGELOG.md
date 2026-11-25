@@ -13,6 +13,13 @@
   - **OpenAPI:** `minLength`/`maxLength`, `minItems`/`maxItems` or `minProperties`/`maxProperties`.
 - **`reflectapi::Raw<T>`** (feature `json`): a `T` kept as the JSON it arrived as, so the server can store or forward it unchanged, read a few fields with `peek` or decode it with `decode`. The schema and clients see a `T`. With MessagePack the value is converted to and from JSON text, keeping key order and every field.
 - **`reflectapi::Encoded<T>`** (feature `json`): a typed value encoded into a string, for clients to pass back without reading, such as a page cursor: a typed `T` on the server, a string (JSON, then base64url) on the wire. Encoded, not secret. See [Encoded values](https://reflectapi.rs/concepts/types.html#encoded-values).
+- **`reflectapi::conventions`** (feature `conventions`): types for one opinionated style of API, shared by the services that use them:
+  - **`pagination`:** `PageRequest` (`cursor`, `limit`), `NonPaginatedList` and `ForwardPaginatedList`, each keeping its items under `items`. The cursor is a `String` by default; `PageRequest<Encoded<Cursor>>` decodes it on arrival while clients still see a string.
+  - **`identity`:** `Identity<I>` and `IdentityData<I, D>`, the data's fields flattened beside the identity, for entities identified in more than one way and for bulk-write items.
+  - **`conflict`:** an `if` clause on a write, `{"if": {"exists": "replace"}, …}`. A write is a `Conditional` of its data and a clause, with aliases such as `InsertOrElse`, `UpdateOrElse` and `RemoveOrElse`. A route takes its actions as one set from the `conflict::actions` catalogue, such as `ReplaceOrAbort` or `AbortOrIgnore`: every combination of `abort`, `ignore`, `replace` and `update` (with or without fields). A set doesn't name its side: `exists` or `not_exists`, the clause field it fills, does. A set with `abort` defaults to it; one without has no default, so the client chooses, and its route takes a `…OrElseRequired` alias, such as `InsertOrElseRequired`, whose `if` and action are required. `Idempotent` marks the sets without `abort`, for writes the server may process more than once. `conflict::matching`'s clauses add a condition on the entity's existence or edition.
+
+  A Rust client uses these types from `reflectapi`, so its crate enables the feature too.
+- **The schema leaves out type parameters it doesn't use**, with their arguments wherever the type is used, and the types only they reached. A parameter that reflection erases, such as `C` in a field `Option<Encoded<C>>`, which is a `string` on the wire, no longer gives clients a type parameter, and the type it held, that they never read.
 - **`reflectapi::Empty` is `Copy` and `Hash`**, so an enum holding it can derive both.
 - **Fixed-size arrays are checked in every client**: `[T; N]` gets `Field(min_length=N, max_length=N)` in Python and `minItems`/`maxItems` in OpenAPI, and the TypeScript client has `fixedSizeArray(items, N)` (and `fixedSizeArray.try`) to check an array built at runtime, instead of an unchecked cast.
 
@@ -39,6 +46,7 @@
 
 ### Fixed
 
+- **A schema with a `NonZeroU8` to `NonZeroU128` and no plain integer of its width no longer crashes OpenAPI generation.** The non-zero types name the plain integer as their fallback, and now add it to the schema.
 - **Two different types under one name are a build error, where clients silently kept one.** If `rename_types` or `glob_rename_types` mapped two different types onto one name, `build()` succeeded, and every generated client kept only one of them. Which one depended on route order, so routes using the other got the wrong shape. The same happened when `nest` or `extend` merged builders with different types of the same name. `build()` now merges copies of one definition and fails on different types, naming the type and whether it's a request or response type. `Typespace` gains `dedup_types` and `conflicting_types`. ([#181](https://github.com/thepartly/reflectapi/issues/181))
 - **`build()` refuses schemas whose clients would lose data or fail to compile**, always:
   - **Two untagged unit variants in one enum.** Both are written as `null`, and `null` reads back as the first.

@@ -139,45 +139,45 @@ impl_reflectapi_simple!(bool, "Boolean value");
 impl_reflectapi_simple!(char, "Unicode character");
 impl_reflectapi_simple!(std::string::String, "UTF-8 encoded string");
 
+// The fallback is added to the schema too, so a codegen that falls back
+// finds it.
 macro_rules! impl_reflectapi_simple_with_fallback {
-    ($type:ty, $description:tt, $fallback:expr) => {
+    ($type:ty, $description:tt, $fallback:ty) => {
         impl Input for $type {
             fn reflectapi_input_type(schema: &mut crate::Typespace) -> crate::TypeReference {
-                reflectapi_type_simple(schema, stringify!($type), $description, $fallback)
+                let fallback = Some(<$fallback as Input>::reflectapi_input_type(schema));
+                reflectapi_type_simple(schema, stringify!($type), $description, fallback)
             }
         }
         impl Output for $type {
             fn reflectapi_output_type(schema: &mut crate::Typespace) -> crate::TypeReference {
-                reflectapi_type_simple(schema, stringify!($type), $description, $fallback)
+                let fallback = Some(<$fallback as Output>::reflectapi_output_type(schema));
+                reflectapi_type_simple(schema, stringify!($type), $description, fallback)
             }
         }
     };
 }
 
-impl_reflectapi_simple_with_fallback!(
-    std::num::NonZeroU8,
-    "8-bit non-zero unsigned integer",
-    Some("u8".into())
-);
+impl_reflectapi_simple_with_fallback!(std::num::NonZeroU8, "8-bit non-zero unsigned integer", u8);
 impl_reflectapi_simple_with_fallback!(
     std::num::NonZeroU16,
     "16-bit non-zero unsigned integer",
-    Some("u16".into())
+    u16
 );
 impl_reflectapi_simple_with_fallback!(
     std::num::NonZeroU32,
     "32-bit non-zero unsigned integer",
-    Some("u32".into())
+    u32
 );
 impl_reflectapi_simple_with_fallback!(
     std::num::NonZeroU64,
     "64-bit non-zero unsigned integer",
-    Some("u64".into())
+    u64
 );
 impl_reflectapi_simple_with_fallback!(
     std::num::NonZeroU128,
     "128-bit non-zero unsigned integer",
-    Some("u128".into())
+    u128
 );
 
 impl Input for isize {

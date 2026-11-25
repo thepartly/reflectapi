@@ -4,7 +4,12 @@ mod mode;
 mod result;
 
 use core::fmt;
-use std::{borrow::Borrow, collections::BTreeSet, error::Error, marker::PhantomData};
+use std::{
+    borrow::Borrow,
+    collections::{BTreeSet, HashMap},
+    error::Error,
+    marker::PhantomData,
+};
 
 pub use event::{Event, EventId, InvalidEventId, StreamItem};
 use futures_util::Stream;
@@ -475,6 +480,7 @@ where
     ) -> std::result::Result<(crate::Schema, Vec<Router<S>>), crate::BuildErrors> {
         self.errors
             .extend(dedup_types(&mut self.schema, RENAME_COLLISION));
+        drop_unused_type_parameters(&mut self.schema);
         self.schema.input_types.sort_types();
         self.schema.output_types.sort_types();
 
@@ -686,6 +692,182 @@ fn dedup_types(schema: &mut crate::Schema, cause: &str) -> Vec<BuildError> {
         }
     }
     errors
+}
+
+/// Drops the type parameters a struct's or enum's schema doesn't use, and the
+/// matching arguments wherever it is used. A parameter that reflection erases,
+/// such as `C` in a field `Option<Encoded<C>>`, which reflects as
+/// `Option<String>`, is then not in the schema, and neither is a type only
+/// reachable through it: clients never see a type that exists only on the
+/// server. Built-in types (primitives) keep their parameters.
+fn drop_unused_type_parameters(schema: &mut crate::Schema) {
+    for side in [Side::Input, Side::Output] {
+        let mut roots: Vec<&mut crate::TypeReference> = Vec::new();
+        let typespace = match side {
+            Side::Input => {
+                for f in schema.functions.iter_mut() {
+                    roots.extend(f.input_type.as_mut());
+                    roots.extend(f.input_headers.as_mut());
+                }
+                &mut schema.input_types
+            }
+            Side::Output => {
+                for f in schema.functions.iter_mut() {
+                    match &mut f.output_type {
+                        crate::OutputType::Complete { output_type } => {
+                            roots.extend(output_type.as_mut())
+                        }
+                        crate::OutputType::Stream { item_type } => roots.push(item_type),
+                    }
+                    roots.extend(f.error_type.as_mut());
+                    roots.extend(f.response_headers.as_mut());
+                }
+                &mut schema.output_types
+            }
+        };
+        drop_unused_type_parameters_in(typespace, roots);
+    }
+}
+
+#[derive(Clone, Copy)]
+enum Side {
+    Input,
+    Output,
+}
+
+fn drop_unused_type_parameters_in(
+    typespace: &mut crate::Typespace,
+    mut roots: Vec<&mut crate::TypeReference>,
+) {
+    let reachable_before = reachable_types(typespace, roots.iter().map(|r| &**r));
+    let mut dropped_any = false;
+    loop {
+        // Which parameter positions each generic struct or enum doesn't use.
+        let mut dropped: HashMap<String, Vec<usize>> = HashMap::new();
+        for ty in typespace.types() {
+            let parameters: Vec<&str> = match ty {
+                crate::Type::Struct(s) => s.parameters().map(|p| p.name.as_str()).collect(),
+                crate::Type::Enum(e) => e.parameters().map(|p| p.name.as_str()).collect(),
+                crate::Type::Primitive(_) => continue,
+            };
+            if parameters.is_empty() {
+                continue;
+            }
+            let mut used = BTreeSet::new();
+            for_each_field_type(ty, |type_ref| collect_names(type_ref, &mut used));
+            let unused: Vec<usize> = parameters
+                .iter()
+                .enumerate()
+                .filter(|(_, name)| !used.contains(**name))
+                .map(|(index, _)| index)
+                .collect();
+            if !unused.is_empty() {
+                dropped.insert(ty.name().to_owned(), unused);
+            }
+        }
+        if dropped.is_empty() {
+            break;
+        }
+        dropped_any = true;
+
+        let names: Vec<String> = typespace.types().map(|ty| ty.name().to_owned()).collect();
+        for name in &names {
+            let Some(ty) = typespace.get_type_mut(name) else {
+                continue;
+            };
+            if let Some(unused) = dropped.get(name) {
+                let parameters = match ty {
+                    crate::Type::Struct(s) => &mut s.parameters,
+                    crate::Type::Enum(e) => &mut e.parameters,
+                    crate::Type::Primitive(_) => unreachable!("primitives keep their parameters"),
+                };
+                remove_positions(parameters, unused);
+            }
+            for_each_field_type_mut(ty, |type_ref| drop_arguments(type_ref, &dropped));
+        }
+        for root in roots.iter_mut() {
+            drop_arguments(root, &dropped);
+        }
+    }
+    if !dropped_any {
+        return;
+    }
+    // Types only reachable through a dropped argument go; types nothing used
+    // before are left as they were.
+    let reachable_after = reachable_types(typespace, roots.iter().map(|r| &**r));
+    for name in reachable_before.difference(&reachable_after) {
+        typespace.remove_type(name);
+    }
+}
+
+fn remove_positions<T>(items: &mut Vec<T>, positions: &[usize]) {
+    let mut index = 0;
+    items.retain(|_| {
+        let keep = !positions.contains(&index);
+        index += 1;
+        keep
+    });
+}
+
+fn drop_arguments(type_ref: &mut crate::TypeReference, dropped: &HashMap<String, Vec<usize>>) {
+    if let Some(unused) = dropped.get(&type_ref.name) {
+        remove_positions(&mut type_ref.arguments, unused);
+    }
+    for argument in &mut type_ref.arguments {
+        drop_arguments(argument, dropped);
+    }
+}
+
+fn collect_names<'a>(type_ref: &'a crate::TypeReference, names: &mut BTreeSet<&'a str>) {
+    names.insert(&type_ref.name);
+    for argument in &type_ref.arguments {
+        collect_names(argument, names);
+    }
+}
+
+/// The type of every field of a struct or an enum's variants, and a
+/// primitive's fallback.
+fn for_each_field_type<'a>(ty: &'a crate::Type, mut f: impl FnMut(&'a crate::TypeReference)) {
+    match ty {
+        crate::Type::Struct(s) => s.fields().for_each(|field| f(&field.type_ref)),
+        crate::Type::Enum(e) => e
+            .variants()
+            .flat_map(|v| v.fields())
+            .for_each(|field| f(&field.type_ref)),
+        crate::Type::Primitive(p) => p.fallback().into_iter().for_each(f),
+    }
+}
+
+fn for_each_field_type_mut(ty: &mut crate::Type, mut f: impl FnMut(&mut crate::TypeReference)) {
+    match ty {
+        crate::Type::Struct(s) => s.fields.iter_mut().for_each(|field| f(&mut field.type_ref)),
+        crate::Type::Enum(e) => e
+            .variants
+            .iter_mut()
+            .flat_map(|v| v.fields.iter_mut())
+            .for_each(|field| f(&mut field.type_ref)),
+        crate::Type::Primitive(p) => p.fallback.iter_mut().for_each(f),
+    }
+}
+
+/// The names of the types reachable from `roots`, through fields, arguments
+/// and fallbacks.
+fn reachable_types<'a>(
+    typespace: &crate::Typespace,
+    roots: impl Iterator<Item = &'a crate::TypeReference>,
+) -> BTreeSet<String> {
+    let mut seen = BTreeSet::new();
+    let mut pending: Vec<crate::TypeReference> = roots.cloned().collect();
+    while let Some(type_ref) = pending.pop() {
+        pending.extend(type_ref.arguments.iter().cloned());
+        if !seen.insert(type_ref.name.clone()) {
+            continue;
+        }
+        if let Some(ty) = typespace.get_type(&type_ref.name) {
+            for_each_field_type(ty, |field_type| pending.push(field_type.clone()));
+        }
+    }
+    seen
 }
 
 /// Field and variant dates are checked when their type is derived; route
