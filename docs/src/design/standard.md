@@ -13,7 +13,7 @@ always working. Every rule below serves making an endpoint easy to define,
 understand and implement, and easy to reflect into clients.
 
 reflectapi doesn't require any of this: it is one style, and
-[`reflectapi::conventions`](./conventions.md) has the types that implement
+[`reflectapi-conventions`](./conventions.md) has the types that implement
 its pagination and conflict resolution. Take it as it is, or as a starting
 point to adapt. [The Rust Forge 2025 talk](../talk.md) tells how it came
 about.
@@ -145,7 +145,7 @@ generated clients always send `POST`. See
   <details>
   <summary>With reflectapi</summary>
 
-  The lint [`lints::call_version_suffix`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.call_version_suffix.html) checks it.
+  The lint [`lints::call_version_suffix`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/lints/fn.call_version_suffix.html) checks it.
 
   </details>
 
@@ -226,7 +226,7 @@ generated clients always send `POST`. See
   <details>
   <summary>With reflectapi</summary>
 
-  The lint [`lints::call_name_form`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.call_name_form.html) checks it.
+  The lint [`lints::call_name_form`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/lints/fn.call_name_form.html) checks it.
 
   </details>
 
@@ -243,7 +243,7 @@ generated clients always send `POST`. See
   <details>
   <summary>With reflectapi</summary>
 
-  The lint [`lints::call_names_kebab_case`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.call_names_kebab_case.html) checks it.
+  The lint [`lints::call_names_kebab_case`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/lints/fn.call_names_kebab_case.html) checks it.
 
   </details>
 
@@ -343,7 +343,7 @@ Nested resources exist, and are reached, only in the context of a parent.
   <details>
   <summary>With reflectapi</summary>
 
-  The lint [`lints::call_resource_levels`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.call_resource_levels.html) checks it.
+  The lint [`lints::call_resource_levels`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/lints/fn.call_resource_levels.html) checks it.
 
   </details>
 
@@ -368,7 +368,7 @@ Nested resources exist, and are reached, only in the context of a parent.
   <details>
   <summary>With reflectapi</summary>
 
-  The lint [`lints::call_actions_standard`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.call_actions_standard.html) checks it.
+  The lint [`lints::call_actions_standard`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/lints/fn.call_actions_standard.html) checks it.
 
   </details>
 
@@ -403,7 +403,7 @@ Nested resources exist, and are reached, only in the context of a parent.
   <details>
   <summary>With reflectapi</summary>
 
-  The lint [`lints::call_actions_standard`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.call_actions_standard.html) checks it.
+  The lint [`lints::call_actions_standard`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/lints/fn.call_actions_standard.html) checks it.
 
   </details>
 
@@ -539,7 +539,7 @@ Nested resources exist, and are reached, only in the context of a parent.
   <details>
   <summary>With reflectapi</summary>
 
-  The lint [`lints::call_actions_standard`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.call_actions_standard.html) checks it.
+  The lint [`lints::call_actions_standard`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/lints/fn.call_actions_standard.html) checks it.
 
   </details>
 
@@ -761,7 +761,7 @@ Their requests and responses are in
   <details>
   <summary>With reflectapi</summary>
 
-  The lint [`lints::call_actions_not_parameters`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.call_actions_not_parameters.html) checks it.
+  The lint [`lints::call_actions_not_parameters`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/lints/fn.call_actions_not_parameters.html) checks it.
 
   </details>
 
@@ -799,7 +799,7 @@ Their requests and responses are in
   <details>
   <summary>With reflectapi</summary>
 
-  The lint [`lints::request_is_object`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.request_is_object.html) checks it.
+  The lint [`lints::request_is_object`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/lints/fn.request_is_object.html) checks it.
 
   </details>
 
@@ -844,7 +844,7 @@ Their requests and responses are in
   <details>
   <summary>With reflectapi</summary>
 
-  The lint [`lints::names_snake_case`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.names_snake_case.html) checks it.
+  The lint [`lints::names_snake_case`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/lints/fn.names_snake_case.html) checks it.
 
   </details>
 
@@ -855,7 +855,7 @@ Their requests and responses are in
   <details>
   <summary>With reflectapi</summary>
 
-  The lint [`lints::names_snake_case`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.names_snake_case.html) checks it.
+  The lint [`lints::names_snake_case`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/lints/fn.names_snake_case.html) checks it.
 
   </details>
 
@@ -888,7 +888,7 @@ Their requests and responses are in
   <details>
   <summary>With reflectapi</summary>
 
-  The lint [`lints::enums_kind_tag`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.enums_kind_tag.html) checks it.
+  The lint [`lints::enums_kind_tag`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/lints/fn.enums_kind_tag.html) checks it.
 
   </details>
 
@@ -907,7 +907,7 @@ Their requests and responses are in
   <details>
   <summary>With reflectapi</summary>
 
-  The lint [`lints::enums_kind_tag`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.enums_kind_tag.html) checks it.
+  The lint [`lints::enums_kind_tag`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/lints/fn.enums_kind_tag.html) checks it.
 
   </details>
 
@@ -965,8 +965,8 @@ Their requests and responses are in
 - The [`msgpack` feature](https://docs.rs/crate/reflectapi/latest/features)
   adds MessagePack beside JSON: see
   [Content type](../concepts/wire.md#content-type).
-- [`conventions::Identity`](https://docs.rs/reflectapi/latest/reflectapi/conventions/identity/struct.Identity.html)
-  and [`IdentityData`](https://docs.rs/reflectapi/latest/reflectapi/conventions/identity/struct.IdentityData.html) are
+- [`conventions::Identity`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/identity/struct.Identity.html)
+  and [`IdentityData`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/identity/struct.IdentityData.html) are
   the `identity` field as types: see [Identity](./conventions.md#identity).
 
 </details>
@@ -1080,40 +1080,40 @@ if:
   <details>
   <summary>With reflectapi</summary>
 
-  [`reflectapi::conventions::conflict::actions`](https://docs.rs/reflectapi/latest/reflectapi/conventions/conflict/actions/index.html)
+  [`reflectapi_conventions::conflict::actions`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/conflict/actions/index.html)
   has a type for each set, named after its actions: "OrElse" means "or
   abort, the default, or ignore". A set doesn't name its side: the field it
   fills, `exists` or `not_exists`, does.
 
   | Type | Actions | Default | Used on | Idempotent |
   |---|---|---|---|---|
-  | [`Abort`](https://docs.rs/reflectapi/latest/reflectapi/conventions/conflict/actions/enum.Abort.html) | abort | abort | any | |
-  | [`Ignore`](https://docs.rs/reflectapi/latest/reflectapi/conventions/conflict/actions/enum.Ignore.html) | ignore | none | any | ✓|
-  | [`AbortOrIgnore`](https://docs.rs/reflectapi/latest/reflectapi/conventions/conflict/actions/enum.AbortOrIgnore.html) | abort, ignore | abort | any | |
-  | [`Replace`](https://docs.rs/reflectapi/latest/reflectapi/conventions/conflict/actions/enum.Replace.html) | replace | none | insert, insert many | ✓|
-  | [`ReplaceOrAbort`](https://docs.rs/reflectapi/latest/reflectapi/conventions/conflict/actions/enum.ReplaceOrAbort.html) | replace, abort | abort | insert, insert many | |
-  | [`ReplaceOrIgnore`](https://docs.rs/reflectapi/latest/reflectapi/conventions/conflict/actions/enum.ReplaceOrIgnore.html) | replace, ignore | none | insert, insert many | ✓|
-  | [`ReplaceOrElse`](https://docs.rs/reflectapi/latest/reflectapi/conventions/conflict/actions/enum.ReplaceOrElse.html) | replace, abort, ignore | abort | insert, insert many | |
-  | [`Update`](https://docs.rs/reflectapi/latest/reflectapi/conventions/conflict/actions/enum.Update.html) | update | none | insert, insert many | ✓|
-  | [`UpdateOrAbort`](https://docs.rs/reflectapi/latest/reflectapi/conventions/conflict/actions/enum.UpdateOrAbort.html) | update, abort | abort | insert, insert many | |
-  | [`UpdateOrIgnore`](https://docs.rs/reflectapi/latest/reflectapi/conventions/conflict/actions/enum.UpdateOrIgnore.html) | update, ignore | none | insert, insert many | ✓|
-  | [`UpdateOrElse`](https://docs.rs/reflectapi/latest/reflectapi/conventions/conflict/actions/enum.UpdateOrElse.html) | update, abort, ignore | abort | insert, insert many | |
-  | [`UpdateOrReplace`](https://docs.rs/reflectapi/latest/reflectapi/conventions/conflict/actions/enum.UpdateOrReplace.html) | update, replace | none | insert, insert many | ✓|
-  | [`UpdateOrReplaceOrAbort`](https://docs.rs/reflectapi/latest/reflectapi/conventions/conflict/actions/enum.UpdateOrReplaceOrAbort.html) | update, replace, abort | abort | insert, insert many | |
-  | [`UpdateOrReplaceOrIgnore`](https://docs.rs/reflectapi/latest/reflectapi/conventions/conflict/actions/enum.UpdateOrReplaceOrIgnore.html) | update, replace, ignore | none | insert, insert many | ✓|
-  | [`UpdateOrReplaceOrElse`](https://docs.rs/reflectapi/latest/reflectapi/conventions/conflict/actions/enum.UpdateOrReplaceOrElse.html) | update, replace, abort, ignore | abort | insert, insert many | |
-  | [`UpdateWith`](https://docs.rs/reflectapi/latest/reflectapi/conventions/conflict/actions/enum.UpdateWith.html) | update with fields | none | insert | ✓|
-  | [`UpdateWithOrAbort`](https://docs.rs/reflectapi/latest/reflectapi/conventions/conflict/actions/enum.UpdateWithOrAbort.html) | update with fields, abort | abort | insert | |
-  | [`UpdateWithOrIgnore`](https://docs.rs/reflectapi/latest/reflectapi/conventions/conflict/actions/enum.UpdateWithOrIgnore.html) | update with fields, ignore | none | insert | ✓|
-  | [`UpdateWithOrElse`](https://docs.rs/reflectapi/latest/reflectapi/conventions/conflict/actions/enum.UpdateWithOrElse.html) | update with fields, abort, ignore | abort | insert | |
-  | [`UpdateWithOrReplace`](https://docs.rs/reflectapi/latest/reflectapi/conventions/conflict/actions/enum.UpdateWithOrReplace.html) | update with fields, replace | none | insert | ✓|
-  | [`UpdateWithOrReplaceOrAbort`](https://docs.rs/reflectapi/latest/reflectapi/conventions/conflict/actions/enum.UpdateWithOrReplaceOrAbort.html) | update with fields, replace, abort | abort | insert | |
-  | [`UpdateWithOrReplaceOrIgnore`](https://docs.rs/reflectapi/latest/reflectapi/conventions/conflict/actions/enum.UpdateWithOrReplaceOrIgnore.html) | update with fields, replace, ignore | none | insert | ✓|
-  | [`UpdateWithOrReplaceOrElse`](https://docs.rs/reflectapi/latest/reflectapi/conventions/conflict/actions/enum.UpdateWithOrReplaceOrElse.html) | update with fields, replace, abort, ignore | abort | insert | |
+  | [`Abort`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/conflict/actions/enum.Abort.html) | abort | abort | any | |
+  | [`Ignore`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/conflict/actions/enum.Ignore.html) | ignore | none | any | ✓|
+  | [`AbortOrIgnore`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/conflict/actions/enum.AbortOrIgnore.html) | abort, ignore | abort | any | |
+  | [`Replace`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/conflict/actions/enum.Replace.html) | replace | none | insert, insert many | ✓|
+  | [`ReplaceOrAbort`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/conflict/actions/enum.ReplaceOrAbort.html) | replace, abort | abort | insert, insert many | |
+  | [`ReplaceOrIgnore`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/conflict/actions/enum.ReplaceOrIgnore.html) | replace, ignore | none | insert, insert many | ✓|
+  | [`ReplaceOrElse`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/conflict/actions/enum.ReplaceOrElse.html) | replace, abort, ignore | abort | insert, insert many | |
+  | [`Update`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/conflict/actions/enum.Update.html) | update | none | insert, insert many | ✓|
+  | [`UpdateOrAbort`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/conflict/actions/enum.UpdateOrAbort.html) | update, abort | abort | insert, insert many | |
+  | [`UpdateOrIgnore`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/conflict/actions/enum.UpdateOrIgnore.html) | update, ignore | none | insert, insert many | ✓|
+  | [`UpdateOrElse`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/conflict/actions/enum.UpdateOrElse.html) | update, abort, ignore | abort | insert, insert many | |
+  | [`UpdateOrReplace`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/conflict/actions/enum.UpdateOrReplace.html) | update, replace | none | insert, insert many | ✓|
+  | [`UpdateOrReplaceOrAbort`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/conflict/actions/enum.UpdateOrReplaceOrAbort.html) | update, replace, abort | abort | insert, insert many | |
+  | [`UpdateOrReplaceOrIgnore`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/conflict/actions/enum.UpdateOrReplaceOrIgnore.html) | update, replace, ignore | none | insert, insert many | ✓|
+  | [`UpdateOrReplaceOrElse`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/conflict/actions/enum.UpdateOrReplaceOrElse.html) | update, replace, abort, ignore | abort | insert, insert many | |
+  | [`UpdateWith`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/conflict/actions/enum.UpdateWith.html) | update with fields | none | insert | ✓|
+  | [`UpdateWithOrAbort`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/conflict/actions/enum.UpdateWithOrAbort.html) | update with fields, abort | abort | insert | |
+  | [`UpdateWithOrIgnore`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/conflict/actions/enum.UpdateWithOrIgnore.html) | update with fields, ignore | none | insert | ✓|
+  | [`UpdateWithOrElse`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/conflict/actions/enum.UpdateWithOrElse.html) | update with fields, abort, ignore | abort | insert | |
+  | [`UpdateWithOrReplace`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/conflict/actions/enum.UpdateWithOrReplace.html) | update with fields, replace | none | insert | ✓|
+  | [`UpdateWithOrReplaceOrAbort`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/conflict/actions/enum.UpdateWithOrReplaceOrAbort.html) | update with fields, replace, abort | abort | insert | |
+  | [`UpdateWithOrReplaceOrIgnore`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/conflict/actions/enum.UpdateWithOrReplaceOrIgnore.html) | update with fields, replace, ignore | none | insert | ✓|
+  | [`UpdateWithOrReplaceOrElse`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/conflict/actions/enum.UpdateWithOrReplaceOrElse.html) | update with fields, replace, abort, ignore | abort | insert | |
 
   [Convention Types](./conventions.md#conflict-resolution) shows a route
   using them, and
-  [`reflectapi::conventions`](https://docs.rs/reflectapi/latest/reflectapi/conventions/index.html)
+  [`reflectapi-conventions`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/index.html)
   has the rest of the standard's types.
 
   </details>
@@ -1160,15 +1160,15 @@ if:
 <details>
 <summary>With reflectapi</summary>
 
-- [`reflectapi::conventions::conflict`](https://docs.rs/reflectapi/latest/reflectapi/conventions/conflict/index.html)
+- [`reflectapi_conventions::conflict`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/conflict/index.html)
   has the `if` clauses and the
-  [action sets](https://docs.rs/reflectapi/latest/reflectapi/conventions/conflict/actions/index.html)
+  [action sets](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/conflict/actions/index.html)
   as types: see [Conflict resolution](./conventions.md#conflict-resolution).
 - A route takes a clause over one set as its input, so its schema offers
   exactly that set, a request with another action is refused, and a set
   without a default makes `if` required.
 - The sets without `abort` implement the
-  [`Idempotent`](https://docs.rs/reflectapi/latest/reflectapi/conventions/conflict/actions/trait.Idempotent.html)
+  [`Idempotent`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/conflict/actions/trait.Idempotent.html)
   trait. A handler for writes that may come more than once, such as a queue
   consumer, bounds its input by it, `C: Idempotent`, so a set with `abort`
   doesn't compile there.
@@ -1568,7 +1568,7 @@ struct UpdatedAtFilter {
   <details>
   <summary>With reflectapi</summary>
 
-  The lint [`lints::header_names_no_x_prefix`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.header_names_no_x_prefix.html) checks it.
+  The lint [`lints::header_names_no_x_prefix`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/lints/fn.header_names_no_x_prefix.html) checks it.
 
   </details>
 
@@ -1641,7 +1641,7 @@ struct UpdatedAtFilter {
   <details>
   <summary>With reflectapi</summary>
 
-  The lint [`lints::header_names_kebab_case`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.header_names_kebab_case.html) checks it.
+  The lint [`lints::header_names_kebab_case`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/lints/fn.header_names_kebab_case.html) checks it.
 
   </details>
 
@@ -1750,7 +1750,7 @@ send it.
   <details>
   <summary>With reflectapi</summary>
 
-  The lint [`lints::response_is_object`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.response_is_object.html) checks it.
+  The lint [`lints::response_is_object`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/lints/fn.response_is_object.html) checks it.
 
   </details>
 
@@ -2003,12 +2003,12 @@ items when the list changes, and each later page costs more.
 <details>
 <summary>With reflectapi</summary>
 
-[`reflectapi::conventions`](https://docs.rs/reflectapi/latest/reflectapi/conventions/index.html) has
-[`PageRequest`](https://docs.rs/reflectapi/latest/reflectapi/conventions/pagination/struct.PageRequest.html) (`cursor`,
+[`reflectapi-conventions`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/index.html) has
+[`PageRequest`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/pagination/struct.PageRequest.html) (`cursor`,
 `limit`), the request's `page` field,
-[`ForwardPaginatedList`](https://docs.rs/reflectapi/latest/reflectapi/conventions/pagination/struct.ForwardPaginatedList.html)
+[`ForwardPaginatedList`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/pagination/struct.ForwardPaginatedList.html)
 and
-[`NonPaginatedList`](https://docs.rs/reflectapi/latest/reflectapi/conventions/pagination/struct.NonPaginatedList.html)
+[`NonPaginatedList`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/pagination/struct.NonPaginatedList.html)
 as types. A cursor can be typed on the server, as
 [`Encoded<Cursor>`](https://docs.rs/reflectapi/latest/reflectapi/struct.Encoded.html), while clients still see a
 string: see [Pagination](./conventions.md#pagination).
@@ -2350,11 +2350,11 @@ brands:
 
 - An item's `action` is a tagged enum, `#[serde(tag = "action")]`, whose
   variants are the write clauses of
-  [`reflectapi::conventions::conflict`](https://docs.rs/reflectapi/latest/reflectapi/conventions/conflict/index.html)
-  over [`IdentityData`](https://docs.rs/reflectapi/latest/reflectapi/conventions/identity/struct.IdentityData.html):
+  [`reflectapi_conventions::conflict`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/conflict/index.html)
+  over [`IdentityData`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/identity/struct.IdentityData.html):
   each item then has its own `if`, `identity` and data.
 - A reference is a field of the referred type's
-  [`Identity`](https://docs.rs/reflectapi/latest/reflectapi/conventions/identity/struct.Identity.html)
+  [`Identity`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/identity/struct.Identity.html)
   type.
 - A field of `include` is a
   [`reflectapi::Option`](https://docs.rs/reflectapi/latest/reflectapi/enum.Option.html)
@@ -2468,7 +2468,7 @@ out for client generation or to serve, as it is or as an OpenAPI document
   [`.name("products.list")`](https://docs.rs/reflectapi/latest/reflectapi/struct.RouteBuilder.html#method.name).
 - `reflectapi codegen` writes the TypeScript, Python and Rust clients from
   the schema: see [Generated Clients](../clients/index.md).
-- [`reflectapi::conventions::lints`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/index.html)
+- [`reflectapi_conventions::lints`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/lints/index.html)
   checks a schema against the rules of this standard that its shape can
   show, each lint naming its rule: see [Lints](./conventions.md#lints).
 
@@ -2503,7 +2503,7 @@ out for client generation or to serve, as it is or as an OpenAPI document
   <details>
   <summary>With reflectapi</summary>
 
-  The lint [`lints::call_type_names`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.call_type_names.html) checks it.
+  The lint [`lints::call_type_names`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/lints/fn.call_type_names.html) checks it.
 
   </details>
 
@@ -2521,7 +2521,7 @@ out for client generation or to serve, as it is or as an OpenAPI document
   <details>
   <summary>With reflectapi</summary>
 
-  The lint [`lints::type_names_no_kind_suffix`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.type_names_no_kind_suffix.html) checks it.
+  The lint [`lints::type_names_no_kind_suffix`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/lints/fn.type_names_no_kind_suffix.html) checks it.
 
   </details>
 
@@ -2546,7 +2546,7 @@ out for client generation or to serve, as it is or as an OpenAPI document
   <details>
   <summary>With reflectapi</summary>
 
-  The lint [`lints::error_cases_no_error_suffix`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.error_cases_no_error_suffix.html) checks it.
+  The lint [`lints::error_cases_no_error_suffix`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/lints/fn.error_cases_no_error_suffix.html) checks it.
 
   </details>
 
@@ -2579,7 +2579,7 @@ out for client generation or to serve, as it is or as an OpenAPI document
   gives clients a shorter path without moving the code:
   `.glob_rename_types("billing_core::pricing::policy::*", "billing::")`.
 
-  The lint [`lints::type_path_depth`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.type_path_depth.html) checks it.
+  The lint [`lints::type_path_depth`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/lints/fn.type_path_depth.html) checks it.
 
   </details>
 
@@ -2600,7 +2600,46 @@ out for client generation or to serve, as it is or as an OpenAPI document
   `.glob_rename_types("messaging::models::*", "messaging::")` drops the
   module from the schema.
 
-  The lint [`lints::type_modules_not_implementation`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.type_modules_not_implementation.html) checks it.
+  The lint [`lints::type_modules_not_implementation`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/lints/fn.type_modules_not_implementation.html) checks it.
+
+  </details>
+
+- A type that APIs share from a common library, such as a page request or
+  an `if` clause, MUST have the same name in every API that uses it.
+  `[api-type-shared-same-name]`
+
+  <details open>
+  <summary>Example</summary>
+
+  `reflectapi.pagination.PageRequest` in the clients of every API that pages
+  its lists, not `reflectapi_conventions.pagination.PageRequest` in some and
+  `reflectapi.pagination.PageRequest` in others
+
+  </details>
+
+  <details>
+  <summary>Reasoning</summary>
+
+  A reader who knows the type from one API recognises it in the next, and
+  code written against it, such as a helper that walks every page, works with
+  each API's client. A name taken from where the library happens to be
+  defined, such as a package name, differs between languages and can change
+  when the library moves.
+
+  </details>
+
+  <details>
+  <summary>With reflectapi</summary>
+
+  The types of `reflectapi-conventions` are defined under its crate's path,
+  `reflectapi_conventions::`. Every API that uses them renames them to
+  `reflectapi::`:
+
+  ```rust,ignore
+  builder.rename_types("reflectapi_conventions::", "reflectapi::")
+  ```
+
+  The lint [`lints::conventions_types_renamed`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/lints/fn.conventions_types_renamed.html) checks it.
 
   </details>
 

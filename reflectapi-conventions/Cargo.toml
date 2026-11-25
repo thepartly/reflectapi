@@ -1,0 +1,25 @@
+[package]
+name = "reflectapi-conventions"
+version = "0.26.0"
+edition = "2021"
+
+license = "MIT OR Apache-2.0"
+description = "Opinionated API types and lints for reflectapi: cursor pagination, identity envelopes, conflict clauses, and checks against the API design standard."
+homepage = "https://reflectapi.rs/design/conventions.html"
+documentation = "https://docs.rs/reflectapi-conventions"
+repository = "https://github.com/thepartly/reflectapi"
+readme = "README.md"
+
+keywords = ["reflectapi", "api", "pagination", "lint"]
+categories = ["web-programming", "development-tools"]
+
+[lints]
+workspace = true
+
+[dependencies]
+reflectapi = { path = "../reflectapi", version = "0.26.0", default-features = false }
+serde = { version = "1.0.197", features = ["derive"] }
+
+[dev-dependencies]
+reflectapi = { path = "../reflectapi", version = "0.26.0", features = ["builder", "json"] }
+serde_json = "1.0.114"

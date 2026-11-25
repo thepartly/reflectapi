@@ -1,16 +1,31 @@
 # Convention Types
 
-[`reflectapi::conventions`](https://docs.rs/reflectapi/latest/reflectapi/conventions/index.html)
+[`reflectapi-conventions`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/index.html)
 holds the types behind the [API Design Standard](./standard.md): cursor
 pagination, identity envelopes and the `if` clause on writes. Services that
 use them share the same types in every generated client.
 
-Enable the `conventions` feature. A Rust client uses these types from
-`reflectapi` too, so its crate enables the feature as well:
+Add the crate beside `reflectapi`:
 
 ```toml
-reflectapi = { version = "0.26", features = ["builder", "conventions"] }
+reflectapi = { version = "0.26", features = ["builder"] }
+reflectapi-conventions = "0.26"
 ```
+
+Their Rust paths start with the crate's, `reflectapi_conventions::`. Rename
+them to `reflectapi::` on the builder, so they have the same names in every
+API that uses them
+([`api-type-shared-same-name`](./standard.md#api-type-shared-same-name)):
+
+```rust,ignore
+let builder = reflectapi::Builder::new()
+    // routes …
+    .rename_types("reflectapi_conventions::", "reflectapi::");
+```
+
+Clients then see `reflectapi.pagination.PageRequest` and so on. Every
+generated client has its own copy of the types, a Rust client too, so a
+client's crate doesn't depend on `reflectapi-conventions`.
 
 ## Pagination
 
@@ -24,7 +39,7 @@ it names its own type, such as `Encoded<Cursor>`: clients still see a string,
 and the server gets the decoded value.
 
 ```rust
-use reflectapi::conventions::{ForwardPaginatedList, ForwardPagination, PageRequest};
+use reflectapi_conventions::{ForwardPaginatedList, ForwardPagination, PageRequest};
 use reflectapi::Encoded;
 use std::sync::Arc;
 
@@ -142,12 +157,12 @@ changes doesn't: an `if` clause beside the request's own fields.
 
 A route's input is one of the aliases in `conflict`, such as `InsertOrElse`,
 over its data and the set of actions it offers, from
-[`conflict::actions`](https://docs.rs/reflectapi/latest/reflectapi/conventions/conflict/actions/index.html).
+[`conflict::actions`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/conflict/actions/index.html).
 The schema then offers clients only those actions, and the handler matches on
 the one the request chose:
 
 ```rust
-use reflectapi::conventions::conflict::{actions, InsertOrElse, RemoveOrElse};
+use reflectapi_conventions::conflict::{actions, InsertOrElse, RemoveOrElse};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
@@ -255,7 +270,7 @@ A set with `abort` defaults to it. A set without `abort`, such as
 takes the `…OrElseRequired` alias, whose `if` and action are required.
 
 ```rust
-use reflectapi::conventions::conflict::{actions, InsertOrElseRequired};
+use reflectapi_conventions::conflict::{actions, InsertOrElseRequired};
 
 #[derive(serde::Deserialize, reflectapi::Input)]
 struct Pet {
@@ -284,18 +299,18 @@ assert!(serde_json::from_str::<PetsImport>(r#"{"name": "Rex"}"#).is_err());
   `parent_matches`.
 
 The full catalogue of sets, with their defaults, is in the
-[`actions` documentation](https://docs.rs/reflectapi/latest/reflectapi/conventions/conflict/actions/index.html).
+[`actions` documentation](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/conflict/actions/index.html).
 
 ## Lints
 
-[`conventions::lints`](https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/index.html)
+[`conventions::lints`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/lints/index.html)
 checks a schema against the rules of the [standard](./standard.md) that its
 shape can show. Each lint is a function for `Builder::validate` and checks
 one rule; an error names its rule in `ValidationError::rule`, and its message
 links to it.
 
 ```rust,ignore
-use reflectapi::conventions::lints;
+use reflectapi_conventions::lints;
 
 let mut builder = api();
 for lint in lints::ALL {
@@ -323,6 +338,7 @@ let (schema, routers) = builder.build()?;
 | `type_path_depth`: two modules at most, a version not counted | [`api-type-path-depth`](./standard.md#api-type-path-depth) |
 | `type_modules_not_implementation`: no `models`, `types`, `errors` and the like | [`api-type-modules-not-implementation`](./standard.md#api-type-modules-not-implementation) |
 | `error_cases_no_error_suffix` | [`api-error-case-no-error-suffix`](./standard.md#api-error-case-no-error-suffix) |
+| `conventions_types_renamed`: this crate's types renamed from `reflectapi_conventions::` to `reflectapi::` | [`api-type-shared-same-name`](./standard.md#api-type-shared-same-name) |
 
 A lint reports what the standard rules out, and leaves what it can't judge:
 

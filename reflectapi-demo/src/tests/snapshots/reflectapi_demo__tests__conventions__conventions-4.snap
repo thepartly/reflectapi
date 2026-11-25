@@ -27,7 +27,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
                       {
                         "description": "An entity's identity beside its data, whose fields are flattened in:\n`{\"identity\": …, \"name\": …}`.\n\nFor the same cases as [`Identity`]; with an `if` clause around it, it is\none item of a bulk write.",
                         "type": "object",
-                        "title": "reflectapi.conventions.identity.IdentityData<reflectapi_demo.tests.conventions.PetId, reflectapi_demo.tests.conventions.PetData>",
+                        "title": "reflectapi.identity.IdentityData<reflectapi_demo.tests.conventions.PetId, reflectapi_demo.tests.conventions.PetData>",
                         "required": [
                           "identity"
                         ],
@@ -42,12 +42,12 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
                   {
                     "description": "A write of `data` with an `if` clause, whose absence takes the clause's\ndefaults: `{\"if\": {…}, …data}`. The aliases above, such as\n[`InsertOrElse`], name its usual clauses.",
                     "type": "object",
-                    "title": "reflectapi.conventions.conflict.Conditional<reflectapi.conventions.identity.IdentityData<reflectapi_demo.tests.conventions.PetId, reflectapi_demo.tests.conventions.PetData>, reflectapi.conventions.conflict.IfConflictOnInsert<reflectapi.conventions.conflict.actions.UpdateWithOrAbort<reflectapi_demo.tests.conventions.PetData>>>",
+                    "title": "reflectapi.conflict.Conditional<reflectapi.identity.IdentityData<reflectapi_demo.tests.conventions.PetId, reflectapi_demo.tests.conventions.PetData>, reflectapi.conflict.IfConflictOnInsert<reflectapi.conflict.actions.UpdateWithOrAbort<reflectapi_demo.tests.conventions.PetData>>>",
                     "properties": {
                       "if": {
                         "description": "The `if` of an insert, of one entity or several.",
                         "type": "object",
-                        "title": "reflectapi.conventions.conflict.IfConflictOnInsert<reflectapi.conventions.conflict.actions.UpdateWithOrAbort<reflectapi_demo.tests.conventions.PetData>>",
+                        "title": "reflectapi.conflict.IfConflictOnInsert<reflectapi.conflict.actions.UpdateWithOrAbort<reflectapi_demo.tests.conventions.PetData>>",
                         "properties": {
                           "exists": {
                             "oneOf": [
@@ -86,7 +86,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
                 "schema": {
                   "description": "A request or response naming one entity: `{\"identity\": …}`.\n\nFor an entity that can be identified in more than one way, `I` saying\nwhich, such as an enum of an ID or an external code, and for the items of\na bulk write. An entity with one fixed key takes it as a plain field, such\nas `id`, instead.",
                   "type": "object",
-                  "title": "reflectapi.conventions.identity.Identity<reflectapi_demo.tests.conventions.PetId>",
+                  "title": "reflectapi.identity.Identity<reflectapi_demo.tests.conventions.PetId>",
                   "required": [
                     "identity"
                   ],
@@ -112,7 +112,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
               "schema": {
                 "description": "The page a list request asks for.",
                 "type": "object",
-                "title": "reflectapi.conventions.pagination.PageRequest<std.string.String>",
+                "title": "reflectapi.pagination.PageRequest<std.string.String>",
                 "properties": {
                   "cursor": {
                     "description": "Where to start: a `next_cursor` from an earlier response, or none for\nthe first page.",
@@ -152,7 +152,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
                 "schema": {
                   "description": "A page of a list, read forward with [`PageRequest::cursor`].",
                   "type": "object",
-                  "title": "reflectapi.conventions.pagination.ForwardPaginatedList<reflectapi.conventions.identity.IdentityData<reflectapi_demo.tests.conventions.PetId, reflectapi_demo.tests.conventions.PetData>, std.string.String>",
+                  "title": "reflectapi.pagination.ForwardPaginatedList<reflectapi.identity.IdentityData<reflectapi_demo.tests.conventions.PetId, reflectapi_demo.tests.conventions.PetData>, std.string.String>",
                   "required": [
                     "items",
                     "pagination"
@@ -169,7 +169,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
                           {
                             "description": "An entity's identity beside its data, whose fields are flattened in:\n`{\"identity\": …, \"name\": …}`.\n\nFor the same cases as [`Identity`]; with an `if` clause around it, it is\none item of a bulk write.",
                             "type": "object",
-                            "title": "reflectapi.conventions.identity.IdentityData<reflectapi_demo.tests.conventions.PetId, reflectapi_demo.tests.conventions.PetData>",
+                            "title": "reflectapi.identity.IdentityData<reflectapi_demo.tests.conventions.PetId, reflectapi_demo.tests.conventions.PetData>",
                             "required": [
                               "identity"
                             ],
@@ -191,7 +191,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
                         {
                           "description": "Where the next page of a [`ForwardPaginatedList`] starts.",
                           "type": "object",
-                          "title": "reflectapi.conventions.pagination.ForwardPagination<std.string.String>",
+                          "title": "reflectapi.pagination.ForwardPagination<std.string.String>",
                           "required": [
                             "next_cursor"
                           ],
@@ -232,7 +232,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
                   {
                     "description": "A request or response naming one entity: `{\"identity\": …}`.\n\nFor an entity that can be identified in more than one way, `I` saying\nwhich, such as an enum of an ID or an external code, and for the items of\na bulk write. An entity with one fixed key takes it as a plain field, such\nas `id`, instead.",
                     "type": "object",
-                    "title": "reflectapi.conventions.identity.Identity<reflectapi_demo.tests.conventions.PetId>",
+                    "title": "reflectapi.identity.Identity<reflectapi_demo.tests.conventions.PetId>",
                     "required": [
                       "identity"
                     ],
@@ -245,12 +245,12 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
                   {
                     "description": "A write of `data` with an `if` clause, whose absence takes the clause's\ndefaults: `{\"if\": {…}, …data}`. The aliases above, such as\n[`InsertOrElse`], name its usual clauses.",
                     "type": "object",
-                    "title": "reflectapi.conventions.conflict.Conditional<reflectapi.conventions.identity.Identity<reflectapi_demo.tests.conventions.PetId>, reflectapi.conventions.conflict.matching.IfConflictOnRemove<reflectapi.conventions.conflict.actions.AbortOrIgnore>>",
+                    "title": "reflectapi.conflict.Conditional<reflectapi.identity.Identity<reflectapi_demo.tests.conventions.PetId>, reflectapi.conflict.matching.IfConflictOnRemove<reflectapi.conflict.actions.AbortOrIgnore>>",
                     "properties": {
                       "if": {
                         "description": "The `if` of a remove: the action when the entity doesn't exist, and the\nedition it must be at, if any.",
                         "type": "object",
-                        "title": "reflectapi.conventions.conflict.matching.IfConflictOnRemove<reflectapi.conventions.conflict.actions.AbortOrIgnore>",
+                        "title": "reflectapi.conflict.matching.IfConflictOnRemove<reflectapi.conflict.actions.AbortOrIgnore>",
                         "properties": {
                           "matches": {
                             "oneOf": [
@@ -259,12 +259,12 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
                                 "type": "null"
                               },
                               {
-                                "$ref": "#/components/schemas/reflectapi.conventions.conflict.matching.EditionMatchCondition"
+                                "$ref": "#/components/schemas/reflectapi.conflict.matching.EditionMatchCondition"
                               }
                             ]
                           },
                           "not_exists": {
-                            "$ref": "#/components/schemas/reflectapi.conventions.conflict.actions.AbortOrIgnore"
+                            "$ref": "#/components/schemas/reflectapi.conflict.actions.AbortOrIgnore"
                           }
                         }
                       }
@@ -307,18 +307,18 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
                   {
                     "description": "A write of `data` with an `if` clause, whose absence takes the clause's\ndefaults: `{\"if\": {…}, …data}`. The aliases above, such as\n[`InsertOrElse`], name its usual clauses.",
                     "type": "object",
-                    "title": "reflectapi.conventions.conflict.Conditional<reflectapi_demo.tests.conventions.PetData, reflectapi.conventions.conflict.matching.IfConflictOnInsertMany<reflectapi.conventions.conflict.actions.ReplaceOrAbort>>",
+                    "title": "reflectapi.conflict.Conditional<reflectapi_demo.tests.conventions.PetData, reflectapi.conflict.matching.IfConflictOnInsertMany<reflectapi.conflict.actions.ReplaceOrAbort>>",
                     "properties": {
                       "if": {
                         "description": "The `if` of an insert of several entities: the action for each listed\nitem that exists, and what the parent must match, `exists` by default.",
                         "type": "object",
-                        "title": "reflectapi.conventions.conflict.matching.IfConflictOnInsertMany<reflectapi.conventions.conflict.actions.ReplaceOrAbort>",
+                        "title": "reflectapi.conflict.matching.IfConflictOnInsertMany<reflectapi.conflict.actions.ReplaceOrAbort>",
                         "properties": {
                           "exists": {
-                            "$ref": "#/components/schemas/reflectapi.conventions.conflict.actions.ReplaceOrAbort"
+                            "$ref": "#/components/schemas/reflectapi.conflict.actions.ReplaceOrAbort"
                           },
                           "parent_matches": {
-                            "$ref": "#/components/schemas/reflectapi.conventions.conflict.matching.MatchCondition"
+                            "$ref": "#/components/schemas/reflectapi.conflict.matching.MatchCondition"
                           }
                         }
                       }
@@ -363,7 +363,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
                       {
                         "description": "An entity's identity beside its data, whose fields are flattened in:\n`{\"identity\": …, \"name\": …}`.\n\nFor the same cases as [`Identity`]; with an `if` clause around it, it is\none item of a bulk write.",
                         "type": "object",
-                        "title": "reflectapi.conventions.identity.IdentityData<reflectapi_demo.tests.conventions.PetId, reflectapi_demo.tests.conventions.PetData>",
+                        "title": "reflectapi.identity.IdentityData<reflectapi_demo.tests.conventions.PetId, reflectapi_demo.tests.conventions.PetData>",
                         "required": [
                           "identity"
                         ],
@@ -376,9 +376,9 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
                     ]
                   },
                   {
-                    "description": "A write of `data` whose `if` is required, as is the action in it:\n`{\"if\": {…}, …data}`. A route whose set has no default takes it, through\none of the aliases above, such as [`InsertOrElseRequired`].\n\n```\nuse reflectapi::conventions::conflict::{actions, InsertOrElseRequired, RemoveOrElseRequired};\n\n#[derive(serde::Deserialize, reflectapi::Input)]\nstruct Pet {\nname: String,\n}\n\ntype PetsImport = InsertOrElseRequired<Pet, actions::ReplaceOrIgnore>;\n\nlet insert: PetsImport =\nserde_json::from_str(r#\"{\"if\": {\"exists\": \"ignore\"}, \"name\": \"Rex\"}\"#).unwrap();\nassert_eq!(insert.if_.exists, actions::ReplaceOrIgnore::Ignore);\n\n// Without `if`, refused.\nassert!(serde_json::from_str::<PetsImport>(r#\"{\"name\": \"Rex\"}\"#).is_err());\n\n// A remove that only ignores a missing pet: the client says so.\nlet remove: RemoveOrElseRequired<Pet, actions::Ignore> =\nserde_json::from_str(r#\"{\"if\": {\"not_exists\": \"ignore\"}, \"name\": \"Rex\"}\"#).unwrap();\nassert_eq!(remove.if_.not_exists, actions::Ignore::Ignore);\n```",
+                    "description": "A write of `data` whose `if` is required, as is the action in it:\n`{\"if\": {…}, …data}`. A route whose set has no default takes it, through\none of the aliases above, such as [`InsertOrElseRequired`].\n\n```\nuse reflectapi_conventions::conflict::{actions, InsertOrElseRequired, RemoveOrElseRequired};\n\n#[derive(serde::Deserialize, reflectapi::Input)]\nstruct Pet {\nname: String,\n}\n\ntype PetsImport = InsertOrElseRequired<Pet, actions::ReplaceOrIgnore>;\n\nlet insert: PetsImport =\nserde_json::from_str(r#\"{\"if\": {\"exists\": \"ignore\"}, \"name\": \"Rex\"}\"#).unwrap();\nassert_eq!(insert.if_.exists, actions::ReplaceOrIgnore::Ignore);\n\n// Without `if`, refused.\nassert!(serde_json::from_str::<PetsImport>(r#\"{\"name\": \"Rex\"}\"#).is_err());\n\n// A remove that only ignores a missing pet: the client says so.\nlet remove: RemoveOrElseRequired<Pet, actions::Ignore> =\nserde_json::from_str(r#\"{\"if\": {\"not_exists\": \"ignore\"}, \"name\": \"Rex\"}\"#).unwrap();\nassert_eq!(remove.if_.not_exists, actions::Ignore::Ignore);\n```",
                     "type": "object",
-                    "title": "reflectapi.conventions.conflict.ConditionalRequired<reflectapi.conventions.identity.IdentityData<reflectapi_demo.tests.conventions.PetId, reflectapi_demo.tests.conventions.PetData>, reflectapi.conventions.conflict.matching.IfConflictOnUpdateRequired<reflectapi.conventions.conflict.actions.Ignore>>",
+                    "title": "reflectapi.conflict.ConditionalRequired<reflectapi.identity.IdentityData<reflectapi_demo.tests.conventions.PetId, reflectapi_demo.tests.conventions.PetData>, reflectapi.conflict.matching.IfConflictOnUpdateRequired<reflectapi.conflict.actions.Ignore>>",
                     "required": [
                       "if"
                     ],
@@ -386,7 +386,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
                       "if": {
                         "description": "The `if` of [`UpdateOrElseRequired`]: [`IfConflictOnUpdate`] with\n`not_exists` required.",
                         "type": "object",
-                        "title": "reflectapi.conventions.conflict.matching.IfConflictOnUpdateRequired<reflectapi.conventions.conflict.actions.Ignore>",
+                        "title": "reflectapi.conflict.matching.IfConflictOnUpdateRequired<reflectapi.conflict.actions.Ignore>",
                         "required": [
                           "not_exists"
                         ],
@@ -398,12 +398,12 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
                                 "type": "null"
                               },
                               {
-                                "$ref": "#/components/schemas/reflectapi.conventions.conflict.matching.EditionMatchCondition"
+                                "$ref": "#/components/schemas/reflectapi.conflict.matching.EditionMatchCondition"
                               }
                             ]
                           },
                           "not_exists": {
-                            "$ref": "#/components/schemas/reflectapi.conventions.conflict.actions.Ignore"
+                            "$ref": "#/components/schemas/reflectapi.conflict.actions.Ignore"
                           }
                         }
                       }
@@ -434,7 +434,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
   },
   "components": {
     "schemas": {
-      "reflectapi.conventions.conflict.actions.AbortOrIgnore": {
+      "reflectapi.conflict.actions.AbortOrIgnore": {
         "oneOf": [
           {
             "const": "abort"
@@ -444,14 +444,14 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
           }
         ]
       },
-      "reflectapi.conventions.conflict.actions.Ignore": {
+      "reflectapi.conflict.actions.Ignore": {
         "oneOf": [
           {
             "const": "ignore"
           }
         ]
       },
-      "reflectapi.conventions.conflict.actions.ReplaceOrAbort": {
+      "reflectapi.conflict.actions.ReplaceOrAbort": {
         "oneOf": [
           {
             "const": "replace"
@@ -461,7 +461,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
           }
         ]
       },
-      "reflectapi.conventions.conflict.matching.EditionMatchCondition": {
+      "reflectapi.conflict.matching.EditionMatchCondition": {
         "oneOf": [
           {
             "type": "object",
@@ -477,7 +477,7 @@ expression: "reflectapi :: codegen :: openapi :: Spec :: from(& schema)"
           }
         ]
       },
-      "reflectapi.conventions.conflict.matching.MatchCondition": {
+      "reflectapi.conflict.matching.MatchCondition": {
         "oneOf": [
           {
             "const": "exists"

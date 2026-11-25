@@ -53,7 +53,7 @@
 //! there is nothing to replace or update.
 //!
 //! ```
-//! use reflectapi::conventions::conflict::{actions, InsertOrElse, RemoveOrElse};
+//! use reflectapi_conventions::conflict::{actions, InsertOrElse, RemoveOrElse};
 //!
 //! #[derive(serde::Deserialize, reflectapi::Input)]
 //! struct Pet {
@@ -76,8 +76,8 @@
 /// process more than once, such as from a queue, offers only these:
 ///
 /// ```
-/// use reflectapi::conventions::conflict::actions::{Idempotent, UpdateOrReplaceOrIgnore};
-/// use reflectapi::conventions::conflict::InsertOrElseRequired;
+/// use reflectapi_conventions::conflict::actions::{Idempotent, UpdateOrReplaceOrIgnore};
+/// use reflectapi_conventions::conflict::InsertOrElseRequired;
 ///
 /// #[derive(serde::Deserialize, reflectapi::Input)]
 /// struct Pet {
@@ -104,7 +104,7 @@ macro_rules! action_sets {
         $(#[$meta])*
         #[derive(
             Debug, Clone, Copy, PartialEq, Eq, Hash,
-            serde::Serialize, serde::Deserialize, crate::Input,
+            serde::Serialize, serde::Deserialize, reflectapi::Input,
         )]
         #[serde(rename_all = "snake_case")]
         pub enum $name $(<$param>)? { $($variants)* }
@@ -169,8 +169,8 @@ mod tests {
     /// is a change here too.
     #[test]
     fn the_catalogue() {
-        fn actions<S: crate::Input>() -> Vec<String> {
-            let mut schema = crate::Typespace::new();
+        fn actions<S: reflectapi::Input>() -> Vec<String> {
+            let mut schema = reflectapi::Typespace::new();
             let set = S::reflectapi_input_type(&mut schema);
             let set = schema.get_type(&set.name).unwrap().as_enum().unwrap();
             set.variants().map(|v| v.serde_name().to_owned()).collect()

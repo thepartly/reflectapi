@@ -92,6 +92,7 @@ jobs:
               ("reflectapi-derive/Cargo.toml", cargo_version("reflectapi-derive/Cargo.toml")),
               ("reflectapi-schema/Cargo.toml", cargo_version("reflectapi-schema/Cargo.toml")),
               ("reflectapi-cli/Cargo.toml", cargo_version("reflectapi-cli/Cargo.toml")),
+              ("reflectapi-conventions/Cargo.toml", cargo_version("reflectapi-conventions/Cargo.toml")),
               ("reflectapi-python-runtime/pyproject.toml", pyproject_version("reflectapi-python-runtime/pyproject.toml")),
           ]
 
@@ -105,7 +106,7 @@ jobs:
           ]
           checks.append((runtime_path, runtime_versions[0] if len(runtime_versions) == 1 else None))
 
-          published_crates = {"reflectapi", "reflectapi-derive", "reflectapi-schema", "reflectapi-cli"}
+          published_crates = {"reflectapi", "reflectapi-derive", "reflectapi-schema", "reflectapi-cli", "reflectapi-conventions"}
 
           def internal_requirements(data, prefix=""):
               for key, value in data.items():
@@ -282,6 +283,15 @@ jobs:
         run: cargo publish --package reflectapi --locked
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth-reflectapi.outputs.token }}
+
+      - run: sleep 30
+
+      - uses: rust-lang/crates-io-auth-action@v1
+        id: auth-conventions
+      - name: Publish reflectapi-conventions
+        run: cargo publish --package reflectapi-conventions --locked
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth-conventions.outputs.token }}
 
       - run: sleep 30
 

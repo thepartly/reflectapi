@@ -106,16 +106,16 @@ The logo files are generated; see [docs/graphics](docs/graphics/README.md).
 Pushing a `v*` tag triggers `.github/workflows/release.yml`, which:
 
 1. Requires successful `CI` on a push to `main` for the exact tagged commit, verifies every published package version and internal dependency version matches the tag, and extracts a nonempty matching section from `CHANGELOG.md` (`packaging.version` parses both Cargo SemVer and PEP 440 forms).
-2. Packages and verifies all four Rust crates with the locked dependencies and all features, and builds the pure-Python `reflectapi-runtime` sdist and wheel before either registry publishes.
-3. Publishes the four Rust crates to crates.io in dependency order — `reflectapi-schema` → `reflectapi-derive` → `reflectapi` → `reflectapi-cli` — using crates.io Trusted Publishing (OIDC, no `CARGO_REGISTRY_TOKEN` secret), and publishes the Python runtime via PyPI Trusted Publishing. Cargo verifies each crate before publishing.
+2. Packages and verifies all five Rust crates with the locked dependencies and all features, and builds the pure-Python `reflectapi-runtime` sdist and wheel before either registry publishes.
+3. Publishes the five Rust crates to crates.io in dependency order — `reflectapi-schema` → `reflectapi-derive` → `reflectapi` → `reflectapi-conventions` → `reflectapi-cli` — using crates.io Trusted Publishing (OIDC, no `CARGO_REGISTRY_TOKEN` secret), and publishes the Python runtime via PyPI Trusted Publishing. Cargo verifies each crate before publishing.
 4. Cuts a GitHub Release with the curated changelog section; pre-release versions are flagged automatically.
 
-Both publishers run inside the `release` GitHub Environment, which is configured as a trusted publisher on each crate (crates.io) and on the `reflectapi-runtime` PyPI project.
+Both publishers run inside the `release` GitHub Environment, which is configured as a trusted publisher on each crate (crates.io) and on the `reflectapi-runtime` PyPI project. crates.io sets up trusted publishing only for a crate that exists, so a new crate's first version is published by hand with an API token, and trusted publishing is configured on it before the next release.
 
 To prepare a release, bump every version in lockstep, update the internal Cargo dependency versions and lockfiles, and move the release notes under a matching `## <version>` heading in `CHANGELOG.md`. The Cargo files use SemVer (`0.18.0-alpha.1`), `reflectapi-python-runtime/pyproject.toml` and `src/reflectapi_runtime/__init__.py` use PEP 440 (`0.18.0a1`):
 
 ```fish
-# 1. Bump Cargo SemVer in all four crates.
+# 1. Bump Cargo SemVer in all five crates.
 cargo release \
     --exclude reflectapi-demo \
     --exclude reflectapi-demo-client \

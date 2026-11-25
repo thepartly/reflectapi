@@ -21,8 +21,8 @@ reflectapi = { workspace = true, features = [
     "msgpack",
     "json",
     "indexmap",
-    "conventions"
 ] }
+reflectapi-conventions = { path = "../reflectapi-conventions" }
 
 tokio = { version = "1.5.0", features = ["full"] }
 axum = "0.8.1"

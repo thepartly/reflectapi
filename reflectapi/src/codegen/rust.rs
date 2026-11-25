@@ -187,7 +187,7 @@ pub fn generate(mut schema: crate::Schema, config: &Config) -> anyhow::Result<St
         {
             continue;
         }
-        if original_type_name.starts_with("std::") || original_type_name.starts_with("reflectapi::")
+        if original_type_name.starts_with("std::") || super::is_reflectapi_type(&original_type_name)
         {
             continue;
         }
@@ -1990,7 +1990,7 @@ fn __type_ref_to_ts_ref(
         .map(|_| with_super_prefix(""))
         .unwrap_or_default();
 
-    if type_ref.name().starts_with("reflectapi::") {
+    if super::is_reflectapi_type(type_ref.name()) {
         prefix = "".into();
     }
 

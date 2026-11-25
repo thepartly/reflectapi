@@ -165,6 +165,17 @@ pub(super) fn validate_response_enums(schema: &crate::Schema) -> anyhow::Result<
     Ok(())
 }
 
+/// One of reflectapi's own types, which a client gets from reflectapi's
+/// runtime rather than generating. Only these three: any other name under
+/// `reflectapi::`, such as a `reflectapi-conventions` type renamed there, is
+/// generated like an application's.
+pub(crate) fn is_reflectapi_type(name: &str) -> bool {
+    matches!(
+        name,
+        "reflectapi::Option" | "reflectapi::Empty" | "reflectapi::Infallible"
+    )
+}
+
 /// `template`, a target-language type such as `FixedSizeArray<T, N>`, with
 /// each identifier that names a parameter replaced by its argument. One pass
 /// over the template's own text, so an argument is never searched again: `T`

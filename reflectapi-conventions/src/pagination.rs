@@ -6,7 +6,7 @@
 use std::num::NonZeroU32;
 
 /// The page a list request asks for.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, crate::Input)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, reflectapi::Input)]
 pub struct PageRequest<C = String> {
     /// Where to start: a `next_cursor` from an earlier response, or none for
     /// the first page.
@@ -20,20 +20,20 @@ pub struct PageRequest<C = String> {
 
 /// A list returned whole. Its items are under `items`, as in a paginated
 /// list, so pagination can be added later without breaking clients.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, crate::Output)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, reflectapi::Output)]
 pub struct NonPaginatedList<D> {
     pub items: Vec<D>,
 }
 
 /// A page of a list, read forward with [`PageRequest::cursor`].
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, crate::Output)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, reflectapi::Output)]
 pub struct ForwardPaginatedList<D, C = String> {
     pub items: Vec<D>,
     pub pagination: Option<ForwardPagination<C>>,
 }
 
 /// Where the next page of a [`ForwardPaginatedList`] starts.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, crate::Output)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, reflectapi::Output)]
 pub struct ForwardPagination<C = String> {
     /// The cursor of the next page, if there is one.
     pub next_cursor: Option<C>,
@@ -68,21 +68,24 @@ mod tests {
         assert!(serde_json::from_str::<PageRequest>(r#"{"limit":0}"#).is_err());
     }
 
-    #[cfg(feature = "json")]
     #[test]
     fn a_typed_cursor_decodes_on_arrival() {
         #[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
         struct Cursor {
             after_id: u64,
         }
-        let cursor = crate::Encoded(Cursor { after_id: 42 }).encode().unwrap();
-        let request: PageRequest<crate::Encoded<Cursor>> =
+        let cursor = reflectapi::Encoded(Cursor { after_id: 42 })
+            .encode()
+            .unwrap();
+        let request: PageRequest<reflectapi::Encoded<Cursor>> =
             serde_json::from_str(&format!(r#"{{"cursor":"{cursor}"}}"#)).unwrap();
         assert_eq!(request.cursor.unwrap().0, Cursor { after_id: 42 });
-        assert!(serde_json::from_str::<PageRequest<crate::Encoded<Cursor>>>(
-            r#"{"cursor":"not a cursor"}"#
-        )
-        .is_err());
+        assert!(
+            serde_json::from_str::<PageRequest<reflectapi::Encoded<Cursor>>>(
+                r#"{"cursor":"not a cursor"}"#
+            )
+            .is_err()
+        );
     }
 
     #[test]

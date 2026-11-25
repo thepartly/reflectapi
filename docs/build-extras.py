@@ -121,12 +121,12 @@ def check_standard() -> list[str]:
     return errors
 
 
-LINTS = docs.parent / "reflectapi" / "src" / "conventions" / "lints.rs"
-LINT_DOCS = "https://docs.rs/reflectapi/latest/reflectapi/conventions/lints/fn.{}.html"
+LINTS = docs.parent / "reflectapi-conventions" / "src" / "lints.rs"
+LINT_DOCS = "https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/lints/fn.{}.html"
 
 
 def lint_rules() -> dict[str, list[str]]:
-    """The lints of `reflectapi::conventions::lints`, by the rules their doc
+    """The lints of `reflectapi_conventions::lints`, by the rules their doc
     comments name."""
     rules, doc = {}, []
     for line in LINTS.read_text().splitlines():
@@ -171,7 +171,7 @@ def check_lints() -> list[str]:
             if LINT_DOCS.format(lint) not in items[rule]:
                 errors.append(f"standard.md: {rule} doesn't name its lint, `lints::{lint}`")
     for rule, item in items.items():
-        for lint in re.findall(r"conventions/lints/fn\.(\w+)\.html", item):
+        for lint in re.findall(r"reflectapi_conventions/lints/fn\.(\w+)\.html", item):
             if lint not in rules.get(rule, []):
                 errors.append(f"standard.md: {rule} names `lints::{lint}`, which checks another rule")
     return errors

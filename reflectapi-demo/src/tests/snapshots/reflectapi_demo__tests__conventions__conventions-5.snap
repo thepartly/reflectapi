@@ -52,7 +52,7 @@ I = TypeVar("I")
 T = TypeVar("T")
 
 
-class ReflectapiConventionsConflictConditionalRequiredReflectapiConventionsIde1318d9c8(
+class ReflectapiConflictConditionalRequiredReflectapiIdentityDataReflectapiDem0be73e0f(
     BaseModel
 ):
     """A write of `data` whose `if` is required, as is the action in it:
@@ -60,7 +60,7 @@ class ReflectapiConventionsConflictConditionalRequiredReflectapiConventionsIde13
     one of the aliases above, such as [`InsertOrElseRequired`].
 
     ```
-    use reflectapi::conventions::conflict::{actions, InsertOrElseRequired, RemoveOrElseRequired};
+    use reflectapi_conventions::conflict::{actions, InsertOrElseRequired, RemoveOrElseRequired};
 
     #[derive(serde::Deserialize, reflectapi::Input)]
     struct Pet {
@@ -86,14 +86,14 @@ class ReflectapiConventionsConflictConditionalRequiredReflectapiConventionsIde13
         extra="ignore", populate_by_name=True, protected_namespaces=(), defer_build=True
     )
 
-    if_: reflectapi.conventions.conflict.matching.IfConflictOnUpdateRequired[
-        reflectapi.conventions.conflict.actions.Ignore
+    if_: reflectapi.conflict.matching.IfConflictOnUpdateRequired[
+        reflectapi.conflict.actions.Ignore
     ] = Field(serialization_alias="if", validation_alias="if")
     identity: str
     name: str
 
 
-class ReflectapiConventionsConflictConditionalReflectapiConventionsIdentityDatBeac0938(
+class ReflectapiConflictConditionalReflectapiDemoTestsConventionsPetDataReflec2f24ed31(
     ReflectapiPartialModel
 ):
     """A write of `data` with an `if` clause, whose absence takes the clause's
@@ -109,8 +109,39 @@ class ReflectapiConventionsConflictConditionalReflectapiConventionsIdentityDatBe
     )
 
     if_: (
-        reflectapi.conventions.conflict.IfConflictOnInsert[
-            reflectapi.conventions.conflict.actions.UpdateWithOrAbort[
+        reflectapi.conflict.matching.IfConflictOnInsertMany[
+            reflectapi.conflict.actions.ReplaceOrAbort
+        ]
+        | None
+    ) = Field(default=None, serialization_alias="if", validation_alias="if")
+    name: str
+
+    @field_validator("if_", mode="before")
+    @classmethod
+    def _reflectapi_reject_null(cls, value):
+        if value is None:
+            raise ValueError("Field may be omitted but cannot be null")
+        return value
+
+
+class ReflectapiConflictConditionalReflectapiIdentityDataReflectapiDemoTestsCo97e64faf(
+    ReflectapiPartialModel
+):
+    """A write of `data` with an `if` clause, whose absence takes the clause's
+    defaults: `{\"if\": {…}, …data}`. The aliases above, such as
+    [`InsertOrElse`], name its usual clauses."""
+
+    model_config = ConfigDict(
+        extra="ignore",
+        populate_by_name=True,
+        validate_assignment=True,
+        protected_namespaces=(),
+        defer_build=True,
+    )
+
+    if_: (
+        reflectapi.conflict.IfConflictOnInsert[
+            reflectapi.conflict.actions.UpdateWithOrAbort[
                 reflectapi_demo.tests.conventions.PetData
             ]
         ]
@@ -127,7 +158,7 @@ class ReflectapiConventionsConflictConditionalReflectapiConventionsIdentityDatBe
         return value
 
 
-class ReflectapiConventionsConflictConditionalReflectapiConventionsIdentityRef76f714b6(
+class ReflectapiConflictConditionalReflectapiIdentityReflectapiDemoTestsConven8fdca12a(
     ReflectapiPartialModel
 ):
     """A write of `data` with an `if` clause, whose absence takes the clause's
@@ -143,8 +174,8 @@ class ReflectapiConventionsConflictConditionalReflectapiConventionsIdentityRef76
     )
 
     if_: (
-        reflectapi.conventions.conflict.matching.IfConflictOnRemove[
-            reflectapi.conventions.conflict.actions.AbortOrIgnore
+        reflectapi.conflict.matching.IfConflictOnRemove[
+            reflectapi.conflict.actions.AbortOrIgnore
         ]
         | None
     ) = Field(default=None, serialization_alias="if", validation_alias="if")
@@ -158,40 +189,7 @@ class ReflectapiConventionsConflictConditionalReflectapiConventionsIdentityRef76
         return value
 
 
-class ReflectapiConventionsConflictConditionalReflectapiDemoTestsConventionsPe5624143e(
-    ReflectapiPartialModel
-):
-    """A write of `data` with an `if` clause, whose absence takes the clause's
-    defaults: `{\"if\": {…}, …data}`. The aliases above, such as
-    [`InsertOrElse`], name its usual clauses."""
-
-    model_config = ConfigDict(
-        extra="ignore",
-        populate_by_name=True,
-        validate_assignment=True,
-        protected_namespaces=(),
-        defer_build=True,
-    )
-
-    if_: (
-        reflectapi.conventions.conflict.matching.IfConflictOnInsertMany[
-            reflectapi.conventions.conflict.actions.ReplaceOrAbort
-        ]
-        | None
-    ) = Field(default=None, serialization_alias="if", validation_alias="if")
-    name: str
-
-    @field_validator("if_", mode="before")
-    @classmethod
-    def _reflectapi_reject_null(cls, value):
-        if value is None:
-            raise ValueError("Field may be omitted but cannot be null")
-        return value
-
-
-class ReflectapiConventionsConflictIfConflictOnInsert(
-    ReflectapiPartialModel, Generic[C]
-):
+class ReflectapiConflictIfConflictOnInsert(ReflectapiPartialModel, Generic[C]):
     """The `if` of an insert, of one entity or several."""
 
     model_config = ConfigDict(
@@ -205,7 +203,7 @@ class ReflectapiConventionsConflictIfConflictOnInsert(
     exists: C | None = None
 
 
-class ReflectapiConventionsConflictMatchingIfConflictOnInsertMany(
+class ReflectapiConflictMatchingIfConflictOnInsertMany(
     ReflectapiPartialModel, Generic[C]
 ):
     """The `if` of an insert of several entities: the action for each listed
@@ -220,9 +218,7 @@ class ReflectapiConventionsConflictMatchingIfConflictOnInsertMany(
     )
 
     exists: C | None = None
-    parent_matches: reflectapi.conventions.conflict.matching.MatchCondition | None = (
-        None
-    )
+    parent_matches: reflectapi.conflict.matching.MatchCondition | None = None
 
     @field_validator("parent_matches", mode="before")
     @classmethod
@@ -232,9 +228,7 @@ class ReflectapiConventionsConflictMatchingIfConflictOnInsertMany(
         return value
 
 
-class ReflectapiConventionsConflictMatchingIfConflictOnRemove(
-    ReflectapiPartialModel, Generic[C]
-):
+class ReflectapiConflictMatchingIfConflictOnRemove(ReflectapiPartialModel, Generic[C]):
     """The `if` of a remove: the action when the entity doesn't exist, and the
     edition it must be at, if any."""
 
@@ -247,12 +241,10 @@ class ReflectapiConventionsConflictMatchingIfConflictOnRemove(
     )
 
     not_exists: C | None = None
-    matches: reflectapi.conventions.conflict.matching.EditionMatchCondition | None = (
-        None
-    )
+    matches: reflectapi.conflict.matching.EditionMatchCondition | None = None
 
 
-class ReflectapiConventionsConflictMatchingIfConflictOnUpdateRequired(
+class ReflectapiConflictMatchingIfConflictOnUpdateRequired(
     ReflectapiPartialModel, Generic[C]
 ):
     """The `if` of [`UpdateOrElseRequired`]: [`IfConflictOnUpdate`] with
@@ -267,14 +259,10 @@ class ReflectapiConventionsConflictMatchingIfConflictOnUpdateRequired(
     )
 
     not_exists: C
-    matches: reflectapi.conventions.conflict.matching.EditionMatchCondition | None = (
-        None
-    )
+    matches: reflectapi.conflict.matching.EditionMatchCondition | None = None
 
 
-class ReflectapiConventionsConflictMatchingEditionMatchConditionEditionVariant(
-    BaseModel
-):
+class ReflectapiConflictMatchingEditionMatchConditionEditionVariant(BaseModel):
     """edition variant"""
 
     model_config = ConfigDict(
@@ -285,13 +273,13 @@ class ReflectapiConventionsConflictMatchingEditionMatchConditionEditionVariant(
 
 
 # Externally tagged enum using RootModel
-ReflectapiConventionsConflictMatchingEditionMatchConditionVariants = (
-    ReflectapiConventionsConflictMatchingEditionMatchConditionEditionVariant
+ReflectapiConflictMatchingEditionMatchConditionVariants = (
+    ReflectapiConflictMatchingEditionMatchConditionEditionVariant
 )
 
 
-class ReflectapiConventionsConflictMatchingEditionMatchCondition(
-    RootModel[ReflectapiConventionsConflictMatchingEditionMatchConditionVariants]
+class ReflectapiConflictMatchingEditionMatchCondition(
+    RootModel[ReflectapiConflictMatchingEditionMatchConditionVariants]
 ):
     """A [`MatchCondition`] that can only be `{\"edition\": n}`."""
 
@@ -302,13 +290,13 @@ class ReflectapiConventionsConflictMatchingEditionMatchCondition(
             data,
             {
                 "edition": lambda v: (
-                    ReflectapiConventionsConflictMatchingEditionMatchConditionEditionVariant(
+                    ReflectapiConflictMatchingEditionMatchConditionEditionVariant(
                         field_0=v
                     )
                 )
             },
-            (ReflectapiConventionsConflictMatchingEditionMatchConditionEditionVariant,),
-            "ReflectapiConventionsConflictMatchingEditionMatchCondition",
+            (ReflectapiConflictMatchingEditionMatchConditionEditionVariant,),
+            "ReflectapiConflictMatchingEditionMatchCondition",
         )
 
     @model_serializer
@@ -318,13 +306,12 @@ class ReflectapiConventionsConflictMatchingEditionMatchCondition(
             {
                 "edition": (
                     lambda r: isinstance(
-                        r,
-                        ReflectapiConventionsConflictMatchingEditionMatchConditionEditionVariant,
+                        r, ReflectapiConflictMatchingEditionMatchConditionEditionVariant
                     ),
                     lambda r: {"edition": r.field_0},
                 )
             },
-            "ReflectapiConventionsConflictMatchingEditionMatchCondition",
+            "ReflectapiConflictMatchingEditionMatchCondition",
         )
 
     @classmethod
@@ -334,7 +321,7 @@ class ReflectapiConventionsConflictMatchingEditionMatchCondition(
         )
 
 
-class ReflectapiConventionsConflictMatchingMatchConditionEditionVariant(BaseModel):
+class ReflectapiConflictMatchingMatchConditionEditionVariant(BaseModel):
     """edition variant"""
 
     model_config = ConfigDict(
@@ -345,13 +332,13 @@ class ReflectapiConventionsConflictMatchingMatchConditionEditionVariant(BaseMode
 
 
 # Externally tagged enum using RootModel
-ReflectapiConventionsConflictMatchingMatchConditionVariants = Union[
-    Literal["exists"], ReflectapiConventionsConflictMatchingMatchConditionEditionVariant
+ReflectapiConflictMatchingMatchConditionVariants = Union[
+    Literal["exists"], ReflectapiConflictMatchingMatchConditionEditionVariant
 ]
 
 
-class ReflectapiConventionsConflictMatchingMatchCondition(
-    RootModel[ReflectapiConventionsConflictMatchingMatchConditionVariants]
+class ReflectapiConflictMatchingMatchCondition(
+    RootModel[ReflectapiConflictMatchingMatchConditionVariants]
 ):
     """What the checked entity must be: `exists`, or `{\"edition\": n}`, existing
     at edition `n`."""
@@ -364,13 +351,11 @@ class ReflectapiConventionsConflictMatchingMatchCondition(
             {
                 "exists": "_unit",
                 "edition": lambda v: (
-                    ReflectapiConventionsConflictMatchingMatchConditionEditionVariant(
-                        field_0=v
-                    )
+                    ReflectapiConflictMatchingMatchConditionEditionVariant(field_0=v)
                 ),
             },
-            (ReflectapiConventionsConflictMatchingMatchConditionEditionVariant,),
-            "ReflectapiConventionsConflictMatchingMatchCondition",
+            (ReflectapiConflictMatchingMatchConditionEditionVariant,),
+            "ReflectapiConflictMatchingMatchCondition",
         )
 
     @model_serializer
@@ -381,13 +366,12 @@ class ReflectapiConventionsConflictMatchingMatchCondition(
                 "exists": (lambda r: r == "exists", lambda r: "exists"),
                 "edition": (
                     lambda r: isinstance(
-                        r,
-                        ReflectapiConventionsConflictMatchingMatchConditionEditionVariant,
+                        r, ReflectapiConflictMatchingMatchConditionEditionVariant
                     ),
                     lambda r: {"edition": r.field_0},
                 ),
             },
-            "ReflectapiConventionsConflictMatchingMatchCondition",
+            "ReflectapiConflictMatchingMatchCondition",
         )
 
     @classmethod
@@ -402,23 +386,21 @@ class ReflectapiConventionsConflictMatchingMatchCondition(
         )
 
 
-class ReflectapiConventionsConflictActionsAbortOrIgnore(str, Enum):
+class ReflectapiConflictActionsAbortOrIgnore(str, Enum):
     ABORT = "abort"
     IGNORE = "ignore"
 
 
-class ReflectapiConventionsConflictActionsIgnore(str, Enum):
+class ReflectapiConflictActionsIgnore(str, Enum):
     IGNORE = "ignore"
 
 
-class ReflectapiConventionsConflictActionsReplaceOrAbort(str, Enum):
+class ReflectapiConflictActionsReplaceOrAbort(str, Enum):
     REPLACE = "replace"
     ABORT = "abort"
 
 
-class ReflectapiConventionsConflictActionsUpdateWithOrAbortUpdateVariant(
-    BaseModel, Generic[T]
-):
+class ReflectapiConflictActionsUpdateWithOrAbortUpdateVariant(BaseModel, Generic[T]):
     """update variant"""
 
     model_config = ConfigDict(
@@ -429,14 +411,13 @@ class ReflectapiConventionsConflictActionsUpdateWithOrAbortUpdateVariant(
 
 
 # Externally tagged enum using RootModel
-ReflectapiConventionsConflictActionsUpdateWithOrAbortVariants = Union[
-    ReflectapiConventionsConflictActionsUpdateWithOrAbortUpdateVariant[T],
-    Literal["abort"],
+ReflectapiConflictActionsUpdateWithOrAbortVariants = Union[
+    ReflectapiConflictActionsUpdateWithOrAbortUpdateVariant[T], Literal["abort"]
 ]
 
 
-class ReflectapiConventionsConflictActionsUpdateWithOrAbort(
-    RootModel[ReflectapiConventionsConflictActionsUpdateWithOrAbortVariants], Generic[T]
+class ReflectapiConflictActionsUpdateWithOrAbort(
+    RootModel[ReflectapiConflictActionsUpdateWithOrAbortVariants], Generic[T]
 ):
     """Externally tagged enum"""
 
@@ -451,14 +432,12 @@ class ReflectapiConventionsConflictActionsUpdateWithOrAbort(
             data,
             {
                 "update": lambda v: (
-                    ReflectapiConventionsConflictActionsUpdateWithOrAbortUpdateVariant(
-                        field_0=v
-                    )
+                    ReflectapiConflictActionsUpdateWithOrAbortUpdateVariant(field_0=v)
                 ),
                 "abort": "_unit",
             },
-            (ReflectapiConventionsConflictActionsUpdateWithOrAbortUpdateVariant,),
-            "ReflectapiConventionsConflictActionsUpdateWithOrAbort",
+            (ReflectapiConflictActionsUpdateWithOrAbortUpdateVariant,),
+            "ReflectapiConflictActionsUpdateWithOrAbort",
         )
 
     @model_serializer
@@ -468,14 +447,13 @@ class ReflectapiConventionsConflictActionsUpdateWithOrAbort(
             {
                 "update": (
                     lambda r: isinstance(
-                        r,
-                        ReflectapiConventionsConflictActionsUpdateWithOrAbortUpdateVariant,
+                        r, ReflectapiConflictActionsUpdateWithOrAbortUpdateVariant
                     ),
                     lambda r: {"update": r.field_0},
                 ),
                 "abort": (lambda r: r == "abort", lambda r: "abort"),
             },
-            "ReflectapiConventionsConflictActionsUpdateWithOrAbort",
+            "ReflectapiConflictActionsUpdateWithOrAbort",
         )
 
     @classmethod
@@ -490,7 +468,7 @@ class ReflectapiConventionsConflictActionsUpdateWithOrAbort(
         )
 
 
-class ReflectapiConventionsIdentity(BaseModel, Generic[I]):
+class ReflectapiIdentity(BaseModel, Generic[I]):
     """A request or response naming one entity: `{\"identity\": …}`.
 
     For an entity that can be identified in more than one way, `I` saying
@@ -505,7 +483,7 @@ class ReflectapiConventionsIdentity(BaseModel, Generic[I]):
     identity: I
 
 
-class ReflectapiConventionsIdentityDataReflectapiDemoTestsConventionsP216390a3(
+class ReflectapiIdentityDataReflectapiDemoTestsConventionsPetIdReflect47454ecc(
     BaseModel
 ):
     """An entity's identity beside its data, whose fields are flattened in:
@@ -522,7 +500,7 @@ class ReflectapiConventionsIdentityDataReflectapiDemoTestsConventionsP216390a3(
     name: str
 
 
-class ReflectapiConventionsPaginationForwardPaginatedList(BaseModel, Generic[D, C]):
+class ReflectapiPaginationForwardPaginatedList(BaseModel, Generic[D, C]):
     """A page of a list, read forward with [`PageRequest::cursor`]."""
 
     model_config = ConfigDict(
@@ -530,10 +508,10 @@ class ReflectapiConventionsPaginationForwardPaginatedList(BaseModel, Generic[D, 
     )
 
     items: list[D]
-    pagination: reflectapi.conventions.pagination.ForwardPagination[C] | None
+    pagination: reflectapi.pagination.ForwardPagination[C] | None
 
 
-class ReflectapiConventionsPaginationForwardPagination(BaseModel, Generic[C]):
+class ReflectapiPaginationForwardPagination(BaseModel, Generic[C]):
     """Where the next page of a [`ForwardPaginatedList`] starts."""
 
     model_config = ConfigDict(
@@ -545,7 +523,7 @@ class ReflectapiConventionsPaginationForwardPagination(BaseModel, Generic[C]):
     )
 
 
-class ReflectapiConventionsPaginationPageRequest(ReflectapiPartialModel, Generic[C]):
+class ReflectapiPaginationPageRequest(ReflectapiPartialModel, Generic[C]):
     """The page a list request asks for."""
 
     model_config = ConfigDict(
@@ -578,66 +556,57 @@ class ReflectapiDemoTestsConventionsPetData(BaseModel):
 class reflectapi:
     """Namespace for reflectapi types."""
 
-    class conventions:
-        """Namespace for conventions types."""
+    class conflict:
+        """Namespace for conflict types."""
 
-        class conflict:
-            """Namespace for conflict types."""
+        ConditionalRequiredReflectapiIdentityDataReflectapiDem0be73e0f = ReflectapiConflictConditionalRequiredReflectapiIdentityDataReflectapiDem0be73e0f
+        PetsImport = PetsImport
+        ConditionalReflectapiDemoTestsConventionsPetDataReflec2f24ed31 = ReflectapiConflictConditionalReflectapiDemoTestsConventionsPetDataReflec2f24ed31
+        ConditionalReflectapiIdentityDataReflectapiDemoTestsCo97e64faf = ReflectapiConflictConditionalReflectapiIdentityDataReflectapiDemoTestsCo97e64faf
+        ConditionalReflectapiIdentityReflectapiDemoTestsConven8fdca12a = ReflectapiConflictConditionalReflectapiIdentityReflectapiDemoTestsConven8fdca12a
+        IfConflictOnInsert = ReflectapiConflictIfConflictOnInsert
 
-            ConditionalRequiredReflectapiConventionsIde1318d9c8 = ReflectapiConventionsConflictConditionalRequiredReflectapiConventionsIde1318d9c8
-            PetsImport = PetsImport
-            ConditionalReflectapiConventionsIdentityDatBeac0938 = ReflectapiConventionsConflictConditionalReflectapiConventionsIdentityDatBeac0938
-            ConditionalReflectapiConventionsIdentityRef76f714b6 = ReflectapiConventionsConflictConditionalReflectapiConventionsIdentityRef76f714b6
-            ConditionalReflectapiDemoTestsConventionsPe5624143e = ReflectapiConventionsConflictConditionalReflectapiDemoTestsConventionsPe5624143e
-            IfConflictOnInsert = ReflectapiConventionsConflictIfConflictOnInsert
+        class matching:
+            """Namespace for matching types."""
 
-            class matching:
-                """Namespace for matching types."""
-
-                IfConflictOnInsertMany = (
-                    ReflectapiConventionsConflictMatchingIfConflictOnInsertMany
-                )
-                IfConflictOnRemove = (
-                    ReflectapiConventionsConflictMatchingIfConflictOnRemove
-                )
-                IfConflictOnUpdateRequired = (
-                    ReflectapiConventionsConflictMatchingIfConflictOnUpdateRequired
-                )
-                EditionMatchConditionEditionVariant = ReflectapiConventionsConflictMatchingEditionMatchConditionEditionVariant
-                EditionMatchCondition = (
-                    ReflectapiConventionsConflictMatchingEditionMatchCondition
-                )
-                MatchConditionEditionVariant = (
-                    ReflectapiConventionsConflictMatchingMatchConditionEditionVariant
-                )
-                MatchCondition = ReflectapiConventionsConflictMatchingMatchCondition
-
-            class actions:
-                """Namespace for actions types."""
-
-                AbortOrIgnore = ReflectapiConventionsConflictActionsAbortOrIgnore
-                Ignore = ReflectapiConventionsConflictActionsIgnore
-                ReplaceOrAbort = ReflectapiConventionsConflictActionsReplaceOrAbort
-                UpdateWithOrAbortUpdateVariant = (
-                    ReflectapiConventionsConflictActionsUpdateWithOrAbortUpdateVariant
-                )
-                UpdateWithOrAbort = (
-                    ReflectapiConventionsConflictActionsUpdateWithOrAbort
-                )
-
-        class identity:
-            """Namespace for identity types."""
-
-            DataReflectapiDemoTestsConventionsP216390a3 = (
-                ReflectapiConventionsIdentityDataReflectapiDemoTestsConventionsP216390a3
+            IfConflictOnInsertMany = ReflectapiConflictMatchingIfConflictOnInsertMany
+            IfConflictOnRemove = ReflectapiConflictMatchingIfConflictOnRemove
+            IfConflictOnUpdateRequired = (
+                ReflectapiConflictMatchingIfConflictOnUpdateRequired
             )
+            EditionMatchConditionEditionVariant = (
+                ReflectapiConflictMatchingEditionMatchConditionEditionVariant
+            )
+            EditionMatchCondition = ReflectapiConflictMatchingEditionMatchCondition
+            MatchConditionEditionVariant = (
+                ReflectapiConflictMatchingMatchConditionEditionVariant
+            )
+            MatchCondition = ReflectapiConflictMatchingMatchCondition
 
-        class pagination:
-            """Namespace for pagination types."""
+        class actions:
+            """Namespace for actions types."""
 
-            ForwardPaginatedList = ReflectapiConventionsPaginationForwardPaginatedList
-            ForwardPagination = ReflectapiConventionsPaginationForwardPagination
-            PageRequest = ReflectapiConventionsPaginationPageRequest
+            AbortOrIgnore = ReflectapiConflictActionsAbortOrIgnore
+            Ignore = ReflectapiConflictActionsIgnore
+            ReplaceOrAbort = ReflectapiConflictActionsReplaceOrAbort
+            UpdateWithOrAbortUpdateVariant = (
+                ReflectapiConflictActionsUpdateWithOrAbortUpdateVariant
+            )
+            UpdateWithOrAbort = ReflectapiConflictActionsUpdateWithOrAbort
+
+    class identity:
+        """Namespace for identity types."""
+
+        DataReflectapiDemoTestsConventionsPetIdReflect47454ecc = (
+            ReflectapiIdentityDataReflectapiDemoTestsConventionsPetIdReflect47454ecc
+        )
+
+    class pagination:
+        """Namespace for pagination types."""
+
+        ForwardPaginatedList = ReflectapiPaginationForwardPaginatedList
+        ForwardPagination = ReflectapiPaginationForwardPagination
+        PageRequest = ReflectapiPaginationPageRequest
 
 
 class reflectapi_demo:
@@ -661,16 +630,16 @@ class AsyncPetsClient:
     async def insert(
         self,
         data: Optional[
-            reflectapi.conventions.conflict.ConditionalReflectapiConventionsIdentityDatBeac0938
+            reflectapi.conflict.ConditionalReflectapiIdentityDataReflectapiDemoTestsCo97e64faf
         ] = None,
-    ) -> ApiResponse[reflectapi.conventions.identity.Identity[str]]:
+    ) -> ApiResponse[reflectapi.identity.Identity[str]]:
         """
 
         Args:
             data: Request data for the insert operation.
 
         Returns:
-            ApiResponse[reflectapi.conventions.identity.Identity[str]]: Response containing reflectapi.conventions.identity.Identity[str] data
+            ApiResponse[reflectapi.identity.Identity[str]]: Response containing reflectapi.identity.Identity[str] data
         """
         path = "/pets.insert"
 
@@ -679,15 +648,15 @@ class AsyncPetsClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi.conventions.identity.Identity[str],
+            response_model=reflectapi.identity.Identity[str],
         )
 
     async def list(
         self,
-        data: Optional[reflectapi.conventions.pagination.PageRequest[str]] = None,
+        data: Optional[reflectapi.pagination.PageRequest[str]] = None,
     ) -> ApiResponse[
-        reflectapi.conventions.pagination.ForwardPaginatedList[
-            reflectapi.conventions.identity.IdentityDataReflectapiDemoTestsConventionsP216390a3,
+        reflectapi.pagination.ForwardPaginatedList[
+            reflectapi.identity.IdentityDataReflectapiDemoTestsConventionsPetIdReflect47454ecc,
             str,
         ]
     ]:
@@ -697,7 +666,7 @@ class AsyncPetsClient:
             data: Request data for the list operation.
 
         Returns:
-            ApiResponse[reflectapi.conventions.pagination.ForwardPaginatedList[reflectapi.conventions.identity.IdentityDataReflectapiDemoTestsConventionsP216390a3, str]]: Response containing reflectapi.conventions.pagination.ForwardPaginatedList[reflectapi.conventions.identity.IdentityDataReflectapiDemoTestsConventionsP216390a3, str] data
+            ApiResponse[reflectapi.pagination.ForwardPaginatedList[reflectapi.identity.IdentityDataReflectapiDemoTestsConventionsPetIdReflect47454ecc, str]]: Response containing reflectapi.pagination.ForwardPaginatedList[reflectapi.identity.IdentityDataReflectapiDemoTestsConventionsPetIdReflect47454ecc, str] data
         """
         path = "/pets.list"
 
@@ -706,8 +675,8 @@ class AsyncPetsClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi.conventions.pagination.ForwardPaginatedList[
-                reflectapi.conventions.identity.IdentityDataReflectapiDemoTestsConventionsP216390a3,
+            response_model=reflectapi.pagination.ForwardPaginatedList[
+                reflectapi.identity.IdentityDataReflectapiDemoTestsConventionsPetIdReflect47454ecc,
                 str,
             ],
         )
@@ -715,7 +684,7 @@ class AsyncPetsClient:
     async def remove(
         self,
         data: Optional[
-            reflectapi.conventions.conflict.ConditionalReflectapiConventionsIdentityRef76f714b6
+            reflectapi.conflict.ConditionalReflectapiIdentityReflectapiDemoTestsConven8fdca12a
         ] = None,
     ) -> ApiResponse[Any]:
         """
@@ -739,7 +708,7 @@ class AsyncPetsClient:
     async def replace_all(
         self,
         data: Optional[
-            reflectapi.conventions.conflict.ConditionalReflectapiDemoTestsConventionsPe5624143e
+            reflectapi.conflict.ConditionalReflectapiDemoTestsConventionsPetDataReflec2f24ed31
         ] = None,
     ) -> ApiResponse[Any]:
         """
@@ -763,7 +732,7 @@ class AsyncPetsClient:
     async def update(
         self,
         data: Optional[
-            reflectapi.conventions.conflict.ConditionalRequiredReflectapiConventionsIde1318d9c8
+            reflectapi.conflict.ConditionalRequiredReflectapiIdentityDataReflectapiDem0be73e0f
         ] = None,
     ) -> ApiResponse[Any]:
         """
@@ -807,16 +776,16 @@ class PetsClient:
     def insert(
         self,
         data: Optional[
-            reflectapi.conventions.conflict.ConditionalReflectapiConventionsIdentityDatBeac0938
+            reflectapi.conflict.ConditionalReflectapiIdentityDataReflectapiDemoTestsCo97e64faf
         ] = None,
-    ) -> ApiResponse[reflectapi.conventions.identity.Identity[str]]:
+    ) -> ApiResponse[reflectapi.identity.Identity[str]]:
         """
 
         Args:
             data: Request data for the insert operation.
 
         Returns:
-            ApiResponse[reflectapi.conventions.identity.Identity[str]]: Response containing reflectapi.conventions.identity.Identity[str] data
+            ApiResponse[reflectapi.identity.Identity[str]]: Response containing reflectapi.identity.Identity[str] data
         """
         path = "/pets.insert"
 
@@ -825,15 +794,15 @@ class PetsClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi.conventions.identity.Identity[str],
+            response_model=reflectapi.identity.Identity[str],
         )
 
     def list(
         self,
-        data: Optional[reflectapi.conventions.pagination.PageRequest[str]] = None,
+        data: Optional[reflectapi.pagination.PageRequest[str]] = None,
     ) -> ApiResponse[
-        reflectapi.conventions.pagination.ForwardPaginatedList[
-            reflectapi.conventions.identity.IdentityDataReflectapiDemoTestsConventionsP216390a3,
+        reflectapi.pagination.ForwardPaginatedList[
+            reflectapi.identity.IdentityDataReflectapiDemoTestsConventionsPetIdReflect47454ecc,
             str,
         ]
     ]:
@@ -843,7 +812,7 @@ class PetsClient:
             data: Request data for the list operation.
 
         Returns:
-            ApiResponse[reflectapi.conventions.pagination.ForwardPaginatedList[reflectapi.conventions.identity.IdentityDataReflectapiDemoTestsConventionsP216390a3, str]]: Response containing reflectapi.conventions.pagination.ForwardPaginatedList[reflectapi.conventions.identity.IdentityDataReflectapiDemoTestsConventionsP216390a3, str] data
+            ApiResponse[reflectapi.pagination.ForwardPaginatedList[reflectapi.identity.IdentityDataReflectapiDemoTestsConventionsPetIdReflect47454ecc, str]]: Response containing reflectapi.pagination.ForwardPaginatedList[reflectapi.identity.IdentityDataReflectapiDemoTestsConventionsPetIdReflect47454ecc, str] data
         """
         path = "/pets.list"
 
@@ -852,8 +821,8 @@ class PetsClient:
             path,
             params=params if params else None,
             json_model=data,
-            response_model=reflectapi.conventions.pagination.ForwardPaginatedList[
-                reflectapi.conventions.identity.IdentityDataReflectapiDemoTestsConventionsP216390a3,
+            response_model=reflectapi.pagination.ForwardPaginatedList[
+                reflectapi.identity.IdentityDataReflectapiDemoTestsConventionsPetIdReflect47454ecc,
                 str,
             ],
         )
@@ -861,7 +830,7 @@ class PetsClient:
     def remove(
         self,
         data: Optional[
-            reflectapi.conventions.conflict.ConditionalReflectapiConventionsIdentityRef76f714b6
+            reflectapi.conflict.ConditionalReflectapiIdentityReflectapiDemoTestsConven8fdca12a
         ] = None,
     ) -> ApiResponse[Any]:
         """
@@ -885,7 +854,7 @@ class PetsClient:
     def replace_all(
         self,
         data: Optional[
-            reflectapi.conventions.conflict.ConditionalReflectapiDemoTestsConventionsPe5624143e
+            reflectapi.conflict.ConditionalReflectapiDemoTestsConventionsPetDataReflec2f24ed31
         ] = None,
     ) -> ApiResponse[Any]:
         """
@@ -909,7 +878,7 @@ class PetsClient:
     def update(
         self,
         data: Optional[
-            reflectapi.conventions.conflict.ConditionalRequiredReflectapiConventionsIde1318d9c8
+            reflectapi.conflict.ConditionalRequiredReflectapiIdentityDataReflectapiDem0be73e0f
         ] = None,
     ) -> ApiResponse[Any]:
         """
@@ -953,6 +922,25 @@ StdNumNonZeroI64 = Annotated[int, "Rust NonZero i64 type"]
 # Rebuild models to resolve forward references
 _rebuild_errors: list[str] = []
 for _model in [
+    ReflectapiConflictConditionalRequiredReflectapiIdentityDataReflectapiDem0be73e0f,
+    ReflectapiConflictConditionalReflectapiDemoTestsConventionsPetDataReflec2f24ed31,
+    ReflectapiConflictConditionalReflectapiIdentityDataReflectapiDemoTestsCo97e64faf,
+    ReflectapiConflictConditionalReflectapiIdentityReflectapiDemoTestsConven8fdca12a,
+    ReflectapiConflictIfConflictOnInsert,
+    ReflectapiConflictActionsAbortOrIgnore,
+    ReflectapiConflictActionsIgnore,
+    ReflectapiConflictActionsReplaceOrAbort,
+    ReflectapiConflictActionsUpdateWithOrAbort,
+    ReflectapiConflictMatchingEditionMatchCondition,
+    ReflectapiConflictMatchingIfConflictOnInsertMany,
+    ReflectapiConflictMatchingIfConflictOnRemove,
+    ReflectapiConflictMatchingIfConflictOnUpdateRequired,
+    ReflectapiConflictMatchingMatchCondition,
+    ReflectapiIdentity,
+    ReflectapiIdentityDataReflectapiDemoTestsConventionsPetIdReflect47454ecc,
+    ReflectapiPaginationForwardPaginatedList,
+    ReflectapiPaginationForwardPagination,
+    ReflectapiPaginationPageRequest,
     ReflectapiDemoTestsConventionsPetData,
 ]:
     if not hasattr(_model, "model_rebuild"):

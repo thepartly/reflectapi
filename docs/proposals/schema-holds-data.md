@@ -238,6 +238,10 @@ struct PetsTagRequest {
   the length checked at compile time, and `chunks(&items)` to split a long
   slice into bounded batches. Out of bounds is a `BoundsError { length, min,
   max }`. `Deref`, `AsRef` and `into_inner` give the value back.
+- **`BoundsError` is `#[non_exhaustive]`**, as `ValidationError` is since
+  #259: users read it and don't build it, so a field can be added without a
+  breaking release. [`bounded.rs`](bounded.rs) predates #259 and doesn't
+  have it yet.
 - **No feature flag.** It needs only serde and reflectapi's own traits, and
   the codegens recognise it by name, which they couldn't do if it depended on
   a flag set in the user's crate. `Option`, `Empty` and `Infallible` are

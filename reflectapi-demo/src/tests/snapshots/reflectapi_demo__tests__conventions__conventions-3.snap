@@ -63,11 +63,11 @@ pub mod interface {
         }
         pub async fn list(
             &self,
-            input: reflectapi::conventions::pagination::PageRequest<std::string::String>,
+            input: super::types::reflectapi::pagination::PageRequest<std::string::String>,
             headers: reflectapi::Empty,
         ) -> Result<
-            reflectapi::conventions::pagination::ForwardPaginatedList<
-                reflectapi::conventions::identity::IdentityData<
+            super::types::reflectapi::pagination::ForwardPaginatedList<
+                super::types::reflectapi::identity::IdentityData<
                     super::types::reflectapi_demo::tests::conventions::PetId,
                     super::types::reflectapi_demo::tests::conventions::PetData,
                 >,
@@ -79,20 +79,20 @@ pub mod interface {
         }
         pub async fn insert(
             &self,
-            input: reflectapi::conventions::conflict::Conditional<
-                reflectapi::conventions::identity::IdentityData<
+            input: super::types::reflectapi::conflict::Conditional<
+                super::types::reflectapi::identity::IdentityData<
                     super::types::reflectapi_demo::tests::conventions::PetId,
                     super::types::reflectapi_demo::tests::conventions::PetData,
                 >,
-                reflectapi::conventions::conflict::IfConflictOnInsert<
-                    reflectapi::conventions::conflict::actions::UpdateWithOrAbort<
+                super::types::reflectapi::conflict::IfConflictOnInsert<
+                    super::types::reflectapi::conflict::actions::UpdateWithOrAbort<
                         super::types::reflectapi_demo::tests::conventions::PetData,
                     >,
                 >,
             >,
             headers: reflectapi::Empty,
         ) -> Result<
-            reflectapi::conventions::identity::Identity<
+            super::types::reflectapi::identity::Identity<
                 super::types::reflectapi_demo::tests::conventions::PetId,
             >,
             reflectapi::rt::Error<reflectapi::Empty, C::Error>,
@@ -101,10 +101,10 @@ pub mod interface {
         }
         pub async fn replace_all(
             &self,
-            input: reflectapi::conventions::conflict::Conditional<
+            input: super::types::reflectapi::conflict::Conditional<
                 super::types::reflectapi_demo::tests::conventions::PetData,
-                reflectapi::conventions::conflict::matching::IfConflictOnInsertMany<
-                    reflectapi::conventions::conflict::actions::ReplaceOrAbort,
+                super::types::reflectapi::conflict::matching::IfConflictOnInsertMany<
+                    super::types::reflectapi::conflict::actions::ReplaceOrAbort,
                 >,
             >,
             headers: reflectapi::Empty,
@@ -113,13 +113,13 @@ pub mod interface {
         }
         pub async fn update(
             &self,
-            input: reflectapi::conventions::conflict::ConditionalRequired<
-                reflectapi::conventions::identity::IdentityData<
+            input: super::types::reflectapi::conflict::ConditionalRequired<
+                super::types::reflectapi::identity::IdentityData<
                     super::types::reflectapi_demo::tests::conventions::PetId,
                     super::types::reflectapi_demo::tests::conventions::PetData,
                 >,
-                reflectapi::conventions::conflict::matching::IfConflictOnUpdateRequired<
-                    reflectapi::conventions::conflict::actions::Ignore,
+                super::types::reflectapi::conflict::matching::IfConflictOnUpdateRequired<
+                    super::types::reflectapi::conflict::actions::Ignore,
                 >,
             >,
             headers: reflectapi::Empty,
@@ -128,12 +128,12 @@ pub mod interface {
         }
         pub async fn remove(
             &self,
-            input: reflectapi::conventions::conflict::Conditional<
-                reflectapi::conventions::identity::Identity<
+            input: super::types::reflectapi::conflict::Conditional<
+                super::types::reflectapi::identity::Identity<
                     super::types::reflectapi_demo::tests::conventions::PetId,
                 >,
-                reflectapi::conventions::conflict::matching::IfConflictOnRemove<
-                    reflectapi::conventions::conflict::actions::AbortOrIgnore,
+                super::types::reflectapi::conflict::matching::IfConflictOnRemove<
+                    super::types::reflectapi::conflict::actions::AbortOrIgnore,
                 >,
             >,
             headers: reflectapi::Empty,
@@ -143,6 +143,215 @@ pub mod interface {
     }
 }
 pub mod types {
+    pub mod reflectapi {
+        pub mod conflict {
+
+            /// A write of `data` with an `if` clause, whose absence takes the clause's
+            /// defaults: `{"if": {…}, …data}`. The aliases above, such as
+            /// [`InsertOrElse`], name its usual clauses.
+            #[derive(Debug, serde::Serialize)]
+            pub struct Conditional<T, If> {
+                #[serde(rename = "if", default = "Default::default")]
+                pub if_: If,
+                #[serde(flatten)]
+                pub data: T,
+            }
+
+            /// A write of `data` whose `if` is required, as is the action in it:
+            /// `{"if": {…}, …data}`. A route whose set has no default takes it, through
+            /// one of the aliases above, such as [`InsertOrElseRequired`].
+            ///
+            /// ```
+            /// use reflectapi_conventions::conflict::{actions, InsertOrElseRequired, RemoveOrElseRequired};
+            ///
+            /// #[derive(serde::Deserialize, reflectapi::Input)]
+            /// struct Pet {
+            /// name: String,
+            /// }
+            ///
+            /// type PetsImport = InsertOrElseRequired<Pet, actions::ReplaceOrIgnore>;
+            ///
+            /// let insert: PetsImport =
+            /// serde_json::from_str(r#"{"if": {"exists": "ignore"}, "name": "Rex"}"#).unwrap();
+            /// assert_eq!(insert.if_.exists, actions::ReplaceOrIgnore::Ignore);
+            ///
+            /// // Without `if`, refused.
+            /// assert!(serde_json::from_str::<PetsImport>(r#"{"name": "Rex"}"#).is_err());
+            ///
+            /// // A remove that only ignores a missing pet: the client says so.
+            /// let remove: RemoveOrElseRequired<Pet, actions::Ignore> =
+            /// serde_json::from_str(r#"{"if": {"not_exists": "ignore"}, "name": "Rex"}"#).unwrap();
+            /// assert_eq!(remove.if_.not_exists, actions::Ignore::Ignore);
+            /// ```
+            #[derive(Debug, serde::Serialize)]
+            pub struct ConditionalRequired<T, If> {
+                #[serde(rename = "if")]
+                pub if_: If,
+                #[serde(flatten)]
+                pub data: T,
+            }
+
+            /// The `if` of an insert, of one entity or several.
+            #[derive(Debug, serde::Serialize)]
+            pub struct IfConflictOnInsert<C> {
+                #[serde(default = "Default::default")]
+                pub exists: C,
+            }
+
+            pub mod actions {
+
+                #[derive(Debug, serde::Serialize)]
+                pub enum AbortOrIgnore {
+                    #[serde(rename = "abort")]
+                    Abort,
+                    #[serde(rename = "ignore")]
+                    Ignore,
+                }
+
+                #[derive(Debug, serde::Serialize)]
+                pub enum Ignore {
+                    #[serde(rename = "ignore")]
+                    Ignore,
+                }
+
+                #[derive(Debug, serde::Serialize)]
+                pub enum ReplaceOrAbort {
+                    #[serde(rename = "replace")]
+                    Replace,
+                    #[serde(rename = "abort")]
+                    Abort,
+                }
+
+                #[derive(Debug, serde::Serialize)]
+                pub enum UpdateWithOrAbort<T> {
+                    #[serde(rename = "update")]
+                    Update(T),
+                    #[serde(rename = "abort")]
+                    Abort,
+                }
+            }
+            pub mod matching {
+
+                /// A [`MatchCondition`] that can only be `{"edition": n}`.
+                #[derive(Debug, serde::Serialize)]
+                pub enum EditionMatchCondition {
+                    #[serde(rename = "edition")]
+                    Edition(u64),
+                }
+
+                /// The `if` of an insert of several entities: the action for each listed
+                /// item that exists, and what the parent must match, `exists` by default.
+                #[derive(Debug, serde::Serialize)]
+                pub struct IfConflictOnInsertMany<C> {
+                    #[serde(default = "Default::default")]
+                    pub exists: C,
+                    #[serde(default = "Default::default")]
+                    pub parent_matches:
+                        super::super::super::reflectapi::conflict::matching::MatchCondition,
+                }
+
+                /// The `if` of a remove: the action when the entity doesn't exist, and the
+                /// edition it must be at, if any.
+                #[derive(Debug, serde::Serialize)]
+                pub struct IfConflictOnRemove<C> {
+                    #[serde(default = "Default::default")]
+                    pub not_exists: C,
+                    #[serde(
+                        default = "Default::default",
+                        skip_serializing_if = "reflectapi::Option::is_undefined"
+                    )]
+                    pub matches: reflectapi::Option<
+                        super::super::super::reflectapi::conflict::matching::EditionMatchCondition,
+                    >,
+                }
+
+                /// The `if` of [`UpdateOrElseRequired`]: [`IfConflictOnUpdate`] with
+                /// `not_exists` required.
+                #[derive(Debug, serde::Serialize)]
+                pub struct IfConflictOnUpdateRequired<C> {
+                    pub not_exists: C,
+                    #[serde(
+                        default = "Default::default",
+                        skip_serializing_if = "reflectapi::Option::is_undefined"
+                    )]
+                    pub matches: reflectapi::Option<
+                        super::super::super::reflectapi::conflict::matching::EditionMatchCondition,
+                    >,
+                }
+
+                /// What the checked entity must be: `exists`, or `{"edition": n}`, existing
+                /// at edition `n`.
+                #[derive(Debug, serde::Serialize)]
+                pub enum MatchCondition {
+                    #[serde(rename = "exists")]
+                    Exists,
+                    #[serde(rename = "edition")]
+                    Edition(u64),
+                }
+            }
+        }
+        pub mod identity {
+
+            /// A request or response naming one entity: `{"identity": …}`.
+            ///
+            /// For an entity that can be identified in more than one way, `I` saying
+            /// which, such as an enum of an ID or an external code, and for the items of
+            /// a bulk write. An entity with one fixed key takes it as a plain field, such
+            /// as `id`, instead.
+            #[derive(Debug, serde::Deserialize, serde::Serialize)]
+            pub struct Identity<I> {
+                pub identity: I,
+            }
+
+            /// An entity's identity beside its data, whose fields are flattened in:
+            /// `{"identity": …, "name": …}`.
+            ///
+            /// For the same cases as [`Identity`]; with an `if` clause around it, it is
+            /// one item of a bulk write.
+            #[derive(Debug, serde::Deserialize, serde::Serialize)]
+            pub struct IdentityData<I, D> {
+                pub identity: I,
+                #[serde(flatten)]
+                pub data: D,
+            }
+        }
+        pub mod pagination {
+
+            /// A page of a list, read forward with [`PageRequest::cursor`].
+            #[derive(Debug, serde::Deserialize)]
+            pub struct ForwardPaginatedList<D, C> {
+                pub items: std::vec::Vec<D>,
+                pub pagination:
+                    std::option::Option<super::super::reflectapi::pagination::ForwardPagination<C>>,
+            }
+
+            /// Where the next page of a [`ForwardPaginatedList`] starts.
+            #[derive(Debug, serde::Deserialize)]
+            pub struct ForwardPagination<C> {
+                /// The cursor of the next page, if there is one.
+                pub next_cursor: std::option::Option<C>,
+            }
+
+            /// The page a list request asks for.
+            #[derive(Debug, serde::Serialize)]
+            pub struct PageRequest<C> {
+                /// Where to start: a `next_cursor` from an earlier response, or none for
+                /// the first page.
+                #[serde(
+                    default = "Default::default",
+                    skip_serializing_if = "reflectapi::Option::is_undefined"
+                )]
+                pub cursor: reflectapi::Option<C>,
+                /// How many items to return, at most. The server may return fewer, even
+                /// when more follow: only an absent `next_cursor` means the end.
+                #[serde(
+                    default = "Default::default",
+                    skip_serializing_if = "reflectapi::Option::is_undefined"
+                )]
+                pub limit: reflectapi::Option<std::num::NonZeroU32>,
+            }
+        }
+    }
     pub mod reflectapi_demo {
         pub mod tests {
             pub mod conventions {

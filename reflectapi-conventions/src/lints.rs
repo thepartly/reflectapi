@@ -14,7 +14,7 @@
 //! # async fn pets_list(_: (), _: PetsListRequest, _: reflectapi::Empty) -> PetsListResponse {
 //! #     PetsListResponse { items: vec![] }
 //! # }
-//! use reflectapi::conventions::lints;
+//! use reflectapi_conventions::lints;
 //!
 //! let mut builder = reflectapi::Builder::<()>::new()
 //!     .route(pets_list, |b| b.name("pets.list"));
@@ -31,7 +31,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use crate::{
+use reflectapi::{
     Fields, Function, OutputType, Representation, Schema, Type, TypeReference, Typespace,
     ValidationError, ValidationPointer,
 };
@@ -58,6 +58,7 @@ pub const ALL: &[Lint] = &[
     type_path_depth,
     type_modules_not_implementation,
     error_cases_no_error_suffix,
+    conventions_types_renamed,
 ];
 
 /// Runs every lint of this module.
@@ -301,7 +302,7 @@ const OBJECT_PRIMITIVES: &[&str] = &[
 /// `inner`, with a parameter of `outer`'s type replaced by its argument.
 fn substitute(
     inner: &TypeReference,
-    parameters: &[crate::TypeParameter],
+    parameters: &[reflectapi::TypeParameter],
     outer: &TypeReference,
 ) -> TypeReference {
     parameters
@@ -444,9 +445,12 @@ pub fn response_is_object(schema: &Schema) -> Vec<ValidationError> {
 
 // Names in bodies and headers
 
-/// A type reflectapi or the standard library defines, not the application.
+/// A type the standard library, reflectapi or this crate defines, not the
+/// application.
 fn is_library_type(name: &str) -> bool {
-    name.starts_with("std::") || name.starts_with("reflectapi::")
+    name.starts_with("std::")
+        || name.starts_with("reflectapi::")
+        || name.starts_with("reflectapi_conventions::")
 }
 
 /// The types that some call reads or writes as headers.
@@ -753,7 +757,7 @@ fn shared_types<'a>(typespace: &'a Typespace, uses: &[&'a TypeReference]) -> Has
             .map(|(name, _)| name),
     );
     for ty in typespace.types() {
-        let fields: Vec<&crate::Field> = match ty {
+        let fields: Vec<&reflectapi::Field> = match ty {
             Type::Struct(s) => s.fields().collect(),
             Type::Enum(e) => e.variants.iter().flat_map(|v| v.fields()).collect(),
             Type::Primitive(p) => {
@@ -1025,6 +1029,39 @@ pub fn type_modules_not_implementation(schema: &Schema) -> Vec<ValidationError> 
             ))
         })
         .collect()
+}
+
+/// The types of this crate are renamed from `reflectapi_conventions::`, the
+/// crate's own path, to `reflectapi::`, so they have the same names in every
+/// API that uses them: `[api-type-shared-same-name]`.
+///
+/// One error for the whole schema, on the first such type, since one rename
+/// fixes them all.
+pub fn conventions_types_renamed(schema: &Schema) -> Vec<ValidationError> {
+    let mut names: Vec<&str> = types_once(schema)
+        .map(|ty| ty.name())
+        .filter(|name| name.starts_with("reflectapi_conventions::"))
+        .collect();
+    names.sort_unstable();
+    let Some(first) = names.first() else {
+        return vec![];
+    };
+    let subject = match names.len() {
+        1 => format!("`{first}` keeps its crate's path"),
+        2 => format!("`{first}` and 1 other type keep their crate's path"),
+        n => format!(
+            "`{first}` and {} other types keep their crate's path",
+            n - 1
+        ),
+    };
+    vec![error(
+        ValidationPointer::Type((*first).into()),
+        "api-type-shared-same-name",
+        format!(
+            "{subject}: add `.rename_types(\"reflectapi_conventions::\", \"reflectapi::\")` \
+             to the builder"
+        ),
+    )]
 }
 
 /// A case of a call's error type doesn't end with `Error`:

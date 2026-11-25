@@ -10,7 +10,7 @@ expression: schema
       "name": "pets.list",
       "path": "",
       "input_type": {
-        "name": "reflectapi::conventions::pagination::PageRequest",
+        "name": "reflectapi::pagination::PageRequest",
         "arguments": [
           {
             "name": "std::string::String"
@@ -19,10 +19,10 @@ expression: schema
       },
       "output_kind": "complete",
       "output_type": {
-        "name": "reflectapi::conventions::pagination::ForwardPaginatedList",
+        "name": "reflectapi::pagination::ForwardPaginatedList",
         "arguments": [
           {
-            "name": "reflectapi::conventions::identity::IdentityData",
+            "name": "reflectapi::identity::IdentityData",
             "arguments": [
               {
                 "name": "reflectapi_demo::tests::conventions::PetId"
@@ -46,10 +46,10 @@ expression: schema
       "name": "pets.insert",
       "path": "",
       "input_type": {
-        "name": "reflectapi::conventions::conflict::Conditional",
+        "name": "reflectapi::conflict::Conditional",
         "arguments": [
           {
-            "name": "reflectapi::conventions::identity::IdentityData",
+            "name": "reflectapi::identity::IdentityData",
             "arguments": [
               {
                 "name": "reflectapi_demo::tests::conventions::PetId"
@@ -60,10 +60,10 @@ expression: schema
             ]
           },
           {
-            "name": "reflectapi::conventions::conflict::IfConflictOnInsert",
+            "name": "reflectapi::conflict::IfConflictOnInsert",
             "arguments": [
               {
-                "name": "reflectapi::conventions::conflict::actions::UpdateWithOrAbort",
+                "name": "reflectapi::conflict::actions::UpdateWithOrAbort",
                 "arguments": [
                   {
                     "name": "reflectapi_demo::tests::conventions::PetData"
@@ -76,7 +76,7 @@ expression: schema
       },
       "output_kind": "complete",
       "output_type": {
-        "name": "reflectapi::conventions::identity::Identity",
+        "name": "reflectapi::identity::Identity",
         "arguments": [
           {
             "name": "reflectapi_demo::tests::conventions::PetId"
@@ -92,16 +92,16 @@ expression: schema
       "name": "pets.replace-all",
       "path": "",
       "input_type": {
-        "name": "reflectapi::conventions::conflict::Conditional",
+        "name": "reflectapi::conflict::Conditional",
         "arguments": [
           {
             "name": "reflectapi_demo::tests::conventions::PetData"
           },
           {
-            "name": "reflectapi::conventions::conflict::matching::IfConflictOnInsertMany",
+            "name": "reflectapi::conflict::matching::IfConflictOnInsertMany",
             "arguments": [
               {
-                "name": "reflectapi::conventions::conflict::actions::ReplaceOrAbort"
+                "name": "reflectapi::conflict::actions::ReplaceOrAbort"
               }
             ]
           }
@@ -117,10 +117,10 @@ expression: schema
       "name": "pets.update",
       "path": "",
       "input_type": {
-        "name": "reflectapi::conventions::conflict::ConditionalRequired",
+        "name": "reflectapi::conflict::ConditionalRequired",
         "arguments": [
           {
-            "name": "reflectapi::conventions::identity::IdentityData",
+            "name": "reflectapi::identity::IdentityData",
             "arguments": [
               {
                 "name": "reflectapi_demo::tests::conventions::PetId"
@@ -131,10 +131,10 @@ expression: schema
             ]
           },
           {
-            "name": "reflectapi::conventions::conflict::matching::IfConflictOnUpdateRequired",
+            "name": "reflectapi::conflict::matching::IfConflictOnUpdateRequired",
             "arguments": [
               {
-                "name": "reflectapi::conventions::conflict::actions::Ignore"
+                "name": "reflectapi::conflict::actions::Ignore"
               }
             ]
           }
@@ -150,10 +150,10 @@ expression: schema
       "name": "pets.remove",
       "path": "",
       "input_type": {
-        "name": "reflectapi::conventions::conflict::Conditional",
+        "name": "reflectapi::conflict::Conditional",
         "arguments": [
           {
-            "name": "reflectapi::conventions::identity::Identity",
+            "name": "reflectapi::identity::Identity",
             "arguments": [
               {
                 "name": "reflectapi_demo::tests::conventions::PetId"
@@ -161,10 +161,10 @@ expression: schema
             ]
           },
           {
-            "name": "reflectapi::conventions::conflict::matching::IfConflictOnRemove",
+            "name": "reflectapi::conflict::matching::IfConflictOnRemove",
             "arguments": [
               {
-                "name": "reflectapi::conventions::conflict::actions::AbortOrIgnore"
+                "name": "reflectapi::conflict::actions::AbortOrIgnore"
               }
             ]
           }
@@ -187,7 +187,7 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi::conventions::conflict::Conditional",
+        "name": "reflectapi::conflict::Conditional",
         "description": "A write of `data` with an `if` clause, whose absence takes the clause's\ndefaults: `{\"if\": {…}, …data}`. The aliases above, such as\n[`InsertOrElse`], name its usual clauses.",
         "parameters": [
           {
@@ -218,8 +218,8 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi::conventions::conflict::ConditionalRequired",
-        "description": "A write of `data` whose `if` is required, as is the action in it:\n`{\"if\": {…}, …data}`. A route whose set has no default takes it, through\none of the aliases above, such as [`InsertOrElseRequired`].\n\n```\nuse reflectapi::conventions::conflict::{actions, InsertOrElseRequired, RemoveOrElseRequired};\n\n#[derive(serde::Deserialize, reflectapi::Input)]\nstruct Pet {\nname: String,\n}\n\ntype PetsImport = InsertOrElseRequired<Pet, actions::ReplaceOrIgnore>;\n\nlet insert: PetsImport =\nserde_json::from_str(r#\"{\"if\": {\"exists\": \"ignore\"}, \"name\": \"Rex\"}\"#).unwrap();\nassert_eq!(insert.if_.exists, actions::ReplaceOrIgnore::Ignore);\n\n// Without `if`, refused.\nassert!(serde_json::from_str::<PetsImport>(r#\"{\"name\": \"Rex\"}\"#).is_err());\n\n// A remove that only ignores a missing pet: the client says so.\nlet remove: RemoveOrElseRequired<Pet, actions::Ignore> =\nserde_json::from_str(r#\"{\"if\": {\"not_exists\": \"ignore\"}, \"name\": \"Rex\"}\"#).unwrap();\nassert_eq!(remove.if_.not_exists, actions::Ignore::Ignore);\n```",
+        "name": "reflectapi::conflict::ConditionalRequired",
+        "description": "A write of `data` whose `if` is required, as is the action in it:\n`{\"if\": {…}, …data}`. A route whose set has no default takes it, through\none of the aliases above, such as [`InsertOrElseRequired`].\n\n```\nuse reflectapi_conventions::conflict::{actions, InsertOrElseRequired, RemoveOrElseRequired};\n\n#[derive(serde::Deserialize, reflectapi::Input)]\nstruct Pet {\nname: String,\n}\n\ntype PetsImport = InsertOrElseRequired<Pet, actions::ReplaceOrIgnore>;\n\nlet insert: PetsImport =\nserde_json::from_str(r#\"{\"if\": {\"exists\": \"ignore\"}, \"name\": \"Rex\"}\"#).unwrap();\nassert_eq!(insert.if_.exists, actions::ReplaceOrIgnore::Ignore);\n\n// Without `if`, refused.\nassert!(serde_json::from_str::<PetsImport>(r#\"{\"name\": \"Rex\"}\"#).is_err());\n\n// A remove that only ignores a missing pet: the client says so.\nlet remove: RemoveOrElseRequired<Pet, actions::Ignore> =\nserde_json::from_str(r#\"{\"if\": {\"not_exists\": \"ignore\"}, \"name\": \"Rex\"}\"#).unwrap();\nassert_eq!(remove.if_.not_exists, actions::Ignore::Ignore);\n```",
         "parameters": [
           {
             "name": "T"
@@ -250,7 +250,7 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi::conventions::conflict::IfConflictOnInsert",
+        "name": "reflectapi::conflict::IfConflictOnInsert",
         "description": "The `if` of an insert, of one entity or several.",
         "parameters": [
           {
@@ -270,7 +270,7 @@ expression: schema
       },
       {
         "kind": "enum",
-        "name": "reflectapi::conventions::conflict::actions::AbortOrIgnore",
+        "name": "reflectapi::conflict::actions::AbortOrIgnore",
         "variants": [
           {
             "name": "abort",
@@ -284,7 +284,7 @@ expression: schema
       },
       {
         "kind": "enum",
-        "name": "reflectapi::conventions::conflict::actions::Ignore",
+        "name": "reflectapi::conflict::actions::Ignore",
         "variants": [
           {
             "name": "ignore",
@@ -294,7 +294,7 @@ expression: schema
       },
       {
         "kind": "enum",
-        "name": "reflectapi::conventions::conflict::actions::ReplaceOrAbort",
+        "name": "reflectapi::conflict::actions::ReplaceOrAbort",
         "variants": [
           {
             "name": "replace",
@@ -308,7 +308,7 @@ expression: schema
       },
       {
         "kind": "enum",
-        "name": "reflectapi::conventions::conflict::actions::UpdateWithOrAbort",
+        "name": "reflectapi::conflict::actions::UpdateWithOrAbort",
         "parameters": [
           {
             "name": "T"
@@ -337,7 +337,7 @@ expression: schema
       },
       {
         "kind": "enum",
-        "name": "reflectapi::conventions::conflict::matching::EditionMatchCondition",
+        "name": "reflectapi::conflict::matching::EditionMatchCondition",
         "description": "A [`MatchCondition`] that can only be `{\"edition\": n}`.",
         "variants": [
           {
@@ -358,7 +358,7 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi::conventions::conflict::matching::IfConflictOnInsertMany",
+        "name": "reflectapi::conflict::matching::IfConflictOnInsertMany",
         "description": "The `if` of an insert of several entities: the action for each listed\nitem that exists, and what the parent must match, `exists` by default.",
         "parameters": [
           {
@@ -376,7 +376,7 @@ expression: schema
             {
               "name": "parent_matches",
               "type": {
-                "name": "reflectapi::conventions::conflict::matching::MatchCondition"
+                "name": "reflectapi::conflict::matching::MatchCondition"
               }
             }
           ]
@@ -384,7 +384,7 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi::conventions::conflict::matching::IfConflictOnRemove",
+        "name": "reflectapi::conflict::matching::IfConflictOnRemove",
         "description": "The `if` of a remove: the action when the entity doesn't exist, and the\nedition it must be at, if any.",
         "parameters": [
           {
@@ -405,7 +405,7 @@ expression: schema
                 "name": "std::option::Option",
                 "arguments": [
                   {
-                    "name": "reflectapi::conventions::conflict::matching::EditionMatchCondition"
+                    "name": "reflectapi::conflict::matching::EditionMatchCondition"
                   }
                 ]
               }
@@ -415,7 +415,7 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi::conventions::conflict::matching::IfConflictOnUpdateRequired",
+        "name": "reflectapi::conflict::matching::IfConflictOnUpdateRequired",
         "description": "The `if` of [`UpdateOrElseRequired`]: [`IfConflictOnUpdate`] with\n`not_exists` required.",
         "parameters": [
           {
@@ -437,7 +437,7 @@ expression: schema
                 "name": "std::option::Option",
                 "arguments": [
                   {
-                    "name": "reflectapi::conventions::conflict::matching::EditionMatchCondition"
+                    "name": "reflectapi::conflict::matching::EditionMatchCondition"
                   }
                 ]
               }
@@ -447,7 +447,7 @@ expression: schema
       },
       {
         "kind": "enum",
-        "name": "reflectapi::conventions::conflict::matching::MatchCondition",
+        "name": "reflectapi::conflict::matching::MatchCondition",
         "description": "What the checked entity must be: `exists`, or `{\"edition\": n}`, existing\nat edition `n`.",
         "variants": [
           {
@@ -472,7 +472,7 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi::conventions::identity::Identity",
+        "name": "reflectapi::identity::Identity",
         "description": "A request or response naming one entity: `{\"identity\": …}`.\n\nFor an entity that can be identified in more than one way, `I` saying\nwhich, such as an enum of an ID or an external code, and for the items of\na bulk write. An entity with one fixed key takes it as a plain field, such\nas `id`, instead.",
         "parameters": [
           {
@@ -493,7 +493,7 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi::conventions::identity::IdentityData",
+        "name": "reflectapi::identity::IdentityData",
         "description": "An entity's identity beside its data, whose fields are flattened in:\n`{\"identity\": …, \"name\": …}`.\n\nFor the same cases as [`Identity`]; with an `if` clause around it, it is\none item of a bulk write.",
         "parameters": [
           {
@@ -525,7 +525,7 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi::conventions::pagination::PageRequest",
+        "name": "reflectapi::pagination::PageRequest",
         "description": "The page a list request asks for.",
         "parameters": [
           {
@@ -664,7 +664,7 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi::conventions::identity::Identity",
+        "name": "reflectapi::identity::Identity",
         "description": "A request or response naming one entity: `{\"identity\": …}`.\n\nFor an entity that can be identified in more than one way, `I` saying\nwhich, such as an enum of an ID or an external code, and for the items of\na bulk write. An entity with one fixed key takes it as a plain field, such\nas `id`, instead.",
         "parameters": [
           {
@@ -685,7 +685,7 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi::conventions::identity::IdentityData",
+        "name": "reflectapi::identity::IdentityData",
         "description": "An entity's identity beside its data, whose fields are flattened in:\n`{\"identity\": …, \"name\": …}`.\n\nFor the same cases as [`Identity`]; with an `if` clause around it, it is\none item of a bulk write.",
         "parameters": [
           {
@@ -717,7 +717,7 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi::conventions::pagination::ForwardPaginatedList",
+        "name": "reflectapi::pagination::ForwardPaginatedList",
         "description": "A page of a list, read forward with [`PageRequest::cursor`].",
         "parameters": [
           {
@@ -747,7 +747,7 @@ expression: schema
                 "name": "std::option::Option",
                 "arguments": [
                   {
-                    "name": "reflectapi::conventions::pagination::ForwardPagination",
+                    "name": "reflectapi::pagination::ForwardPagination",
                     "arguments": [
                       {
                         "name": "C"
@@ -763,7 +763,7 @@ expression: schema
       },
       {
         "kind": "struct",
-        "name": "reflectapi::conventions::pagination::ForwardPagination",
+        "name": "reflectapi::pagination::ForwardPagination",
         "description": "Where the next page of a [`ForwardPaginatedList`] starts.",
         "parameters": [
           {

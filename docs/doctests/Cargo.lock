@@ -968,6 +968,7 @@ dependencies = [
  "futures-util",
  "http",
  "reflectapi",
+ "reflectapi-conventions",
  "reqwest",
  "serde",
  "serde_json",
@@ -975,6 +976,14 @@ dependencies = [
  "tower",
  "url",
  "uuid",
+]
+
+[[package]]
+name = "reflectapi-conventions"
+version = "0.26.0"
+dependencies = [
+ "reflectapi",
+ "serde",
 ]
 
 [[package]]

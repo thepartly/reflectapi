@@ -5,11 +5,18 @@
 /// a bulk write. An entity with one fixed key takes it as a plain field, such
 /// as `id`, instead.
 #[derive(
-    Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, crate::Input, crate::Output,
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    serde::Serialize,
+    serde::Deserialize,
+    reflectapi::Input,
+    reflectapi::Output,
 )]
 pub struct Identity<I>
 where
-    I: crate::Input,
+    I: reflectapi::Input,
 {
     pub identity: I,
 }
@@ -20,12 +27,19 @@ where
 /// For the same cases as [`Identity`]; with an `if` clause around it, it is
 /// one item of a bulk write.
 #[derive(
-    Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, crate::Input, crate::Output,
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    serde::Serialize,
+    serde::Deserialize,
+    reflectapi::Input,
+    reflectapi::Output,
 )]
 pub struct IdentityData<I, D>
 where
-    I: crate::Input,
-    D: crate::Input,
+    I: reflectapi::Input,
+    D: reflectapi::Input,
 {
     pub identity: I,
     #[serde(flatten)]

@@ -1,7 +1,7 @@
 //! The `conventions` types in a schema and every client.
 
-use reflectapi::conventions::conflict::{self, actions, matching};
-use reflectapi::conventions::{ForwardPaginatedList, Identity, IdentityData, PageRequest};
+use reflectapi_conventions::conflict::{self, actions, matching};
+use reflectapi_conventions::{ForwardPaginatedList, Identity, IdentityData, PageRequest};
 
 #[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
 struct PetId(String);
@@ -64,5 +64,6 @@ fn test_conventions() {
         .route(pets_insert, |b| b.name("pets.insert"))
         .route(pets_replace_all, |b| b.name("pets.replace-all"))
         .route(pets_update, |b| b.name("pets.update"))
-        .route(pets_remove, |b| b.name("pets.remove")))
+        .route(pets_remove, |b| b.name("pets.remove"))
+        .rename_types("reflectapi_conventions::", "reflectapi::"))
 }

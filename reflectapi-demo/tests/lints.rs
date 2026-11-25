@@ -1,4 +1,4 @@
-//! `reflectapi::conventions::lints`: each lint against a route that breaks
+//! `reflectapi_conventions::lints`: each lint against a route that breaks
 //! its rule, and an API that follows them all.
 
 // The types exist for their schemas: their fields are never read.
@@ -6,8 +6,9 @@
 
 use std::collections::BTreeSet;
 
-use reflectapi::conventions::lints;
-use reflectapi::conventions::{ForwardPaginatedList, PageRequest};
+use reflectapi_conventions::conflict;
+use reflectapi_conventions::lints;
+use reflectapi_conventions::{ForwardPaginatedList, PageRequest};
 
 // An API that follows every rule.
 
@@ -72,8 +73,14 @@ async fn products_get(_: (), _: ProductsGetRequest, _: Headers) -> ProductsGetRe
     unimplemented!()
 }
 
-/// `Product` is written by two calls: it isn't either's own.
-async fn products_insert(_: (), _: Product, _: reflectapi::Empty) -> reflectapi::Empty {
+/// `Product` is written by two calls: it isn't either's own. The `if` clause's
+/// types are reflectapi-conventions', not the application's, so the lints
+/// leave their names alone.
+async fn products_insert(
+    _: (),
+    _: conflict::InsertOrElse<Product, conflict::actions::ReplaceOrAbort>,
+    _: reflectapi::Empty,
+) -> reflectapi::Empty {
     unimplemented!()
 }
 
@@ -87,6 +94,7 @@ fn conforming() -> reflectapi::Builder<()> {
         .route(products_get, |b| b.name("products.get"))
         .route(products_insert, |b| b.name("products.insert"))
         .route(products_update, |b| b.name("products.update"))
+        .rename_types("reflectapi_conventions::", "reflectapi::")
 }
 
 #[test]
@@ -742,4 +750,31 @@ fn type_modules_dont_name_how_code_is_organised() {
             "api-type-modules-not-implementation"
         )])
     );
+}
+
+#[test]
+fn conventions_types_are_renamed_into_reflectapi() {
+    let search =
+        |b: reflectapi::Builder<()>| b.route(products_search, |b| b.name("products.search"));
+    let (schema, _) = search(reflectapi::Builder::new()).build().unwrap();
+    let errors = lints::conventions_types_renamed(&schema);
+    // One error for the schema, on the first type, since one rename fixes all.
+    assert_eq!(errors.len(), 1, "{errors:#?}");
+    assert_eq!(
+        errors[0].pointer.to_string(),
+        "reflectapi_conventions::pagination::ForwardPaginatedList"
+    );
+    assert_eq!(errors[0].rule.as_deref(), Some("api-type-shared-same-name"));
+    assert!(
+        errors[0].message.contains(
+            r#"and 2 other types keep their crate's path: add `.rename_types("reflectapi_conventions::", "reflectapi::")`"#
+        ),
+        "{}",
+        errors[0].message
+    );
+
+    let renamed = report(lints::conventions_types_renamed, |b| {
+        search(b).rename_types("reflectapi_conventions::", "reflectapi::")
+    });
+    assert!(renamed.is_empty(), "{renamed:?}");
 }

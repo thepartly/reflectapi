@@ -16,7 +16,7 @@
 //! data and the set of actions it offers. The handler matches on the action:
 //!
 //! ```
-//! use reflectapi::conventions::conflict::{actions, InsertOrElse};
+//! use reflectapi_conventions::conflict::{actions, InsertOrElse};
 //!
 //! #[derive(serde::Deserialize, reflectapi::Input)]
 //! struct Pet {
@@ -54,7 +54,7 @@
 //! other is refused:
 //!
 //! ```
-//! # use reflectapi::conventions::conflict::{actions, InsertOrElse};
+//! # use reflectapi_conventions::conflict::{actions, InsertOrElse};
 //! # #[derive(Debug, PartialEq, serde::Deserialize, reflectapi::Input)]
 //! # struct Pet {
 //! #     name: String,
@@ -78,7 +78,7 @@
 //! An update or remove says what to do when the entity doesn't exist:
 //!
 //! ```
-//! use reflectapi::conventions::conflict::{actions, RemoveOrElse};
+//! use reflectapi_conventions::conflict::{actions, RemoveOrElse};
 //!
 //! #[derive(serde::Deserialize, reflectapi::Input)]
 //! struct PetName {
@@ -125,11 +125,11 @@ pub type UpdateOrElseRequired<T, C> = ConditionalRequired<T, IfConflictOnUpdateR
 /// A write of `data` with an `if` clause, whose absence takes the clause's
 /// defaults: `{"if": {…}, …data}`. The aliases above, such as
 /// [`InsertOrElse`], name its usual clauses.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, crate::Input)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, reflectapi::Input)]
 pub struct Conditional<T, If>
 where
-    T: crate::Input,
-    If: crate::Input,
+    T: reflectapi::Input,
+    If: reflectapi::Input,
 {
     #[serde(rename = "if", default)]
     pub if_: If,
@@ -142,7 +142,7 @@ where
 /// one of the aliases above, such as [`InsertOrElseRequired`].
 ///
 /// ```
-/// use reflectapi::conventions::conflict::{actions, InsertOrElseRequired, RemoveOrElseRequired};
+/// use reflectapi_conventions::conflict::{actions, InsertOrElseRequired, RemoveOrElseRequired};
 ///
 /// #[derive(serde::Deserialize, reflectapi::Input)]
 /// struct Pet {
@@ -163,11 +163,11 @@ where
 ///     serde_json::from_str(r#"{"if": {"not_exists": "ignore"}, "name": "Rex"}"#).unwrap();
 /// assert_eq!(remove.if_.not_exists, actions::Ignore::Ignore);
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, crate::Input)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, reflectapi::Input)]
 pub struct ConditionalRequired<T, If>
 where
-    T: crate::Input,
-    If: crate::Input,
+    T: reflectapi::Input,
+    If: reflectapi::Input,
 {
     #[serde(rename = "if")]
     pub if_: If,
@@ -177,11 +177,11 @@ where
 
 /// The `if` of an insert, of one entity or several.
 #[derive(
-    Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize, crate::Input,
+    Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize, reflectapi::Input,
 )]
 pub struct IfConflictOnInsert<C>
 where
-    C: crate::Input,
+    C: reflectapi::Input,
 {
     #[serde(default)]
     pub exists: C,
@@ -189,21 +189,21 @@ where
 
 /// The `if` of [`InsertOrElseRequired`]: [`IfConflictOnInsert`] with `exists`
 /// required.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, crate::Input)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, reflectapi::Input)]
 pub struct IfConflictOnInsertRequired<C>
 where
-    C: crate::Input,
+    C: reflectapi::Input,
 {
     pub exists: C,
 }
 
 /// The `if` of a remove, of one entity or several.
 #[derive(
-    Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize, crate::Input,
+    Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize, reflectapi::Input,
 )]
 pub struct IfConflictOnRemove<C>
 where
-    C: crate::Input,
+    C: reflectapi::Input,
 {
     #[serde(default)]
     pub not_exists: C,
@@ -211,21 +211,21 @@ where
 
 /// The `if` of [`RemoveOrElseRequired`]: [`IfConflictOnRemove`] with
 /// `not_exists` required.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, crate::Input)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, reflectapi::Input)]
 pub struct IfConflictOnRemoveRequired<C>
 where
-    C: crate::Input,
+    C: reflectapi::Input,
 {
     pub not_exists: C,
 }
 
 /// The `if` of an update, of one entity or several.
 #[derive(
-    Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize, crate::Input,
+    Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize, reflectapi::Input,
 )]
 pub struct IfConflictOnUpdate<C>
 where
-    C: crate::Input,
+    C: reflectapi::Input,
 {
     #[serde(default)]
     pub not_exists: C,
@@ -233,10 +233,10 @@ where
 
 /// The `if` of [`UpdateOrElseRequired`]: [`IfConflictOnUpdate`] with
 /// `not_exists` required.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, crate::Input)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, reflectapi::Input)]
 pub struct IfConflictOnUpdateRequired<C>
 where
-    C: crate::Input,
+    C: reflectapi::Input,
 {
     pub not_exists: C,
 }
@@ -245,7 +245,7 @@ where
 mod tests {
     use super::*;
 
-    #[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize, crate::Input)]
+    #[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize, reflectapi::Input)]
     struct Pet {
         name: String,
     }

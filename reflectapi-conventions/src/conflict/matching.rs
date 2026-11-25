@@ -11,8 +11,8 @@
 //! clauses don't make a write idempotent.
 //!
 //! ```
-//! use reflectapi::conventions::conflict::matching::{self, EditionMatchCondition};
-//! use reflectapi::conventions::conflict::actions;
+//! use reflectapi_conventions::conflict::matching::{self, EditionMatchCondition};
+//! use reflectapi_conventions::conflict::actions;
 //!
 //! #[derive(serde::Deserialize, reflectapi::Input)]
 //! struct PetName {
@@ -68,7 +68,7 @@ pub type UpdateManyOrElseRequired<T, C> = ConditionalRequired<T, IfConflictOnUpd
     Hash,
     serde::Serialize,
     serde::Deserialize,
-    crate::Input,
+    reflectapi::Input,
 )]
 #[serde(rename_all = "snake_case")]
 pub enum MatchCondition {
@@ -95,7 +95,7 @@ impl MatchCondition {
     Hash,
     serde::Serialize,
     serde::Deserialize,
-    crate::Input,
+    reflectapi::Input,
 )]
 #[serde(rename_all = "snake_case")]
 pub enum ExistenceMatchCondition {
@@ -112,7 +112,7 @@ impl ExistenceMatchCondition {
 
 /// A [`MatchCondition`] that can only be `{"edition": n}`.
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, crate::Input,
+    Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, reflectapi::Input,
 )]
 #[serde(rename_all = "snake_case")]
 pub enum EditionMatchCondition {
@@ -162,11 +162,11 @@ impl TryFrom<MatchCondition> for EditionMatchCondition {
 /// The `if` of an insert: the action when the entity exists, and what it
 /// must match, if anything.
 #[derive(
-    Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize, crate::Input,
+    Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize, reflectapi::Input,
 )]
 pub struct IfConflictOnInsert<C>
 where
-    C: crate::Input,
+    C: reflectapi::Input,
 {
     #[serde(default)]
     pub exists: C,
@@ -177,11 +177,11 @@ where
 /// The `if` of an insert of several entities: the action for each listed
 /// item that exists, and what the parent must match, `exists` by default.
 #[derive(
-    Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize, crate::Input,
+    Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize, reflectapi::Input,
 )]
 pub struct IfConflictOnInsertMany<C>
 where
-    C: crate::Input,
+    C: reflectapi::Input,
 {
     #[serde(default)]
     pub exists: C,
@@ -192,11 +192,11 @@ where
 /// The `if` of a remove: the action when the entity doesn't exist, and the
 /// edition it must be at, if any.
 #[derive(
-    Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize, crate::Input,
+    Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize, reflectapi::Input,
 )]
 pub struct IfConflictOnRemove<C>
 where
-    C: crate::Input,
+    C: reflectapi::Input,
 {
     #[serde(default)]
     pub not_exists: C,
@@ -207,11 +207,11 @@ where
 /// The `if` of a remove of several entities: the action when some don't
 /// exist, and what the parent must match, `exists` by default.
 #[derive(
-    Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize, crate::Input,
+    Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize, reflectapi::Input,
 )]
 pub struct IfConflictOnRemoveMany<C>
 where
-    C: crate::Input,
+    C: reflectapi::Input,
 {
     #[serde(default)]
     pub not_exists: C,
@@ -222,11 +222,11 @@ where
 /// The `if` of an update: the action when the entity doesn't exist, and the
 /// edition it must be at, if any.
 #[derive(
-    Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize, crate::Input,
+    Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize, reflectapi::Input,
 )]
 pub struct IfConflictOnUpdate<C>
 where
-    C: crate::Input,
+    C: reflectapi::Input,
 {
     #[serde(default)]
     pub not_exists: C,
@@ -237,11 +237,11 @@ where
 /// The `if` of an update of several entities: the action when some don't
 /// exist, and what the parent must match, `exists` by default.
 #[derive(
-    Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize, crate::Input,
+    Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize, reflectapi::Input,
 )]
 pub struct IfConflictOnUpdateMany<C>
 where
-    C: crate::Input,
+    C: reflectapi::Input,
 {
     #[serde(default)]
     pub not_exists: C,
@@ -251,10 +251,10 @@ where
 
 /// The `if` of [`InsertOrElseRequired`]: [`IfConflictOnInsert`] with `exists`
 /// required.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, crate::Input)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, reflectapi::Input)]
 pub struct IfConflictOnInsertRequired<C>
 where
-    C: crate::Input,
+    C: reflectapi::Input,
 {
     pub exists: C,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -263,10 +263,10 @@ where
 
 /// The `if` of [`InsertManyOrElseRequired`]: [`IfConflictOnInsertMany`] with
 /// `exists` required.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, crate::Input)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, reflectapi::Input)]
 pub struct IfConflictOnInsertManyRequired<C>
 where
-    C: crate::Input,
+    C: reflectapi::Input,
 {
     pub exists: C,
     #[serde(default, skip_serializing_if = "MatchCondition::is_default")]
@@ -275,10 +275,10 @@ where
 
 /// The `if` of [`RemoveOrElseRequired`]: [`IfConflictOnRemove`] with
 /// `not_exists` required.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, crate::Input)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, reflectapi::Input)]
 pub struct IfConflictOnRemoveRequired<C>
 where
-    C: crate::Input,
+    C: reflectapi::Input,
 {
     pub not_exists: C,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -287,10 +287,10 @@ where
 
 /// The `if` of [`RemoveManyOrElseRequired`]: [`IfConflictOnRemoveMany`] with
 /// `not_exists` required.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, crate::Input)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, reflectapi::Input)]
 pub struct IfConflictOnRemoveManyRequired<C>
 where
-    C: crate::Input,
+    C: reflectapi::Input,
 {
     pub not_exists: C,
     #[serde(default, skip_serializing_if = "MatchCondition::is_default")]
@@ -299,10 +299,10 @@ where
 
 /// The `if` of [`UpdateOrElseRequired`]: [`IfConflictOnUpdate`] with
 /// `not_exists` required.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, crate::Input)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, reflectapi::Input)]
 pub struct IfConflictOnUpdateRequired<C>
 where
-    C: crate::Input,
+    C: reflectapi::Input,
 {
     pub not_exists: C,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -311,10 +311,10 @@ where
 
 /// The `if` of [`UpdateManyOrElseRequired`]: [`IfConflictOnUpdateMany`] with
 /// `not_exists` required.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, crate::Input)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, reflectapi::Input)]
 pub struct IfConflictOnUpdateManyRequired<C>
 where
-    C: crate::Input,
+    C: reflectapi::Input,
 {
     pub not_exists: C,
     #[serde(default, skip_serializing_if = "MatchCondition::is_default")]
