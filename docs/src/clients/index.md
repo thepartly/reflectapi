@@ -122,12 +122,6 @@ After regenerating, update affected field initializers that previously used
   fallback. Known values keep their wire shape. Runtime decoding is enabled
   for responses/errors that reach an open enum or `#[serde(other)]`, including
   nested values and SSE items.
-- A [`Bounded`](../concepts/types.md#lengths) field takes a value made with
-  `bounded(value, MIN, MAX)`, which checks the length (throwing a
-  `BoundsError`), or `bounded.try(value, MIN, MAX)`, which returns a
-  `Result`. A plain value, or other bounds, don't compile.
-- A fixed-size array field (`FixedSizeArray<T, N>`) takes an array literal of
-  length `N`, or an array checked with `fixedSizeArray(items, N)`.
 - Uses a `fetch`-based default client implementation.
 - Ordinary response paths parse JSON without runtime schema validation. Paths
   that reach an open enum or declared fallback use generated decoders.
@@ -174,9 +168,6 @@ After regenerating, update affected field initializers that previously used
   the imported top-level type and exposes its own type under a disambiguated,
   namespace-prefixed name (`nomatches.NomatchesIfConflictOnUpdate`). This keeps
   one Python class per logical type so `model.<X>` resolves consistently.
-- A [`Bounded`](../concepts/types.md#lengths) field carries Pydantic's
-  `min_length`/`max_length`, so building a model with another length raises
-  `ValidationError`.
 - Raises `ApplicationError` for a route's error; see
   [Errors](../concepts/errors.md#python).
 - Groups routes at every `.` of their name, as TypeScript and Rust do:
@@ -213,8 +204,6 @@ After regenerating, update affected field initializers that previously used
       the most common case. Available when the generated crate enables
       its own `reqwest` feature (which should re-export
       `reflectapi/reqwest`).
-- A [`Bounded`](../concepts/types.md#lengths) field is `reflectapi::Bounded`
-  itself, which checks its length when built.
 - Supports optional tracing instrumentation through `--instrument`.
 - Generates serde-compatible types and request helpers for JSON-based transport.
 - Open response enums have a generated `Unknown { tag, raw }` variant and

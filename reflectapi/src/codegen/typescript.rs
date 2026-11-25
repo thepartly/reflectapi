@@ -2221,7 +2221,6 @@ fn build_implemented_types() -> HashMap<String, String> {
     implemented_types.insert("std::option::Option".into(), "(T | null)".into());
     implemented_types.insert("std::array::Array".into(), "FixedSizeArray<T, N>".into());
     implemented_types.insert("reflectapi::Option".into(), "(T | null | undefined)".into());
-    implemented_types.insert("reflectapi::Bounded".into(), "Bounded<T, MIN, MAX>".into());
 
     implemented_types.insert("std::vec::Vec".into(), "Array<T>".into());
     // `Record<K, V>` spelled out, since a schema type named `Record` would

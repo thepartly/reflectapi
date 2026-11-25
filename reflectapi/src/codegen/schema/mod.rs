@@ -8,7 +8,6 @@
 
 mod deprecation;
 mod ids;
-mod length;
 mod normalize;
 mod semantic;
 mod symbol;
@@ -18,7 +17,6 @@ mod symbol;
 // `self::ids::*`, `self::normalize::*`, etc. for the module's own tests.
 pub(crate) use self::deprecation::{relax_deprecated_response_fields, RelaxedField};
 pub(crate) use self::ids::{build_schema_ids, SchemaIds};
-pub(crate) use self::length::{length_bounds, LengthKind};
 pub(crate) use self::normalize::{Consolidation, Naming, Normalizer, PipelineBuilder};
 pub(crate) use self::semantic::{
     FieldStyle, ResolvedTypeReference, SemanticEnum, SemanticField, SemanticFunction,

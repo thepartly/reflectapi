@@ -1,7 +1,7 @@
 # Plan: wire types and MessagePack
 
 Goal: give reflectapi a few wire types that downstream services keep
-re-implementing (`Bounded`, `Raw`, `Encoded`), and make the
+re-implementing (`Raw`, `Encoded`), and make the
 existing opt-in MessagePack support work end to end, including for `Raw`.
 
 Status: the first part is implemented, uncommitted, on
@@ -13,7 +13,7 @@ and [Remaining](#remaining)). The rest is proposed. The measurements behind the 
 
 | Topic | Decision |
 |---|---|
-| `Bounded<T, MIN, MAX>` | In core, no feature flag. Done |
+| `Bounded<T, MIN, MAX>` | Taken out of this branch for review: see [`Bounded`](schema-holds-data.md#bounded-a-separate-pr) |
 | `reflectapi::Empty` | Also derives `Copy` and `Hash`. Done |
 | `Raw<T>` | Under `json`, stored as JSON text by definition; converted at the edge for MessagePack. Done |
 | `Encoded<T>` (first called `Opaque`) | Under `json`, JSON then base64url without padding. Done |
@@ -24,41 +24,12 @@ and [Remaining](#remaining)). The rest is proposed. The measurements behind the 
 
 ## Done on this branch
 
-### `Bounded<T, MIN, MAX>`, `BoundedMax<T, MAX>`, `Length`
-
-`reflectapi/src/bounded.rs`. A string or collection whose length is within
-`MIN..=MAX`, inclusive. On the wire it is the `T` it wraps. Deserializing
-another length fails, so the request is rejected with HTTP 400 before the
-handler runs. Strings count characters, collections count entries
-(`Vec`, `VecDeque`, `HashSet`, `BTreeSet`, `HashMap`, `BTreeMap`).
-`Bounded::new`, `TryFrom`, `from_array` (length checked at compile time),
-`chunks` (split a long slice into bounded batches), `into_inner`, `Deref`.
-
-Why no feature flag: it needs only serde and reflectapi's own traits, it is
-small, and the codegens recognise it by name, which they can't do if it
-depends on a flag set in the user's crate (the CLI is built separately).
-`Option`, `Empty` and `Infallible` are flag-free for the same reason.
-
-Schema: a primitive `reflectapi::Bounded` with parameters `T`, `MIN`, `MAX`
-and fallback `T`, the same pattern as fixed-size arrays
-(`std::array::Array<T, N>`, fallback `Vec<T>`). The bounds are literal type
-arguments: `Bounded<Vec<Item>, 0, 500>`.
-
-How each generated client sees it:
-
-| Client | Type | Checks the bounds? |
-|---|---|---|
-| TypeScript | `Bounded<Array<Item>, 0, 500>`, a branded type (`codegen/lib.ts`) made with `bounded(value, MIN, MAX)` | Yes, when building a request ([design](#branded-bounded-in-typescript)) |
-| Rust | `reflectapi::Bounded<Vec<Item>, 0, 500>`, the real type | Yes, when building a request and when decoding |
-| Python | `Annotated[list[Item], Field(max_length=500)]` (`min_length` when `MIN > 0`) | Yes, when building a model and when parsing |
-| OpenAPI | `allOf` of the `T` and `minLength`/`maxLength`, `minItems`/`maxItems` or `minProperties`/`maxProperties` | Tools generated from it can |
-
 ### Codegen fix: parameters filled in one pass
 
 TypeScript and Rust filled a built-in type's template parameters one at a
 time with `replacen`, so a parameter's name could be found inside an argument
-already filled in (`N` inside a type named `Node` in `FixedSizeArray<T, N>`,
-or `MIN` inside `ADMIN` in `Bounded<T, MIN, MAX>`). Both now use
+already filled in (`N` inside a type named `Node` in `FixedSizeArray<T, N>`).
+Both now use
 `codegen::substitute_type_parameters`, one pass over the template's own
 identifiers, with a unit test.
 
@@ -96,9 +67,7 @@ this.
 
 ### Tests and docs
 
-Unit tests for `Bounded`, `Raw` and the substitution; a snapshot test across
-every codegen (`reflectapi-demo/src/tests/basic.rs`,
-`test_reflectapi_struct_with_bounded`); "Lengths" and "Raw JSON" sections in
+Unit tests for `Raw` and the substitution; a "Raw JSON" section in
 `docs/src/concepts/types.md`; CHANGELOG entries. Workspace tests pass with
 `CI=1` (generated TypeScript and Rust type-checked), clippy with
 `-D warnings`, doctests, the book's doctests, and builds with no default
@@ -573,145 +542,15 @@ opt-in conventions module, separately from this plan:
 
 ## Work plan
 
-1. **This branch**: `Bounded`, `Empty`, `Raw` (JSON), the codegen fix. Then
+1. **This branch**: `Empty`, `Raw` (JSON), the codegen fix. Then
    `Raw` under MessagePack (option 1) and `Encoded`.
 2. **`accept`**: respond in the requested format.
 3. **`RawBody<T>`** with the builder hook.
 4. **Client opt-in**: Rust runtime first, then TypeScript (Node, msgpackr),
    then Python.
-5. **`Bounded` in every client**: Python, TypeScript and OpenAPI
-   ([Checking `Bounded` in every client](#checking-bounded-in-every-client)).
-6. **Optional**: sonic-rs `peek` behind a feature with a wasm fallback.
+5. **Optional**: sonic-rs `peek` behind a feature with a wasm fallback.
 
 Progress is tracked in [Remaining](#remaining).
-
-## Checking `Bounded` in every client
-
-Today only the server and the Rust client check the bounds. Every client
-should check them before sending, so a bad request fails locally with a clear
-error instead of a 400.
-
-- **Rust**: done; the client uses `reflectapi::Bounded` itself.
-- **Python**: generate `Annotated[T, Field(min_length=MIN, max_length=MAX)]`.
-  Pydantic checks when a request model is built and when a response is
-  parsed; it covers strings, lists, sets and dicts, nested too. `len(str)`
-  counts code points, matching Rust's character count. Work: a Python codegen
-  mapping for `reflectapi::Bounded` that writes `MIN` and `MAX` as literals.
-- **TypeScript**: the type system can't express a length range, so it is a
-  runtime check. Options:
-  1. **Reuse the descriptor decoder. Recommended.** The client already ships
-     `__decode` (`codegen/lib_decode.ts`), which walks a value against
-     generated descriptors; today it runs on responses of endpoints whose
-     output reaches an open enum or a `#[serde(other)]` variant, and its
-     `integer` descriptor already enforces `min`/`max`. Add
-     `{k: "len", min, max, v}`, and a request-side hook in `__request` that
-     checks the input before sending, generated only for endpoints whose
-     input reaches a `Bounded`. Other endpoints get no extra code.
-  2. **A branded type with a checking constructor**, like the
-     `#[reflectapi(distinct)]` brand: errors at compile time, but every place
-     that builds such a field must call the constructor. See
-     [Branded `Bounded` in TypeScript](#branded-bounded-in-typescript).
-     `Bounded` is unreleased, so choosing this now breaks nobody; only code
-     migrating from a downstream copy that passes plain values needs
-     `bounded()` calls.
-  3. **A separate validator export** callers run themselves: easy to forget.
-
-  Strings must be measured in code points (`[...s].length` or a loop), not
-  `string.length`, which counts UTF-16 units (🦀 is 2).
-- **OpenAPI**: `minLength`/`maxLength` for strings, `minItems`/`maxItems` for
-  arrays, `minProperties`/`maxProperties` for maps.
-
-Check requests only by default: the server already enforces bounds on what it
-reads, and checking every response would cost every call.
-
-### Branded `Bounded` in TypeScript
-
-Chosen and implemented. The descriptor check (option 1) and the
-per-request `check()` remain possible additions.
-
-**What branding means.** TypeScript compares types by structure, so today's
-`type Bounded<T, MIN, MAX> = T` is exactly `T`: any `string[]` fits a
-`Bounded<string[], 0, 50>` field. A brand intersects the type with a property
-that exists only for the compiler:
-
-```ts
-declare const __bounded: unique symbol;
-export type Bounded<T, MIN extends number, MAX extends number> =
-  T & { readonly [__bounded]: readonly [MIN, MAX] };
-```
-
-At runtime the value is still the plain `T` (`declare const` emits nothing,
-the wire is unchanged). At compile time a plain `T` lacks the property, so it
-isn't assignable; the only way to get a `Bounded` is a cast, which
-`bounded()` makes after checking. `MIN` and `MAX` are part of the brand, so
-different bounds are different types. `#[reflectapi(distinct)]` uses the same
-technique (`__Distinct`), with an unchecked constructor.
-
-**Per-value API.** For a field `tags: Bounded<Array<Bounded<string, 1, 32>>, 0, 50>`:
-
-```ts
-import { bounded, BoundsError } from "./generated";
-
-const tag = bounded("red", 1, 32);                     // Bounded<string, 1, 32>, or throws BoundsError
-await client.pets.tag({ tags: bounded([tag], 0, 50) }, {});
-
-const name = bounded.try(input.value, 1, 32);          // Result<Bounded<string, 1, 32>, BoundsError>
-if (name.is_err()) show(name.err()!.message);          // "length 0 out of bounds (min 1, max 32)"
-
-client.pets.tag({ tags: ["red"] }, {});                // compile error: string[] isn't a Bounded
-client.pets.tag({ tags: bounded([tag], 0, 100) }, {}); // compile error: bounds differ from the schema's
-```
-
-Runtime, in `codegen/lib.ts`:
-
-```ts
-export class BoundsError extends Error {
-  constructor(readonly length: number, readonly min: number, readonly max: number) {
-    super(`length ${length} out of bounds (min ${min}, max ${max})`);
-  }
-}
-
-function __length(value: unknown): number {
-  if (typeof value === "string") { let n = 0; for (const _ of value) n++; return n; } // code points
-  if (Array.isArray(value)) return value.length;                                      // Vec, sets
-  if (value !== null && typeof value === "object") return Object.keys(value).length;  // maps
-  throw new TypeError("bounded() takes a string, an array or an object");
-}
-
-export const bounded = Object.assign(
-  <T, MIN extends number, MAX extends number>(value: T, min: MIN, max: MAX): Bounded<T, MIN, MAX> => {
-    const length = __length(value);
-    if (length < min || length > max) throw new BoundsError(length, min, max);
-    return value as Bounded<T, MIN, MAX>;
-  },
-  { try: /* the same check, returning Result<Bounded<T, MIN, MAX>, BoundsError> */ },
-);
-```
-
-- The caller passes the bounds, because types are erased at runtime.
-  TypeScript infers them as literal types, so the compiler rejects bounds
-  that differ from the schema's; when the server changes a bound, call sites
-  stop compiling until updated.
-- Responses: decoded values are typed as branded but stay plain at runtime,
-  with no check (the server guarantees them). A value from a response can be
-  sent back without checking again.
-- `__Wire<T>`, which strips distinct brands to get the plain JSON shape, must
-  strip this brand too.
-- Cost: nesting is verbose,
-  `bounded(names.map((n) => bounded(n, 1, 32)), 0, 50)`.
-
-**Per-request alternative.** A generated check per input type containing a
-`Bounded`, `TagPet.check({ tags: ["red"] })`, which validates every nested
-`Bounded` through the descriptor decoder and returns a branded request the
-endpoint requires. One call per request, bounds from the schema, nothing
-written at call sites; but values can't be checked once and reused, and every
-such input type gets a generated function.
-
-**Python and Rust need no new API**: constructing the value checks. Python:
-`TagPet(tags=[...])` raises `pydantic.ValidationError`;
-`TagPet.model_construct(...)` skips it. Rust: `Bounded::new(v)?`,
-`Bounded::try_from(v)?`, or `Bounded::from_array([...])` (checked at compile
-time).
 
 ## Remaining
 
@@ -719,7 +558,6 @@ Tracked here until done. Sections above have the details.
 
 ### This branch
 
-- [x] `Bounded`, `BoundedMax`, `Length`, `BoundsError` in core
 - [x] `Empty` derives `Copy` and `Hash`
 - [x] `Raw<T>` under `json`, JSON passthrough
 - [x] Codegen: template parameters filled in one pass
@@ -742,22 +580,6 @@ Tracked here until done. Sections above have the details.
   and headers) as `Arc<T>` does, and compiler errors stop mentioning
   `StatusCode`
 
-### `Bounded` in clients
-
-- [x] Python: Pydantic length constraints
-- [x] TypeScript: the branded `Bounded` with `bounded()` and `bounded.try()`
-  ([design](#branded-bounded-in-typescript))
-- [x] OpenAPI: length keywords, through `allOf`
-- [x] One recognizer for length ranges (`codegen/schema/length.rs`,
-  `length_bounds`): bounds parsed and checked once, and a `LengthKind`
-  (characters, items, entries) that decides the keywords. OpenAPI and Python
-  render from it. Schema names stay string literals, as for every other
-  built-in type (`"reflectapi::Option"`, `"std::vec::Vec"`). A user type implementing `Length` gets no
-  client checks (Pydantic would reject a length constraint on it)
-- [x] Fixed-size arrays through the same recognizer: Python
-  `Field(min_length=N, max_length=N)`, OpenAPI `minItems`/`maxItems`, and
-  TypeScript `fixedSizeArray(items, N)` for arrays built at runtime
-
 ### Types and lints from downstream
 
 Proven in a downstream extension crate; ported in their own PRs, after
@@ -775,6 +597,5 @@ agreeing the conventions module's scope.
 | An internal-error type that returns only a trace ID to clients and logs the rest | Keep downstream, with its shape and contents left to apps: it depends on OpenTelemetry, whose frequent breaking releases would force breaking releases of reflectapi. With clients sending `traceparent`, its trace ID repeats the client's |
 
 Downstream migration, once ported: the downstream crate re-exports
-reflectapi's types; the schema name of its bounded type changes to
-`reflectapi::Bounded`, so generated clients change and its Rust codegen
-`shared_modules` entry goes away.
+reflectapi's types. For its bounded type, see
+[`Bounded`](schema-holds-data.md#migrating-from-a-copy-of-the-type).

@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 
-import { __request, __stream_request, bounded, type Bounded, BoundsError, Err, fixedSizeArray, type FixedSizeArray, type Result } from "./generated";
+import { __request, __stream_request, Err, type Result } from "./generated";
 import type { Client, Response } from "./generated.transport";
 
 function respondWith(
@@ -155,55 +155,4 @@ test("failed results share the response with their Err", async () => {
   assert.deepEqual(result.headers(), err.headers());
   assert.deepEqual(err.map(String).headers(), err.headers());
   assert.deepEqual(result.map(String).headers(), err.headers());
-});
-
-test("bounded checks lengths: code points, items and keys", () => {
-  const tag: Bounded<string, 1, 3> = bounded("🦀🦀🦀", 1, 3); // 6 UTF-16 units, 3 code points
-  assert.equal(tag, "🦀🦀🦀");
-  const tags: Bounded<Array<Bounded<string, 1, 3>>, 0, 2> = bounded([tag], 0, 2);
-  assert.deepEqual(tags, ["🦀🦀🦀"]);
-  assert.deepEqual(bounded({ a: 1 }, 1, 1), { a: 1 });
-
-  assert.throws(() => bounded("", 1, 3), (e: unknown) =>
-    e instanceof BoundsError && e.length === 0 && e.min === 1 && e.max === 3 &&
-    e.message === "length 0 out of bounds (min 1, max 3)");
-  assert.throws(() => bounded([1, 2, 3], 0, 2), BoundsError);
-  assert.throws(() => bounded({}, 1, 2), BoundsError);
-  assert.throws(() => bounded(5 as unknown as string, 0, 1), TypeError);
-});
-
-test("bounded.try returns a Result instead of throwing", () => {
-  const ok = bounded.try("abc", 1, 3);
-  assert.equal(ok.unwrap_ok(), "abc");
-  const err = bounded.try("abcd", 1, 3);
-  assert.equal(err.unwrap_err().message, "length 4 out of bounds (min 1, max 3)");
-});
-
-test("a Bounded field needs bounded(), with the field's bounds", () => {
-  type Request = { tags: Bounded<Array<string>, 0, 2> };
-  const ok: Request = { tags: bounded(["a"], 0, 2) };
-  // @ts-expect-error a plain array isn't a Bounded
-  const plain: Request = { tags: ["a"] };
-  // @ts-expect-error other bounds are another type
-  const other: Request = { tags: bounded(["a"], 0, 3) };
-  assert.ok(ok && plain && other);
-});
-
-test("fixedSizeArray checks a runtime array has exactly N items", () => {
-  const fromInput: number[] = [1, 2, 3];
-  const xs: FixedSizeArray<number, 3> = fixedSizeArray(fromInput, 3);
-  assert.deepEqual(xs, [1, 2, 3]);
-  assert.throws(() => fixedSizeArray([1, 2], 3), (e: unknown) =>
-    e instanceof BoundsError && e.message === "length 2 out of bounds (min 3, max 3)");
-  assert.equal(fixedSizeArray.try([1, 2, 3, 4], 3).unwrap_err().length, 4);
-
-  // Type-checked, never run.
-  (): FixedSizeArray<number, 3>[] => {
-    const literal: FixedSizeArray<number, 3> = [1, 2, 3]; // a literal of the right length fits as it is
-    // @ts-expect-error a runtime array needs fixedSizeArray()
-    const unchecked: FixedSizeArray<number, 3> = fromInput;
-    // @ts-expect-error another length is another type
-    const other: FixedSizeArray<number, 3> = fixedSizeArray(fromInput, 4);
-    return [literal, unchecked, other];
-  };
 });

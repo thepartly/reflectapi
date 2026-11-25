@@ -168,7 +168,7 @@ pub(super) fn validate_response_enums(schema: &crate::Schema) -> anyhow::Result<
 /// `template`, a target-language type such as `FixedSizeArray<T, N>`, with
 /// each identifier that names a parameter replaced by its argument. One pass
 /// over the template's own text, so an argument is never searched again: `T`
-/// replaced by `Item` can't then have a `MIN` found inside it, and `T1`
+/// replaced by `Node` can't then have an `N` found inside it, and `T1`
 /// doesn't match inside `T11`.
 fn substitute_type_parameters(template: &str, arguments: &[(&str, String)]) -> String {
     let mut out = String::with_capacity(template.len());
@@ -425,13 +425,6 @@ mod substitution_tests {
 
     #[test]
     fn replaces_whole_identifiers_once() {
-        let args = [
-            ("T", "ADMIN".to_string()),
-            ("MIN", "0".into()),
-            ("MAX", "5".into()),
-        ];
-        // `MIN` isn't looked for inside the argument that replaced `T`.
-        assert_eq!(subst("Bounded<T, MIN, MAX>", &args), "Bounded<ADMIN, 0, 5>");
         let args = [("T1", "A".to_string()), ("T11", "B".into())];
         assert_eq!(subst("[T1, T11]", &args), "[A, B]");
         let args = [("N", "3".to_string()), ("T", "Node".into())];

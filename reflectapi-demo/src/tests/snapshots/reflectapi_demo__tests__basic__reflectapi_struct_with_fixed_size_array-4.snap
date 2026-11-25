@@ -50,19 +50,11 @@ snapshot_kind: text
         ],
         "properties": {
           "_f": {
-            "allOf": [
-              {
-                "description": "Fixed-size Array",
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/u8"
-                }
-              },
-              {
-                "minItems": 3,
-                "maxItems": 3
-              }
-            ]
+            "description": "Fixed-size Array",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/u8"
+            }
           }
         }
       },
