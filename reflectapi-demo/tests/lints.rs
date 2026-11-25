@@ -118,7 +118,8 @@ fn report(
         .into_iter()
         .map(|e| {
             assert!(
-                e.message.contains("https://reflectapi.rs/design/standard.html#api-"),
+                e.message
+                    .contains("https://reflectapi.rs/design/standard.html#api-"),
                 "{e}"
             );
             (e.pointer.to_string(), e.rule.unwrap())
@@ -448,7 +449,11 @@ pub struct PetsListRequest {
     pub name: String,
 }
 
-async fn pets_search_misnamed(_: (), _: PetsListRequest, _: reflectapi::Empty) -> reflectapi::Empty {
+async fn pets_search_misnamed(
+    _: (),
+    _: PetsListRequest,
+    _: reflectapi::Empty,
+) -> reflectapi::Empty {
     unimplemented!()
 }
 
@@ -532,7 +537,10 @@ fn a_type_named_as_a_calls_names_its_call() {
             .route(products_insert, |b| b.name("products.insert"))
             .route(products_update, |b| b.name("products.update"))
     });
-    assert_eq!(reported, pairs(&[("pets.search", "api-type-named-after-call")]));
+    assert_eq!(
+        reported,
+        pairs(&[("pets.search", "api-type-named-after-call")])
+    );
 
     let (schema, _) = reflectapi::Builder::<()>::new()
         .route(pets_search_misnamed, |b| b.name("pets.search"))
@@ -546,7 +554,6 @@ fn a_type_named_as_a_calls_names_its_call() {
 pub struct PetStruct {
     pub name: String,
 }
-
 
 async fn pets_get(_: (), _: PetStruct, _: reflectapi::Empty) -> Result<Product, PetsGetError> {
     unimplemented!()
@@ -668,7 +675,6 @@ fn enums_with_fields_and_errors_are_tagged_by_kind() {
         ])
     );
 }
-
 
 // Type paths. The types of this file are under `lints::`, one module.
 

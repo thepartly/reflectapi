@@ -74,7 +74,8 @@
 )]
 
 // The derives write `::reflectapi::…` paths, so the crate can derive for its
-// own types.
+// own types, which only `conventions` does.
+#[cfg(feature = "conventions")]
 extern crate self as reflectapi;
 
 mod bounded;
