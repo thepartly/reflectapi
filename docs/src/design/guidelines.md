@@ -109,20 +109,47 @@ generated clients always send `POST`. See
 
 ### Versions
 
-- The `version` of a call's URL MUST be the API's major version, or the
-  name of a set of calls served apart.
+- The `version` of a call's URL MUST be the API's major version, its
+  calendar version, or the name of a set of calls served apart.
   `[api-version-is-major]`
 
   <details open>
   <summary>Example</summary>
 
-  `/api/v1/users.get`, `/api/v2/users.get`, `/api/internal/users.get`
+  `/api/v1/users.get`, `/api/v2/users.get`, `/api/2026-05/users.get`,
+  `/api/internal/users.get`
+
+  </details>
+
+- An API that releases a version on a calendar cadence, and keeps each
+  released version compatible for as long as it serves it, MAY name its
+  versions by their month of release, `YYYY-MM`, in place of `v1`, `v2`.
+  Such an API releases a version on its cadence, whether or not anything
+  changed incompatibly, and may make an incompatible change in its next
+  version instead of in a new version of a call.
+  `[api-version-calendar]`
+
+  <details open>
+  <summary>Example</summary>
+
+  `/api/2026-05/orders.list`, then `/api/2026-08/orders.list`, served
+  beside it
+
+  </details>
+
+  <details>
+  <summary>Reasoning</summary>
+
+  A client pins the month it was written against, and moves to a later one
+  when it is ready, and the server knows from the date how long it has
+  served a version. The cadence is the API's to publish, together with how
+  long each version is served.
 
   </details>
 
 - A call MUST NOT change incompatibly within a version, in its types or in
   its behaviour: the change MUST be made as a new version of the call, or in
-  a new major version of the API.
+  a new major or calendar version of the API.
   `[api-version-no-change-in-place]`
 
 - A call added to a version, and an optional (nullable) field added to an
@@ -139,6 +166,38 @@ generated clients always send `POST`. See
 
   `users.invite`, `users.invite-v2`, `users.invite-v3`;
   `organizations.get-v2`; `products.search-v2`
+
+  </details>
+
+  <details>
+  <summary>Reasoning</summary>
+
+  A call's version is part of its name, and so of its URL, because that is
+  where everyone who handles a request sees it:
+
+  - Logs, metrics, traces, ingress rules and rate limits key on the path,
+    so each version of a call is counted, routed and limited apart, with no
+    header to inspect.
+  - A read is served for `GET` (`api-method-get-for-reads`), and its URL,
+    version included, is a link that a browser or `curl` can open as it is.
+  - A client written without reflectapi calls a version by its name, with
+    nothing else to set, and the server needs no default for a request
+    that names no version.
+  - A generated client names its methods after the call, so the version
+    shows in the code that calls it, too.
+
+  The alternatives were rejected:
+
+  - A version in a header, negotiated with the content type
+    (`application/x.cart+json;version=2`), keeps the URL the same across
+    versions, so everything above has to read headers to tell versions
+    apart, and `content-type` already chooses between JSON and MessagePack.
+  - A version in a query parameter, such as a date in `api-version`, is a
+    version of the whole API: a client that needs one changed call takes
+    every other change of that version with it. A call also takes no other
+    input from its URL, and ingress routes by path.
+  - A new major version of the API for each incompatible change moves every
+    client at once: see `api-call-version-before-api-version`.
 
   </details>
 
