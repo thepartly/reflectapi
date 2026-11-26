@@ -324,7 +324,7 @@ let (schema, routers) = builder.build()?;
 | `call_name_form` | [`api-call-name-form`](./guidelines.md#api-call-name-form) |
 | `call_names_kebab_case` | [`api-call-name-kebab-case`](./guidelines.md#api-call-name-kebab-case) |
 | `call_resource_levels` | [`api-resource-two-levels`](./guidelines.md#api-resource-two-levels) |
-| `call_version_suffix`: `groups.v2.insert`, not `groups.insert-v2` | [`api-call-version-suffix`](./guidelines.md#api-call-version-suffix) |
+| `call_version_suffix`: reports `groups.v2.insert`; use `groups.insert-v2` | [`api-call-version-suffix`](./guidelines.md#api-call-version-suffix) |
 | `call_actions_standard`: `create`, `delete`, `fetch`, `upsert` and other words a standard action replaces | [`api-insert-not-create`](./guidelines.md#api-insert-not-create), [`api-remove-not-delete`](./guidelines.md#api-remove-not-delete), [`api-action-standard`](./guidelines.md#api-action-standard) |
 | `call_actions_not_parameters`: `search-by-name`, `update-password` | [`api-action-not-parameters`](./guidelines.md#api-action-not-parameters) |
 | `request_is_object` | [`api-arguments-in-body-object`](./guidelines.md#api-arguments-in-body-object) |
