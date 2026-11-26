@@ -372,7 +372,6 @@ impl ToTokens for TokenizablePrimitive<'_> {
             }
             None => quote::quote! { None },
         };
-        let format = tokenize_option_string(&self.inner.format);
         let codegen_config =
             TokenizableLanguageSpecificTypeCodegenConfig(&self.inner.codegen_config);
         tokens.extend(quote::quote! {
@@ -383,7 +382,6 @@ impl ToTokens for TokenizablePrimitive<'_> {
                     vec![#(#parameters),*],
                     #fallback,
                 );
-                __reflectapi_primitive.format = #format;
                 __reflectapi_primitive.codegen_config = #codegen_config;
                 __reflectapi_primitive
             }

@@ -24,9 +24,10 @@ pub(crate) use self::semantic::{
     SemanticTypeParameter, SemanticVariant, SymbolInfo, SymbolTable,
 };
 pub(crate) use self::symbol::{SymbolId, SymbolKind};
-pub(crate) use reflectapi_schema::wire::format::{integer_width, string_format};
-pub(crate) use reflectapi_schema::wire::layout::{FlattenedGroup, Layout, Member, Opaque};
-pub(crate) use reflectapi_schema::wire::presence::{
+pub(crate) use crate::contract::format::{integer_width, string_format};
+pub(crate) use crate::contract::length::{length_bounds, LengthKind};
+pub(crate) use crate::contract::presence::{
     resolve_field_wire_contract, Direction, FieldWireFacts, KeyPresence,
 };
-pub(crate) use reflectapi_schema::wire::shape::{wrapped_field, Shape};
+pub(crate) use crate::wire::layout::{FlattenedGroup, Layout, Member, Opaque};
+pub(crate) use crate::wire::shape::{wrapped_field, Shape};

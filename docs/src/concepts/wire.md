@@ -68,6 +68,55 @@ A `charset` parameter other than `utf-8` is also refused with `415`. `accept`
 is ignored. Stream routes accept JSON only, and answer MessagePack with `415`.
 The generated clients send JSON.
 
+A few types are written differently in MessagePack. A `uuid::Uuid` is a
+string in JSON and 16 bytes in MessagePack, since its `Serialize` checks
+whether the format is human-readable. The schema names the type the same
+way for both formats, so a client written by hand from it may send a UUID as
+a string in MessagePack too, which `uuid`'s own `Deserialize` refuses there.
+A server that accepts MessagePack can read either form with a
+`deserialize_with` function:
+
+```rust
+use serde::de::{self, Deserializer, Visitor};
+
+#[derive(serde::Deserialize, reflectapi::Input)]
+struct PetsGetRequest {
+    #[serde(deserialize_with = "uuid_from_str_or_bytes")]
+    id: uuid::Uuid,
+}
+
+/// A UUID as a string or as 16 bytes, whatever the format.
+fn uuid_from_str_or_bytes<'de, D: Deserializer<'de>>(d: D) -> Result<uuid::Uuid, D::Error> {
+    struct StrOrBytes;
+    impl<'de> Visitor<'de> for StrOrBytes {
+        type Value = uuid::Uuid;
+        fn expecting(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            f.write_str("a UUID as a string or 16 bytes")
+        }
+        fn visit_str<E: de::Error>(self, v: &str) -> Result<Self::Value, E> {
+            uuid::Uuid::parse_str(v).map_err(E::custom)
+        }
+        fn visit_bytes<E: de::Error>(self, v: &[u8]) -> Result<Self::Value, E> {
+            uuid::Uuid::from_slice(v).map_err(E::custom)
+        }
+    }
+    d.deserialize_any(StrOrBytes)
+}
+
+#[derive(serde::Serialize)]
+struct Sent<T> {
+    id: T,
+}
+
+let id = uuid::Uuid::parse_str("e7fe9a2c-1b7f-4a43-9d63-2c1f0b6f5a10").unwrap();
+let bytes = rmp_serde::to_vec_named(&Sent { id }).unwrap();
+let string = rmp_serde::to_vec_named(&Sent { id: id.to_string() }).unwrap();
+assert_eq!(rmp_serde::from_slice::<PetsGetRequest>(&bytes).unwrap().id, id);
+assert_eq!(rmp_serde::from_slice::<PetsGetRequest>(&string).unwrap().id, id);
+```
+
+The schema still names the field `uuid::Uuid`.
+
 `curl -d` sends `content-type: application/x-www-form-urlencoded` unless told
 otherwise, so pass the JSON content type:
 

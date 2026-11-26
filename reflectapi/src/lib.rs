@@ -55,7 +55,7 @@
 //!   schema and the [`Router`]s.
 //! - Serving: [`axum`] (feature `axum`) or [`dispatch`] for any other server.
 //! - Types with meaning to clients: [`Option`] (absent, null or a value),
-//!   [`Empty`], [`Infallible`].
+//!   [`Empty`], [`Infallible`], [`Bounded`] (a length limit).
 //! - [`Raw`] (feature `json`): a value kept as the JSON it arrived as.
 //! - [`Encoded`] (feature `json`): a typed value encoded into a string, for
 //!   clients to pass back without reading, such as a cursor.
@@ -74,6 +74,7 @@
     html_favicon_url = "https://reflectapi.rs/reflectapi-logo.png"
 )]
 
+mod bounded;
 mod empty;
 #[cfg(feature = "json")]
 mod encoded;
@@ -86,6 +87,14 @@ mod traits;
 #[cfg(feature = "json")]
 mod transcode;
 mod validation;
+// How serde lays out a reflected type: for the builder, which reads a route's
+// headers by it, and the code generators.
+#[cfg(any(feature = "builder", feature = "codegen"))]
+#[doc(hidden)]
+pub mod wire;
+// What the schema promises a client, built on `wire`: for the code generators.
+#[cfg(feature = "codegen")]
+pub(crate) mod contract;
 
 #[cfg(feature = "rt")]
 pub mod rt;
@@ -112,6 +121,7 @@ pub use self::builder::{
 };
 #[cfg(feature = "builder")]
 use self::builder::{Handler, HandlerCallback};
+pub use bounded::{Bounded, BoundedMax, BoundsError, Length};
 pub use empty::*;
 #[cfg(feature = "json")]
 pub use encoded::Encoded;

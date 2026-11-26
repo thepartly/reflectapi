@@ -416,6 +416,43 @@ pub enum Schema {
     Not {
         not: Box<InlineOrRef<Schema>>,
     },
+    /// Length keywords alone, combined with a type through `allOf`: a
+    /// `reflectapi::Bounded`'s limits.
+    Length(LengthSchema),
+}
+
+#[doc(hidden)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LengthSchema {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_length: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_length: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_items: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_items: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_properties: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_properties: Option<u64>,
+}
+
+impl LengthSchema {
+    /// The keywords for a length range, leaving out a zero minimum.
+    fn new(kind: super::schema::LengthKind, min: u64, max: u64) -> Self {
+        use super::schema::LengthKind;
+        let min = Some(min).filter(|min| *min > 0);
+        let max = Some(max);
+        let mut schema = Self::default();
+        match kind {
+            LengthKind::Characters => (schema.min_length, schema.max_length) = (min, max),
+            LengthKind::Items => (schema.min_items, schema.max_items) = (min, max),
+            LengthKind::Entries => (schema.min_properties, schema.max_properties) = (min, max),
+        }
+        schema
+    }
 }
 
 #[doc(hidden)]
@@ -470,6 +507,7 @@ impl fmt::Debug for Schema {
                 .field("subschemas", subschemas)
                 .finish(),
             Schema::Not { not } => f.debug_struct("Not").field("not", not).finish(),
+            Schema::Length(length) => length.fmt(f),
         }
     }
 }
@@ -793,7 +831,7 @@ impl Converter<'_> {
     }
 
     /// Header parameters for a request headers type, as
-    /// [`reflectapi_schema::wire::headers::request_headers`] finds them, by name. The
+    /// [`crate::wire::headers::request_headers`] finds them, by name. The
     /// builder refuses a type whose headers it can't find, so only a schema
     /// written otherwise has one; its headers are left undescribed.
     fn convert_headers(
@@ -801,7 +839,7 @@ impl Converter<'_> {
         schema: &crate::Schema,
         type_ref: &crate::TypeReference,
     ) -> Vec<Parameter> {
-        let mut headers = reflectapi_schema::wire::headers::request_headers(type_ref, &|name| {
+        let mut headers = crate::wire::headers::request_headers(type_ref, &|name| {
             schema.input_types.get_type(name)
         })
         .unwrap_or_default();
@@ -833,6 +871,37 @@ impl Converter<'_> {
     }
 
     fn convert_type_ref(
+        &mut self,
+        schema: &crate::Schema,
+        kind: Kind,
+        ty_ref: &crate::TypeReference,
+    ) -> InlineOrRef<Schema> {
+        // A length range (`Bounded`, a fixed-size array): the collection's
+        // schema, and the length keywords beside it.
+        if let Some(bounds) = super::schema::length_bounds(ty_ref) {
+            let base = match bounds.inner {
+                Some(inner) => self.convert_type_ref(schema, kind, inner),
+                None => self.convert_type_ref_unbounded(schema, kind, ty_ref),
+            };
+            return match bounds.kind {
+                Some(length_kind) => InlineOrRef::Inline(Schema::AllOf {
+                    title: String::new(),
+                    subschemas: vec![
+                        base,
+                        InlineOrRef::Inline(Schema::Length(LengthSchema::new(
+                            length_kind,
+                            bounds.min,
+                            bounds.max,
+                        ))),
+                    ],
+                }),
+                None => base,
+            };
+        }
+        self.convert_type_ref_unbounded(schema, kind, ty_ref)
+    }
+
+    fn convert_type_ref_unbounded(
         &mut self,
         schema: &crate::Schema,
         kind: Kind,
@@ -1452,6 +1521,9 @@ impl Converter<'_> {
             Schema::AnyOf { .. } | Schema::Not { .. } => {
                 unreachable!("only an absent flattened group is described with `anyOf` and `not`")
             }
+            Schema::Length(_) => {
+                unreachable!("length keywords only appear inside the `allOf` of a `Bounded`")
+            }
             Schema::Flat(schema) => match &schema.ty {
                 Type::Boolean
                 | Type::Integer { .. }
@@ -1669,7 +1741,7 @@ fn primitive_fallback_type_ref(
     // with their own OpenAPI representation (usize, chrono::DateTime,
     // HashSet<T> -> Vec<T>, ...) must keep their richer schema instead of being
     // collapsed to the wire fallback.
-    reflectapi_schema::wire::layout::pointee(primitive, ty_ref)
+    crate::wire::layout::pointee(primitive, ty_ref)
 }
 
 fn sanitize_description(description: &str) -> String {

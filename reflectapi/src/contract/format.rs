@@ -1,20 +1,29 @@
-//! What a primitive is on the wire beyond its JSON type: a UUID, a date, a
-//! URI. Every generator reads it here, so a schema says it once.
+//! What a primitive is on the wire beyond its JSON type, such as a UUID, a date
+//! or a URI, in each serialization format. The type's name says what it is,
+//! so the forms are a table keyed by name, and every generator reads it here.
 
-use crate::Primitive;
+use crate::{Primitive, SerializationMode};
 
-/// The format of the string a primitive is written as: the schema's, or, for
-/// a schema written before primitives carried one, the built-in type's.
-pub fn wire_format(primitive: &Primitive) -> Option<&str> {
-    primitive
-        .format()
-        .or_else(|| builtin_format(primitive.name()))
+/// How a primitive is written in one serialization format.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WireForm {
+    /// A string with a format: a JSON Schema format such as `uuid` or
+    /// `date-time`, or a type's own such as `decimal`.
+    String { format: &'static str },
+    /// Raw bytes, `length` of them.
+    Bytes { length: usize },
 }
 
-/// The formats reflectapi's own impls set, by type name.
-fn builtin_format(name: &str) -> Option<&'static str> {
-    Some(match name {
-        "uuid::Uuid" => "uuid",
+/// How the primitive named `name` is written in `mode`, if it's one reflectapi
+/// knows. A type's `Serialize` may write it differently in each format: a UUID
+/// is a string in JSON and 16 bytes in MessagePack, since serde's `uuid` impl
+/// checks `is_human_readable()`.
+pub fn wire_form(name: &str, mode: SerializationMode) -> Option<WireForm> {
+    let format = match name {
+        "uuid::Uuid" => match mode {
+            SerializationMode::Json => "uuid",
+            SerializationMode::Msgpack => return Some(WireForm::Bytes { length: 16 }),
+        },
         "chrono::DateTime" => "date-time",
         // RFC 3339's `date-time` and `time` require an offset; serde writes
         // chrono's naive types without one.
@@ -24,18 +33,16 @@ fn builtin_format(name: &str) -> Option<&'static str> {
         "url::Url" => "uri",
         "rust_decimal::Decimal" => "decimal",
         _ => return None,
-    })
+    };
+    Some(WireForm::String { format })
 }
 
-/// A primitive written as a string with a format: one that has a format and
-/// either no fallback or a `String` one. A fallback to anything else says
-/// how it's written instead.
-pub fn string_format(primitive: &Primitive) -> Option<&str> {
-    let format = wire_format(primitive)?;
-    match primitive.fallback() {
-        None => Some(format),
-        Some(fallback) if fallback.name == "std::string::String" => Some(format),
-        Some(_) => None,
+/// The format of the string a primitive is written as in JSON, if it's one
+/// reflectapi knows.
+pub fn string_format(primitive: &Primitive) -> Option<&'static str> {
+    match wire_form(primitive.name(), SerializationMode::Json)? {
+        WireForm::String { format } => Some(format),
+        WireForm::Bytes { .. } => None,
     }
 }
 
@@ -78,30 +85,39 @@ pub fn integer_width(name: &str) -> Option<IntegerWidth> {
 mod tests {
     use super::*;
 
-    fn primitive(name: &str, fallback: Option<&str>) -> Primitive {
-        Primitive::new(name.into(), String::new(), vec![], fallback.map(Into::into))
+    fn primitive(name: &str) -> Primitive {
+        Primitive::new(
+            name.into(),
+            String::new(),
+            vec![],
+            Some("std::string::String".into()),
+        )
     }
 
     #[test]
-    fn a_schema_written_before_formats_gets_the_built_in_ones() {
-        assert_eq!(string_format(&primitive("uuid::Uuid", None)), Some("uuid"));
-        assert_eq!(
-            string_format(&primitive("chrono::NaiveDate", Some("std::string::String"))),
-            Some("date")
-        );
-        assert_eq!(
-            string_format(&primitive("my::Sku", Some("std::string::String"))),
-            None
-        );
+    fn a_primitive_reflectapi_knows_has_its_format_by_name() {
+        assert_eq!(string_format(&primitive("uuid::Uuid")), Some("uuid"));
+        assert_eq!(string_format(&primitive("chrono::NaiveDate")), Some("date"));
+        assert_eq!(string_format(&primitive("my::Sku")), None);
     }
 
     #[test]
-    fn a_type_can_give_its_own_format_but_not_to_a_non_string() {
-        let sku = primitive("my::Sku", Some("std::string::String")).with_format("sku");
-        assert_eq!(string_format(&sku), Some("sku"));
-        let count = primitive("my::Count", Some("u64")).with_format("int64");
-        assert_eq!(wire_format(&count), Some("int64"));
-        assert_eq!(string_format(&count), None);
+    fn a_uuid_is_a_string_in_json_and_bytes_in_messagepack() {
+        assert_eq!(
+            wire_form("uuid::Uuid", SerializationMode::Json),
+            Some(WireForm::String { format: "uuid" })
+        );
+        assert_eq!(
+            wire_form("uuid::Uuid", SerializationMode::Msgpack),
+            Some(WireForm::Bytes { length: 16 })
+        );
+        // chrono doesn't check `is_human_readable()`: a string in both.
+        assert_eq!(
+            wire_form("chrono::DateTime", SerializationMode::Msgpack),
+            Some(WireForm::String {
+                format: "date-time"
+            })
+        );
     }
 
     #[test]

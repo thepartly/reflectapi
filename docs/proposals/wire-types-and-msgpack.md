@@ -13,7 +13,7 @@ and [Remaining](#remaining)). The rest is proposed. The measurements behind the 
 
 | Topic | Decision |
 |---|---|
-| `Bounded<T, MIN, MAX>` | Taken out of this branch for review: see [`Bounded`](schema-holds-data.md#bounded-a-separate-pr) |
+| `Bounded<T, MIN, MAX>` | In core, no feature flag. Done, in #266: see [`Bounded`](schema-holds-data.md#bounded) |
 | `reflectapi::Empty` | Also derives `Copy` and `Hash`. Done |
 | `Raw<T>` | Under `json`, stored as JSON text by definition; converted at the edge for MessagePack. Done |
 | `Encoded<T>` (first called `Opaque`) | Under `json`, JSON then base64url without padding. Done |

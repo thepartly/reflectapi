@@ -35,8 +35,7 @@ expression: schema
         ],
         "fallback": {
           "name": "std::string::String"
-        },
-        "format": "date-time"
+        }
       },
       {
         "kind": "primitive",
@@ -44,8 +43,7 @@ expression: schema
         "description": "Date without timezone (%Y-%m-%d)",
         "fallback": {
           "name": "std::string::String"
-        },
-        "format": "date"
+        }
       },
       {
         "kind": "primitive",
@@ -53,8 +51,7 @@ expression: schema
         "description": "Date time without timezone (%Y-%m-%dT%H:%M:%S%.f)",
         "fallback": {
           "name": "std::string::String"
-        },
-        "format": "date-time-local"
+        }
       },
       {
         "kind": "primitive",
@@ -62,8 +59,7 @@ expression: schema
         "description": "Time without timezone (%H:%M:%S%.f)",
         "fallback": {
           "name": "std::string::String"
-        },
-        "format": "time-local"
+        }
       },
       {
         "kind": "struct",
@@ -191,8 +187,7 @@ expression: schema
         ],
         "fallback": {
           "name": "std::string::String"
-        },
-        "format": "date-time"
+        }
       },
       {
         "kind": "primitive",
@@ -200,8 +195,7 @@ expression: schema
         "description": "Date without timezone (%Y-%m-%d)",
         "fallback": {
           "name": "std::string::String"
-        },
-        "format": "date"
+        }
       },
       {
         "kind": "primitive",
@@ -209,8 +203,7 @@ expression: schema
         "description": "Date time without timezone (%Y-%m-%dT%H:%M:%S%.f)",
         "fallback": {
           "name": "std::string::String"
-        },
-        "format": "date-time-local"
+        }
       },
       {
         "kind": "primitive",
@@ -218,8 +211,7 @@ expression: schema
         "description": "Time without timezone (%H:%M:%S%.f)",
         "fallback": {
           "name": "std::string::String"
-        },
-        "format": "time-local"
+        }
       },
       {
         "kind": "struct",

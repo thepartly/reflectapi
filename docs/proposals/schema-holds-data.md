@@ -4,10 +4,10 @@ Goal: `reflectapi-schema` is the minimal data that describes an API's types and
 endpoints. Knowing what those types mean, which is what diff, the codegens and
 the builder need, lives in `reflectapi` under feature flags.
 
-Status: what the next PR does. It touches #241 (released in 0.26), #263
-(merged, unreleased) and #256 (open). Breaking changes are acceptable for now.
-`reflectapi::Bounded` was taken out of #265 and comes back in its own PR; its
-design is below, in [`Bounded`](#bounded-a-separate-pr), for review.
+Status: #266 does changes 2 to 5, and brings back `reflectapi::Bounded`,
+taken out of #265, with the decisions in [`Bounded`](#bounded) below. #256
+(open) rebases onto it for change 1. It touches #241 (released in 0.26) and
+#263 (merged, unreleased). Breaking changes are acceptable for now.
 
 ## The principle
 
@@ -45,9 +45,9 @@ builder uses with its default config, is not:
 serde's own `std::net` types do the same, but reflectapi doesn't reflect them
 today.
 
-`wire` knows only the JSON forms. `wire::format` says `uuid::Uuid` is a
-`uuid` string whatever the format, and `Primitive.format` can only hold that
-one answer. So a MessagePack client written from the schema sends a UUID as a
+`wire::format`, as #263 left it, knows only the JSON forms. It says
+`uuid::Uuid` is a `uuid` string whatever the format, and `Primitive.format`
+can only hold that one answer. So a MessagePack client written from the schema sends a UUID as a
 string, and the server rejects it:
 
 ```
@@ -82,40 +82,90 @@ reflectapi = { …, features = ["codegen", "diff"] }
 
 #256 is still open, so it can move before it ships.
 
-### 2. `wire` moves back to `reflectapi`
+### 2. `wire` moves back to `reflectapi`, split in two
 
 `reflectapi_schema::wire` holds routines that read the schema and work out
-what it means:
+what it means. They form two layers, and the two groups of users line up
+with them:
 
-| Module | Decides |
-|---|---|
-| `format` | a primitive's string format, and integer widths and ranges, by name |
-| `layout` | the keys a flattened field adds to its parent |
-| `shape` | unit, newtype, tuple or struct, and so whether a newtype is written as its field |
-| `key`, `presence`, `nullability` | whether a key may be absent, and whether `null` is accepted |
-| `headers` | the headers a request-headers type reads |
+| Layer | Modules | What it says | Used by |
+|---|---|---|---|
+| **serde's layout** | `shape`, `key`, `layout`, `headers` | how serde lays out a type: newtype or struct, which keys a field writes, what `#[serde(flatten)]` adds to its parent, which headers a headers type reads | the builder (via `headers` → `layout` → `key`, `shape`), and codegen |
+| **The client's contract** | `presence`, `nullability`, `format`, `length` | what a client may send and must accept: whether a key may be absent, whether `null` is allowed, what a primitive's string is, per format, and the length a `Bounded` or a `[T; N]` must have | codegen and diff only |
 
-These routines are the layer between the data and the tools. All of the
-tools that use them are in `reflectapi`:
+The dependencies run one way: `nullability` and `presence` build on
+`layout`, `shape` and `key`, and nothing in the first layer uses the second.
+So each layer is a module of its own in `reflectapi`:
 
-```
-reflectapi-schema    data: types, endpoints; structural helpers (subst, visit, rename)
-        ▲
-reflectapi
-  ├─ wire            meaning of names and serde attributes,
-  │                  built when any of builder, codegen or diff is on
-  ├─ builder         uses wire
-  ├─ codegen         uses wire
-  └─ diff            uses wire
+- **`reflectapi::wire`**, serde's layout, built when any of `builder`,
+  `codegen` or `diff` is on. The server needs it to read exactly the headers
+  its clients send, so the builder and the clients keep one copy of the
+  flatten rule.
+- **`reflectapi::contract`**, the client's contract, built only for the tools:
+  `codegen`, and `diff` once it joins. The server's build doesn't carry it.
+
+Blue boxes are crates, grey boxes are `reflectapi`'s modules, and the dashed
+yellow box is diff, still on #256. An edge's label is the feature that
+dependency turns on; a module built with a feature says so in its box.
+
+```mermaid
+---
+title: "Crates and modules, with the feature each dependency needs"
+---
+flowchart TB
+  cli["reflectapi-cli"]
+  server["an API server"]
+  conv["reflectapi-conventions"]
+
+  subgraph sgApi["reflectapi"]
+    builder["builder<br/>feature builder"]
+    codegen["codegen<br/>feature codegen"]
+    diff["diff, from #35;256<br/>feature diff"]
+    contract["contract: presence, nullability, format, length<br/>built with codegen or diff"]
+    wire["wire: shape, key, layout, headers<br/>built with builder, codegen or diff"]
+    core["traits, impls, validation<br/>always built"]
+  end
+
+  derive["reflectapi-derive"]
+  schema["reflectapi-schema<br/>the data: types and endpoints"]
+
+  server -->|"feature builder"| builder
+  server --> conv
+  cli -->|"feature codegen"| codegen
+  cli -.->|"feature diff"| diff
+  conv -->|"no features"| core
+
+  builder --> wire
+  codegen --> contract
+  codegen --> wire
+  diff -.-> contract
+  diff -.-> wire
+  contract --> wire
+
+  wire --> schema
+  core --> schema
+  core --> derive
+  derive --> schema
+
+  classDef planned fill:#fef9c3,stroke:#a16207,stroke-width:1.5px,stroke-dasharray:5 4,color:#1f2328
+  classDef module fill:#f1f5f9,stroke:#64748b,stroke-width:1.5px,color:#1f2328
+  classDef crate fill:#dbeafe,stroke:#1d4ed8,stroke-width:1.5px,color:#1f2328
+  class builder,codegen,contract,wire,core module
+  class diff planned
+  class server,cli,conv,derive,schema crate
+  style sgApi fill:none,stroke:#1d4ed8
 ```
 
 This reverses #263, which is unreleased and kept `wire` `#[doc(hidden)]`, so
-no published API changes. `wire` would only need a crate of its own if
-something outside `reflectapi` came to need it.
+no published API changes. `wire` stays `#[doc(hidden)] pub`: with `builder`
+alone, the parts of `layout` only codegen uses would otherwise be unused.
+`contract` is `pub(crate)`, since every tool using it is in `reflectapi`.
+Either would only need a crate of its own if something outside `reflectapi`
+came to need it.
 
 ### 3. `Primitive.format` is removed
 
-The format follows from the name. `wire::format` already has the table
+The format follows from the name. `contract::format` has the table
 (`uuid::Uuid` → `uuid`, `chrono::DateTime` → `date-time`, …) and uses it
 whenever the field is absent. That table becomes the only source.
 
@@ -130,13 +180,13 @@ whenever the field is absent. That table becomes the only source.
   type override (#262).
 - **Diff** reads the format from the name table instead of `p.format`.
 
-### 4. `wire` answers per format
+### 4. `contract::format` answers per format
 
 The routines that describe a value's form take the serialization format, and
 the tables keyed by name record each form:
 
 ```rust
-pub fn wire_format(name: &str, mode: SerializationMode) -> Option<WireForm>;
+pub fn wire_form(name: &str, mode: SerializationMode) -> Option<WireForm>;
 
 // "uuid::Uuid", Json    → a string, format "uuid"
 // "uuid::Uuid", Msgpack → 16 bytes
@@ -199,16 +249,16 @@ doesn't know `std::array::Array` follows its fallback to `Vec<T>`.
 1. `wire` back to `reflectapi` (change 2). The codegens' and builder's
    imports change; nothing else does.
 2. #256 lands as `reflectapi::diff` (change 1).
-3. `Primitive.format` removed, and `wire` answers per format (changes 3
+3. `Primitive.format` removed, and `contract::format` answers per format (changes 3
    and 4).
 4. Const arguments documented (change 5). This can happen at any point.
 
-`Bounded` comes after, in its own PR.
+`Bounded` comes back with changes 2 to 5, in #266.
 
-## `Bounded`: a separate PR
+## `Bounded`
 
 `reflectapi::Bounded` was implemented on #265 and taken out for review. It
-comes back in its own PR, after the changes above, with the decisions below.
+comes back in #266, on top of the changes above, with the decisions below.
 Length checks for fixed-size arrays came out with it, since they share its
 code, and come back with it too.
 
@@ -216,7 +266,7 @@ code, and come back with it too.
 
 `Bounded<T, MIN, MAX>` is a string or collection whose length is within
 `MIN..=MAX`, inclusive. `BoundedMax<T, MAX>` sets only the upper bound. Its
-source, as implemented on #265, is in [`bounded.rs`](bounded.rs).
+source is [`reflectapi/src/bounded.rs`](../../reflectapi/src/bounded.rs).
 
 ```rust
 use reflectapi::{Bounded, BoundedMax};
@@ -240,8 +290,7 @@ struct PetsTagRequest {
   max }`. `Deref`, `AsRef` and `into_inner` give the value back.
 - **`BoundsError` is `#[non_exhaustive]`**, as `ValidationError` is since
   #259: users read it and don't build it, so a field can be added without a
-  breaking release. [`bounded.rs`](bounded.rs) predates #259 and doesn't
-  have it yet.
+  breaking release.
 - **No feature flag.** It needs only serde and reflectapi's own traits, and
   the codegens recognise it by name, which they couldn't do if it depended on
   a flag set in the user's crate. `Option`, `Empty` and `Infallible` are
@@ -285,13 +334,13 @@ measure it.
 
 One routine, `length_bounds`, reads the limits of a `Bounded` or a `[T; N]`
 from its arguments, and `length_kind` says what a length counts: characters,
-items or entries. It goes into `wire` as `wire::length` (change 2), shared by
-the codegens and diff.
+items or entries. It lives in `contract` as `contract::length` (change 2),
+for the codegens and, once it rebases, diff.
 
-Diff then judges `Bounded` by its limits. Reading #256's code, here is what
-it reports without them:
+Diff then judges `Bounded` by its limits, which is for #256 to add. Reading
+its code, here is what it reports without them:
 
-| Change on an input | #256 without `wire::length` | Correct |
+| Change on an input | #256 without `contract::length` | Correct |
 |---|---|---|
 | `Bounded<String, 1, 32>` → `Bounded<String, 1, 64>` | breaking: the arguments `"32"` and `"64"` resolve to no type, so it reports a type change | compatible; breaking on an output |
 | `String` → `Bounded<String, 1, 32>` | compatible: `Bounded` falls back to `String`, so it reports a rename | breaking; compatible on an output |
@@ -301,7 +350,7 @@ it reports without them:
 Review suggested storing the limits as schema fields, as `format` stores a
 format. Each of its concerns is met without new data:
 
-- **Diff can't read the limits.** It reads them through `wire::length` once it
+- **Diff can't read the limits.** It reads them through `contract::length` once it
   shares a crate with that routine (changes 1 and 2).
 - **Readers see types named `"1"` and `"500"`.** That's the documented const
   argument encoding, already used by arrays (change 5).
@@ -403,7 +452,8 @@ another distinct type, such as `struct OrderId(ProductId)`, carries two
   checked against nothing.
 
 Folding `Bounded` in as it is (B) spreads the bug to every distinct type over
-a `Bounded`. C fixes it, and can land on its own, before `Bounded`.
+a `Bounded`. C fixes it, and #266 makes it so, with a runtime test of both
+nestings.
 
 #### Other ways to check, not chosen
 
@@ -431,5 +481,3 @@ Rust codegen `shared_modules` entry for the old type goes away.
   reflectapi. It would sit between a client's override (#262) and the
   codegen's own table, and it would have to be in the JSON for the CLI to see
   it.
-- **How `wire` is exposed.** `pub(crate)` is enough while every tool using it
-  is in `reflectapi`.

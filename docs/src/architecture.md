@@ -13,9 +13,64 @@ The workspace is split accordingly:
 - `reflectapi-schema`: raw schema types and raw-schema transforms
 - `reflectapi-derive`: `#[derive(Input, Output)]` macros
 - `reflectapi`: reflection traits, builder, runtime integrations, codegen backends, and the private compiler schema module
+- `reflectapi-conventions`: opinionated API types and lints against the API design standard
 - `reflectapi-cli`: CLI wrapper around codegen
 - `reflectapi-demo`: snapshot and integration tests
 - `reflectapi-python-runtime`: runtime support for generated Python clients
+
+### Dependencies
+
+`reflectapi-schema` holds only the data that describes an API. What that data
+means lives in `reflectapi`, in two modules:
+
+- `wire`, how serde lays out a type: its shape, the keys each field writes,
+  what a `#[serde(flatten)]` field adds to its parent, and so the headers a
+  route reads. The builder needs it to read exactly the headers clients send,
+  and the code generators to describe them.
+- `contract`, what the schema promises a client on top of that layout:
+  whether a key may be absent, whether `null` is allowed, what a primitive's
+  string is, by its name, in each serialization format, and the length a
+  `Bounded` or a `[T; N]` must have. Only the code generators need it.
+
+Crates have dark outlines, and `reflectapi`'s modules sit in its frame, with
+`wire` and `contract` in orange. An edge's label is the feature that
+dependency turns on; a module built with a feature says so in its box.
+
+```mermaid
+flowchart TB
+  cli["reflectapi-cli"]
+  server["an API server"]
+  conv["reflectapi-conventions"]
+
+  subgraph sgApi["reflectapi"]
+    builder["builder<br/>feature builder"]
+    codegen["codegen<br/>feature codegen"]
+    contract["contract: presence, nullability, format, length<br/>built with codegen"]
+    wire["wire: shape, key, layout, headers<br/>built with builder or codegen"]
+    core["traits, impls, validation<br/>always built"]
+  end
+
+  derive["reflectapi-derive"]
+  schema["reflectapi-schema<br/>the data: types and endpoints"]
+
+  server -->|"feature builder"| builder
+  server --> conv
+  cli -->|"feature codegen"| codegen
+  conv -->|"no features"| core
+
+  builder --> wire
+  codegen --> contract
+  codegen --> wire
+  contract --> wire
+
+  wire --> schema
+  core --> schema
+  core --> derive
+  derive --> schema
+
+  class wire,contract accent
+  class cli,server,conv,derive,schema crate
+```
 
 ## Reflection Model
 
