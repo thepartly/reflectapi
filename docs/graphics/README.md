@@ -6,8 +6,8 @@ Sources for reflectapi's logo files and drawings:
   `reflectapi-wordmark-dark.svg` from the crab, `docs/src/reflectapi-logo.png`,
   and the Oxanium font, then renders `social-preview.html` to
   `social-preview.png`.
-- `glance.py` draws `docs/src/design/glance.svg`, the standard's annotated
-  example, which the book's standard and the landing page's preview share.
+- `glance.py` draws `docs/src/design/glance.svg`, the guidelines' annotated
+  example, which the book's guidelines and the landing page's preview share.
 - `social-preview.png` is the repository's social preview image, uploaded by
   hand in the GitHub repository's Settings, under Social preview.
 

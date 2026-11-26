@@ -127,7 +127,7 @@ fn report(
         .map(|e| {
             assert!(
                 e.message
-                    .contains("https://reflectapi.rs/design/standard.html#api-"),
+                    .contains("https://reflectapi.rs/design/guidelines.html#api-"),
                 "{e}"
             );
             (e.pointer.to_string(), e.rule.unwrap())

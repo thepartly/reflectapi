@@ -33,7 +33,7 @@
 
 # API Design
 
-- [API Design Standard](./design/standard.md)
+- [Partly's HTTP API Guidelines](./design/guidelines.md)
 - [Convention Types](./design/conventions.md)
 
 # Background

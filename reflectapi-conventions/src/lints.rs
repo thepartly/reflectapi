@@ -1,5 +1,5 @@
-//! Lints: checks of a schema against the rules of the
-//! [API design standard](https://reflectapi.rs/design/standard.html) that
+//! Lints: checks of a schema against the rules of
+//! [Partly's HTTP API Guidelines](https://reflectapi.rs/design/guidelines.html) that
 //! its shape can show.
 //!
 //! Each lint is a function for `Builder::validate`, and checks one rule. An
@@ -66,10 +66,10 @@ pub fn all(schema: &Schema) -> Vec<ValidationError> {
     ALL.iter().flat_map(|lint| lint(schema)).collect()
 }
 
-const STANDARD: &str = "https://reflectapi.rs/design/standard.html";
+const GUIDELINES: &str = "https://reflectapi.rs/design/guidelines.html";
 
 fn error(pointer: ValidationPointer, rule: &str, message: String) -> ValidationError {
-    ValidationError::new(pointer, format!("{message}: see {STANDARD}#{rule}")).with_rule(rule)
+    ValidationError::new(pointer, format!("{message}: see {GUIDELINES}#{rule}")).with_rule(rule)
 }
 
 fn function_error(f: &Function, rule: &str, message: String) -> ValidationError {
@@ -195,7 +195,7 @@ pub fn call_version_suffix(schema: &Schema) -> Vec<ValidationError> {
         .collect()
 }
 
-/// Actions the standard names a standard action for instead, with that
+/// Actions the guidelines name a standard action for instead, with that
 /// action and the rule.
 const NOT_STANDARD_ACTIONS: &[(&str, &str, &str)] = &[
     ("create", "insert", "api-insert-not-create"),

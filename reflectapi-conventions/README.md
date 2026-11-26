@@ -9,8 +9,8 @@ Types and lints for one opinionated style of API built with
   more than one way and for bulk-write items.
 - **`conflict`:** an `if` clause on a write, `{"if": {"exists": "replace"}, …}`,
   with a catalogue of action sets.
-- **`lints`:** checks of a schema against the
-  [API design standard](https://reflectapi.rs/design/standard.html), one
+- **`lints`:** checks of a schema against
+  [Partly's HTTP API Guidelines](https://reflectapi.rs/design/guidelines.html), one
   function per rule, for `Builder::validate`.
 
 See [Convention Types](https://reflectapi.rs/design/conventions.html) for the

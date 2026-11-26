@@ -182,7 +182,7 @@
   section.block.alt { background: var(--paper); }
   #design p.intro { color: var(--ink); font-size: 18px; }
   #design p.intro + p.intro { margin-top: -16px; }
-  /* The standard at a glance: a preview beside the text, full size on click */
+  /* The guidelines at a glance: a preview beside the text, full size on click */
   .design-body { display: grid; grid-template-columns: minmax(0, 720px) minmax(240px, 380px); gap: 56px; align-items: start; }
   .glance-thumb { display: block; width: 100%; margin-top: -24px; padding: 14px; background: #FFFFFF; border: 1px solid var(--mist); border-radius: var(--radius); cursor: zoom-in; font: inherit; color: inherit; text-align: left; }
   .glance-thumb:hover { border-color: var(--steel); }
@@ -748,21 +748,21 @@ api = <span class="fn">AsyncClient</span>(<span class="st">"https://api.example.
 
   <section class="block alt" id="design">
     <div class="wrap">
-      <h2>API Design Standard and Conventions</h2>
+      <h2>HTTP API Guidelines and Conventions</h2>
       <div class="design-body">
         <div>
-        <p class="intro">Proven across <a href="https://partly.com">Partly</a>'s data-rich products, services and apps. <a href="design/standard.html">Use it and save yourself a lot of time, or take it as a starting point and adapt it.</a></p>
+        <p class="intro">Proven across <a href="https://partly.com">Partly</a>'s data-rich products, services and apps. <a href="design/guidelines.html">Use it and save yourself a lot of time, or take it as a starting point and adapt it.</a></p>
         <p class="intro">An API call needs a name, an input type and an output type, its errors included. That's it.</p>
-        <p class="intro">The standard cuts down almost all of HTTP's features and leaves one way to do each thing, so endpoints are <strong>easy to define</strong>, <strong>understand</strong> and <strong>implement</strong>, in <strong>any language</strong>, <strong>with reflectapi or without it</strong>.</p>
+        <p class="intro">The guidelines cut down almost all of HTTP's features and leaves one way to do each thing, so endpoints are <strong>easy to define</strong>, <strong>understand</strong> and <strong>implement</strong>, in <strong>any language</strong>, <strong>with reflectapi or without it</strong>.</p>
         </div>
-        <button class="glance-thumb" type="button" aria-haspopup="dialog" aria-label="The standard at a glance: enlarge">
+        <button class="glance-thumb" type="button" aria-haspopup="dialog" aria-label="The guidelines at a glance: enlarge">
           <!-- glance: docs/src/design/glance.svg, inlined by build-extras.py -->
         </button>
       </div>
-      <dialog class="glance-dialog" aria-label="The standard at a glance">
+      <dialog class="glance-dialog" aria-label="The guidelines at a glance">
         <button class="glance-close" type="button" aria-label="Close">&times;</button>
         <div class="glance-slot"></div>
-        <p class="glance-more"><a class="button primary" href="design/standard.html">See all the details and conventions</a></p>
+        <p class="glance-more"><a class="button primary" href="design/guidelines.html">See all the details and conventions</a></p>
       </dialog>
     </div>
   </section>
@@ -857,7 +857,7 @@ api = <span class="fn">AsyncClient</span>(<span class="st">"https://api.example.
     }
   }
 
-  // The standard at a glance: the preview's drawing moves into the dialog at
+  // The guidelines at a glance: the preview's drawing moves into the dialog at
   // full size, and back when it closes, so the page holds one copy.
   const glanceDialog = document.querySelector(".glance-dialog");
   const glanceThumb = document.querySelector(".glance-thumb");

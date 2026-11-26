@@ -60,7 +60,7 @@
 //! - [`Encoded`] (feature `json`): a typed value encoded into a string, for
 //!   clients to pass back without reading, such as a cursor.
 //! - Types for one opinionated style of API, such as cursor pagination and
-//!   `if` clauses on writes, and lints against the API design standard: the
+//!   `if` clauses on writes, and lints against Partly's HTTP API Guidelines: the
 //!   separate crate [`reflectapi-conventions`](https://docs.rs/reflectapi-conventions).
 //! - Generating clients: the `reflectapi` CLI (`cargo binstall reflectapi-cli`),
 //!   or `reflectapi::codegen` (feature `codegen`).

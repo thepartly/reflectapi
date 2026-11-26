@@ -37,3 +37,4 @@ copy-js = true
 edition = "2021"
 
 [output.html.redirect]
+"/design/standard.html" = "guidelines.html"

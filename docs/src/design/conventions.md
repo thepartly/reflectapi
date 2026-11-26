@@ -1,7 +1,7 @@
 # Convention Types
 
 [`reflectapi-conventions`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/index.html)
-holds the types behind the [API Design Standard](./standard.md): cursor
+holds the types behind [Partly's HTTP API Guidelines](./guidelines.md): cursor
 pagination, identity envelopes and the `if` clause on writes. Services that
 use them share the same types in every generated client.
 
@@ -15,7 +15,7 @@ reflectapi-conventions = "0.26"
 Their Rust paths start with the crate's, `reflectapi_conventions::`. Rename
 them to `reflectapi::` on the builder, so they have the same names in every
 API that uses them
-([`api-type-shared-same-name`](./standard.md#api-type-shared-same-name)):
+([`api-type-shared-same-name`](./guidelines.md#api-type-shared-same-name)):
 
 ```rust,ignore
 let builder = reflectapi::Builder::new()
@@ -304,7 +304,7 @@ The full catalogue of sets, with their defaults, is in the
 ## Lints
 
 [`conventions::lints`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/lints/index.html)
-checks a schema against the rules of the [standard](./standard.md) that its
+checks a schema against the rules of the [guidelines](./guidelines.md) that its
 shape can show. Each lint is a function for `Builder::validate` and checks
 one rule; an error names its rule in `ValidationError::rule`, and its message
 links to it.
@@ -321,26 +321,26 @@ let (schema, routers) = builder.build()?;
 
 | Lint | Rule |
 |---|---|
-| `call_name_form` | [`api-call-name-form`](./standard.md#api-call-name-form) |
-| `call_names_kebab_case` | [`api-call-name-kebab-case`](./standard.md#api-call-name-kebab-case) |
-| `call_resource_levels` | [`api-resource-two-levels`](./standard.md#api-resource-two-levels) |
-| `call_version_suffix`: `groups.v2.insert`, not `groups.insert-v2` | [`api-call-version-suffix`](./standard.md#api-call-version-suffix) |
-| `call_actions_standard`: `create`, `delete`, `fetch`, `upsert` and other words a standard action replaces | [`api-insert-not-create`](./standard.md#api-insert-not-create), [`api-remove-not-delete`](./standard.md#api-remove-not-delete), [`api-action-standard`](./standard.md#api-action-standard) |
-| `call_actions_not_parameters`: `search-by-name`, `update-password` | [`api-action-not-parameters`](./standard.md#api-action-not-parameters) |
-| `request_is_object` | [`api-arguments-in-body-object`](./standard.md#api-arguments-in-body-object) |
-| `response_is_object`: the output, and the error, whose cases without data are strings unless written in `kind` | [`api-response-is-object`](./standard.md#api-response-is-object) |
-| `names_snake_case`: an enum value in capitals, such as `NZ`, passes | [`api-name-snake-case`](./standard.md#api-name-snake-case), [`api-enum-outside-codes-keep-form`](./standard.md#api-enum-outside-codes-keep-form) |
-| `enums_kind_tag`: an enum with fields, and an error type, written in `kind` | [`api-enum-kind-tag`](./standard.md#api-enum-kind-tag), [`api-enum-one-value-cases`](./standard.md#api-enum-one-value-cases) |
-| `header_names_kebab_case` | [`api-header-name-case`](./standard.md#api-header-name-case) |
-| `header_names_no_x_prefix` | [`api-header-own-prefix`](./standard.md#api-header-own-prefix) |
-| `call_type_names`: a type named as a call's request, response or error, `…Request`, `…Response` or `…Error`, names its call | [`api-type-named-after-call`](./standard.md#api-type-named-after-call) |
-| `type_names_no_kind_suffix` | [`api-type-no-kind-suffix`](./standard.md#api-type-no-kind-suffix) |
-| `type_path_depth`: two modules at most, a version not counted | [`api-type-path-depth`](./standard.md#api-type-path-depth) |
-| `type_modules_not_implementation`: no `models`, `types`, `errors` and the like | [`api-type-modules-not-implementation`](./standard.md#api-type-modules-not-implementation) |
-| `error_cases_no_error_suffix` | [`api-error-case-no-error-suffix`](./standard.md#api-error-case-no-error-suffix) |
-| `conventions_types_renamed`: this crate's types renamed from `reflectapi_conventions::` to `reflectapi::` | [`api-type-shared-same-name`](./standard.md#api-type-shared-same-name) |
+| `call_name_form` | [`api-call-name-form`](./guidelines.md#api-call-name-form) |
+| `call_names_kebab_case` | [`api-call-name-kebab-case`](./guidelines.md#api-call-name-kebab-case) |
+| `call_resource_levels` | [`api-resource-two-levels`](./guidelines.md#api-resource-two-levels) |
+| `call_version_suffix`: `groups.v2.insert`, not `groups.insert-v2` | [`api-call-version-suffix`](./guidelines.md#api-call-version-suffix) |
+| `call_actions_standard`: `create`, `delete`, `fetch`, `upsert` and other words a standard action replaces | [`api-insert-not-create`](./guidelines.md#api-insert-not-create), [`api-remove-not-delete`](./guidelines.md#api-remove-not-delete), [`api-action-standard`](./guidelines.md#api-action-standard) |
+| `call_actions_not_parameters`: `search-by-name`, `update-password` | [`api-action-not-parameters`](./guidelines.md#api-action-not-parameters) |
+| `request_is_object` | [`api-arguments-in-body-object`](./guidelines.md#api-arguments-in-body-object) |
+| `response_is_object`: the output, and the error, whose cases without data are strings unless written in `kind` | [`api-response-is-object`](./guidelines.md#api-response-is-object) |
+| `names_snake_case`: an enum value in capitals, such as `NZ`, passes | [`api-name-snake-case`](./guidelines.md#api-name-snake-case), [`api-enum-outside-codes-keep-form`](./guidelines.md#api-enum-outside-codes-keep-form) |
+| `enums_kind_tag`: an enum with fields, and an error type, written in `kind` | [`api-enum-kind-tag`](./guidelines.md#api-enum-kind-tag), [`api-enum-one-value-cases`](./guidelines.md#api-enum-one-value-cases) |
+| `header_names_kebab_case` | [`api-header-name-case`](./guidelines.md#api-header-name-case) |
+| `header_names_no_x_prefix` | [`api-header-own-prefix`](./guidelines.md#api-header-own-prefix) |
+| `call_type_names`: a type named as a call's request, response or error, `…Request`, `…Response` or `…Error`, names its call | [`api-type-named-after-call`](./guidelines.md#api-type-named-after-call) |
+| `type_names_no_kind_suffix` | [`api-type-no-kind-suffix`](./guidelines.md#api-type-no-kind-suffix) |
+| `type_path_depth`: two modules at most, a version not counted | [`api-type-path-depth`](./guidelines.md#api-type-path-depth) |
+| `type_modules_not_implementation`: no `models`, `types`, `errors` and the like | [`api-type-modules-not-implementation`](./guidelines.md#api-type-modules-not-implementation) |
+| `error_cases_no_error_suffix` | [`api-error-case-no-error-suffix`](./guidelines.md#api-error-case-no-error-suffix) |
+| `conventions_types_renamed`: this crate's types renamed from `reflectapi_conventions::` to `reflectapi::` | [`api-type-shared-same-name`](./guidelines.md#api-type-shared-same-name) |
 
-A lint reports what the standard rules out, and leaves what it can't judge:
+A lint reports what the guidelines rule out, and leaves what it can't judge:
 
 - Actions are checked against the words a standard action replaces, not a
   list of allowed ones, so an application's own action, such as

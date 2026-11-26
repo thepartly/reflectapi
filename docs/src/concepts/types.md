@@ -321,8 +321,8 @@ put in it anything the client mustn't see.
 
 The separate crate
 [`reflectapi-conventions`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/index.html)
-has the types behind the
-[API Design Standard](../design/standard.md): cursor pagination, identity
+has the types behind 
+[Partly's HTTP API Guidelines](../design/guidelines.md): cursor pagination, identity
 envelopes and conflict resolution. See [Convention Types](../design/conventions.md)
 for how to use them.
 

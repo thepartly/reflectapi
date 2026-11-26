@@ -91,8 +91,8 @@ cargo test --manifest-path docs/doctests/Cargo.toml --doc
 python3 docs/serve.py  # http://127.0.0.1:3000/
 
 # Or build it once, as CI does: the book, then the landing page, sitemap.xml,
-# llms.txt and llms-full.txt. build-extras.py also checks the form of the API
-# design standard's rules.
+# llms.txt and llms-full.txt. build-extras.py also checks the form of the HTTP
+# API guidelines' rules.
 (cd docs && mdbook build)
 python3 docs/build-extras.py
 ```

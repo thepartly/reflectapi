@@ -135,7 +135,7 @@ defined as objects, even if empty. The response code for success is always
 200; for errors, it's always in the 400s, but clients do not use the status
 code. The HTTP method is always POST. There are many other rules for
 structuring data and naming things, and we have open-sourced the standard:
-it is the [API Design Standard](./design/standard.md) in this guide.
+it is [Partly's HTTP API Guidelines](./design/guidelines.md) in this guide.
 
 If you're still debating how to structure API endpoints over HTTP, or facing
 inconsistency between teams or apps, use our standard and save yourself a lot

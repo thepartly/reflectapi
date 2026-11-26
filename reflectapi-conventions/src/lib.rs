@@ -1,7 +1,7 @@
 //! Types for one style of API, opinionated where reflectapi itself is not:
 //! cursor pagination, identity envelopes, and an `if` clause that says what
 //! to do when a write conflicts with what exists; and [`lints`] that check a
-//! schema against the [API design standard](https://reflectapi.rs/design/standard.html).
+//! schema against [Partly's HTTP API Guidelines](https://reflectapi.rs/design/guidelines.html).
 //!
 //! Their Rust paths start with `reflectapi_conventions::`. Rename them to
 //! `reflectapi::` on the builder, so every API that uses them gives clients the

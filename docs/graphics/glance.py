@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Draws docs/src/design/glance.svg: the API design standard at a glance, an
-annotated request, response and error. The book's standard includes it, and
+"""Draws docs/src/design/glance.svg: the HTTP API guidelines at a glance, an
+annotated request, response and error. The book's guidelines include it, and
 build-extras.py inlines it into the landing page's preview.
 
     python3 docs/graphics/glance.py
@@ -116,7 +116,7 @@ html.coal .glance, html.navy .glance, html.ayu .glance { --g-fg: #F7F7F7; --g-di
 
 svg = "\n".join([
     f'<svg class="glance" viewBox="0 0 {W} {H:.0f}" width="{W}" height="{H:.0f}" role="img" aria-labelledby="glance-title glance-desc" xmlns="http://www.w3.org/2000/svg">',
-    '<title id="glance-title">The API design standard at a glance</title>',
+    '<title id="glance-title">The HTTP API guidelines at a glance</title>',
     '<desc id="glance-desc">A request: POST /api/v1/orders.list, always POST, with the major version and a call name of resource and verb; '
     'content-type JSON or MessagePack; authorization, the only header for authentication; traceparent, returned in the response; '
     'and the input, always an object in the body. A response: 200 for every success, with the list wrapped in items and pagination '

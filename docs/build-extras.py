@@ -7,14 +7,14 @@ Run after `mdbook build`, from anywhere: `python3 docs/build-extras.py`, or
 
 - `index.html`: the landing page from `docs/landing/`, in place of mdBook's
   copy of the first chapter, which stays at `introduction.html`, with the
-  standard's annotated example from `src/design/glance.svg` inlined.
+  guidelines' annotated example from `src/design/glance.svg` inlined.
 - `sitemap.xml`: every page, for search engines.
 - `llms.txt`: the guide's table of contents with links (https://llmstxt.org).
 - `llms-full.txt`: the whole guide as one Markdown file, in reading order,
   so an agent can read all of it with one fetch.
 
-It first checks the form of the API design standard's rules, and stops if
-one is malformed: see `check_standard`.
+It first checks the form of the HTTP API guidelines' rules, and stops if
+one is malformed: see `check_guidelines`.
 """
 
 import re
@@ -66,12 +66,12 @@ MARKER = re.compile(r"\b(MUST NOT|MUST|SHOULD NOT|SHOULD|MAY NOT|MAY)\b")
 RULE_TAG = re.compile(r"^\s*`\[(api-[a-z0-9-]+)\]`$")
 
 
-def check_standard() -> list[str]:
-    """The form of the API design standard's rules, as its "How to read it"
+def check_guidelines() -> list[str]:
+    """The form of the HTTP API guidelines' rules, as their "How to read it"
     gives it: a rule is a bullet whose first paragraph has a key word in
     capitals and closes with the rule's id, each id used once; and a key
     word in capitals appears nowhere else, except as code."""
-    path = src / "design" / "standard.md"
+    path = src / "design" / "guidelines.md"
     errors, ids = [], {}
     paragraph, bullet, start, fenced = [], False, 0, False
 
@@ -161,19 +161,19 @@ def rule_items(text: str) -> dict[str, str]:
 
 def check_lints() -> list[str]:
     """Every rule a lint checks names that lint, and names no other."""
-    items, errors = rule_items((src / "design" / "standard.md").read_text()), []
+    items, errors = rule_items((src / "design" / "guidelines.md").read_text()), []
     rules = lint_rules()
     for rule, lints in rules.items():
         if rule not in items:
-            errors.append(f"lints.rs names {rule}, which the standard doesn't have")
+            errors.append(f"lints.rs names {rule}, which the guidelines don't have")
             continue
         for lint in lints:
             if LINT_DOCS.format(lint) not in items[rule]:
-                errors.append(f"standard.md: {rule} doesn't name its lint, `lints::{lint}`")
+                errors.append(f"guidelines.md: {rule} doesn't name its lint, `lints::{lint}`")
     for rule, item in items.items():
         for lint in re.findall(r"reflectapi_conventions/lints/fn\.(\w+)\.html", item):
             if lint not in rules.get(rule, []):
-                errors.append(f"standard.md: {rule} names `lints::{lint}`, which checks another rule")
+                errors.append(f"guidelines.md: {rule} names `lints::{lint}`, which checks another rule")
     return errors
 
 
@@ -182,13 +182,13 @@ def main() -> int:
         print(f"{book} does not exist: run `mdbook build` first", file=sys.stderr)
         return 1
 
-    if errors := check_standard() + check_lints():
+    if errors := check_guidelines() + check_lints():
         print("\n".join(errors), file=sys.stderr)
         return 1
 
     for file in landing.iterdir():
         shutil.copy(file, book / file.name)
-    # The landing page previews the standard's annotated example, inlined
+    # The landing page previews the guidelines' annotated example, inlined
     # from the book's copy so both stay one drawing.
     index_html = book / "index.html"
     index_html.write_text(
@@ -212,8 +212,8 @@ def main() -> int:
         "",
         f"> {description[1] if description else ''}",
         "",
-        "When designing, implementing or reviewing an API, follow the API Design "
-        f"Standard: {SITE}design/standard.html. Each of its rules has a stable id, "
+        "When designing, implementing or reviewing an API, follow Partly's HTTP API "
+        f"Guidelines: {SITE}design/guidelines.html. Each of their rules has a stable id, "
         "such as `[api-call-name-form]`, which is also the rule's anchor on that page.",
         "",
         f"The whole guide as one file: {SITE}llms-full.txt",

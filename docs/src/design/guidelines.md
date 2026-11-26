@@ -1,12 +1,12 @@
-# API Design Standard
+# Partly's HTTP API Guidelines
 
 Conventions for designing consistent API schemas, and for implementing the
 applications and servers that expose them over HTTP.
 
-The standard is opinionated, and its opinion comes from one goal: a function
+The guidelines are opinionated, and their opinion comes from one goal: a function
 on the server reaches every client as the same function, with the same
 signature, input, output and error types. An API call needs a name, an input
-type and an output type, its errors included; that's all. So the standard
+type and an output type, its errors included; that's all. So the guidelines
 cuts HTTP down to what that needs, with one way to do each thing: the call's
 name in the path, its input and output always objects in the body, `POST`
 always working. Every rule below serves making an endpoint easy to define,
@@ -26,7 +26,7 @@ about.
 
 ## How to read it
 
-The standard is a list of rules. Each rule is a bullet: one statement that
+The guidelines are a list of rules. Each rule is a bullet: one statement that
 reads alone, closed by the rule's id, such as `api-filter-bounds-together`.
 An id never changes, so a review, a ticket or another document can name a
 rule by it, and link to it. What explains a rule is folded beside it: an
@@ -54,7 +54,7 @@ The key words in capitals say how firm a rule is, as in
   review.
 - `SHOULD` and `SHOULD NOT`: a strong default. Ignoring one needs a real
   reason, not a preference.
-- `MAY`: a choice the standard names, and leaves open.
+- `MAY`: a choice the guidelines name, and leave open.
 
 Text without a key word is context, not a rule. The rules name three
 parties: the *server*, which serves an API; a *call*, one endpoint of it;
@@ -861,7 +861,7 @@ Their requests and responses are in
 
 - An enum some of whose cases carry fields, and a call's error type, SHOULD
   write the case in a field named `kind`, beside the case's fields, unless
-  the standard names another field for it, such as `action` on an `ingest`
+  the guidelines name another field for it, such as `action` on an `ingest`
   item.
   `[api-enum-kind-tag]`
 
@@ -1114,7 +1114,7 @@ if:
   [Convention Types](./conventions.md#conflict-resolution) shows a route
   using them, and
   [`reflectapi-conventions`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/index.html)
-  has the rest of the standard's types.
+  has the rest of the guidelines' types.
 
   </details>
 
@@ -2469,7 +2469,7 @@ out for client generation or to serve, as it is or as an OpenAPI document
 - `reflectapi codegen` writes the TypeScript, Python and Rust clients from
   the schema: see [Generated Clients](../clients/index.md).
 - [`reflectapi_conventions::lints`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/lints/index.html)
-  checks a schema against the rules of this standard that its shape can
+  checks a schema against the rules of these guidelines that its shape can
   show, each lint naming its rule: see [Lints](./conventions.md#lints).
 
 </details>
