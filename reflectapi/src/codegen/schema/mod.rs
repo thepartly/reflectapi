@@ -25,6 +25,7 @@ pub(crate) use self::semantic::{
 };
 pub(crate) use self::symbol::{SymbolId, SymbolKind};
 pub(crate) use crate::contract::format::{integer_width, string_format};
+pub(crate) use crate::contract::length::{length_bounds, LengthKind};
 pub(crate) use crate::contract::presence::{
     resolve_field_wire_contract, Direction, FieldWireFacts, KeyPresence,
 };

@@ -84,6 +84,7 @@ pub type BoundedMax<T, const MAX: usize> = Bounded<T, 0, MAX>;
 
 /// A length outside a [`Bounded`]'s bounds.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct BoundsError {
     pub length: usize,
     pub min: usize,

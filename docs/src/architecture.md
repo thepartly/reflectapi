@@ -28,9 +28,9 @@ means lives in `reflectapi`, in two modules:
   route reads. The builder needs it to read exactly the headers clients send,
   and the code generators to describe them.
 - `contract`, what the schema promises a client on top of that layout:
-  whether a key may be absent, whether `null` is allowed, and what a
-  primitive's string is, by its name, in each serialization format. Only the
-  code generators need it.
+  whether a key may be absent, whether `null` is allowed, what a primitive's
+  string is, by its name, in each serialization format, and the length a
+  `Bounded` or a `[T; N]` must have. Only the code generators need it.
 
 Crates have dark outlines, and `reflectapi`'s modules sit in its frame, with
 `wire` and `contract` in orange. An edge's label is the feature that
@@ -45,7 +45,7 @@ flowchart TB
   subgraph sgApi["reflectapi"]
     builder["builder<br/>feature builder"]
     codegen["codegen<br/>feature codegen"]
-    contract["contract: presence, nullability, format<br/>built with codegen"]
+    contract["contract: presence, nullability, format, length<br/>built with codegen"]
     wire["wire: shape, key, layout, headers<br/>built with builder or codegen"]
     core["traits, impls, validation<br/>always built"]
   end

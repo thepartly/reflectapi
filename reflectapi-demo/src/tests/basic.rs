@@ -230,6 +230,16 @@ fn test_reflectapi_struct_with_fixed_size_array() {
 }
 
 #[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
+struct TestStructWithBounded {
+    _tags: reflectapi::BoundedMax<Vec<reflectapi::Bounded<String, 1, 32>>, 50>,
+    _note: Option<reflectapi::BoundedMax<String, 280>>,
+}
+#[test]
+fn test_reflectapi_struct_with_bounded() {
+    assert_snapshot!(TestStructWithBounded);
+}
+
+#[derive(reflectapi::Input, reflectapi::Output, serde::Deserialize, serde::Serialize)]
 struct TestStructWithArc {
     _f: std::sync::Arc<u8>,
 }

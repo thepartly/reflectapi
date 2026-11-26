@@ -36,23 +36,137 @@ type __FlattenExternalEnum<T> = T extends string ? { [K in T]: null } : T;
 
 export type AsyncResult<T, E, H = {}> = Promise<CallResult<T, E, H>>;
 
+/**
+ * An array of exactly `N` items. An array literal of that length fits as it
+ * is; an array built at runtime goes through `fixedSizeArray(items, N)`, which
+ * checks its length.
+ */
 export type FixedSizeArray<T, N extends number> = Array<T> & { length: N };
+
+/**
+ * A string or collection whose length is within MIN..=MAX, inclusive:
+ * characters for strings, items for arrays, keys for maps. On the wire the `T`
+ * it wraps, but a type of its own: make one with `bounded(value, MIN, MAX)`,
+ * which checks the length, or take it from a response. It's branded as a
+ * distinct type named for its bounds, so other bounds are another type.
+ */
+export type Bounded<T, MIN extends number, MAX extends number> = __Distinct<
+  T,
+  `reflectapi::Bounded<${MIN}, ${MAX}>`
+>;
+
+/** A length outside a `Bounded`'s bounds. */
+export class BoundsError extends Error {
+  constructor(
+    readonly length: number,
+    readonly min: number,
+    readonly max: number,
+  ) {
+    super(`length ${length} out of bounds (min ${min}, max ${max})`);
+    this.name = "BoundsError";
+  }
+}
+
+/** The length `Bounded` checks: code points for strings, as Rust counts chars. */
+function __boundedLength(value: unknown): number {
+  if (typeof value === "string") {
+    // Every UTF-16 unit but the second half of a surrogate pair.
+    let length = 0;
+    for (let i = 0; i < value.length; i++) {
+      const unit = value.charCodeAt(i);
+      if (unit < 0xdc00 || unit > 0xdfff) length++;
+    }
+    return length;
+  }
+  if (Array.isArray(value)) return value.length;
+  if (value !== null && typeof value === "object")
+    return Object.keys(value).length;
+  throw new TypeError("bounded() takes a string, an array or an object");
+}
+
+function __bounded_try<T, MIN extends number, MAX extends number>(
+  value: T,
+  min: MIN,
+  max: MAX,
+): Result<Bounded<T, MIN, MAX>, BoundsError> {
+  const length = __boundedLength(value);
+  if (length < min || length > max) {
+    return new Result<Bounded<T, MIN, MAX>, BoundsError>({
+      err: new BoundsError(length, min, max),
+    });
+  }
+  return new Result<Bounded<T, MIN, MAX>, BoundsError>({
+    ok: value as Bounded<T, MIN, MAX>,
+  });
+}
+
+/**
+ * `value` as a `Bounded<T, MIN, MAX>`, after checking its length; throws a
+ * `BoundsError` otherwise. `MIN` and `MAX` must be the field's bounds.
+ * `bounded.try` returns a `Result` instead of throwing.
+ */
+export const bounded = Object.assign(
+  <T, MIN extends number, MAX extends number>(
+    value: T,
+    min: MIN,
+    max: MAX,
+  ): Bounded<T, MIN, MAX> => {
+    const result = __bounded_try(value, min, max);
+    const err = result.err();
+    if (err !== undefined) throw err;
+    return result.unwrap_ok();
+  },
+  { try: __bounded_try },
+);
+
+function __fixed_size_array_try<T, N extends number>(
+  items: Array<T>,
+  length: N,
+): Result<FixedSizeArray<T, N>, BoundsError> {
+  if (items.length !== length) {
+    return new Result<FixedSizeArray<T, N>, BoundsError>({
+      err: new BoundsError(items.length, length, length),
+    });
+  }
+  return new Result<FixedSizeArray<T, N>, BoundsError>({
+    ok: items as FixedSizeArray<T, N>,
+  });
+}
+
+/**
+ * `items` as a `FixedSizeArray<T, N>`, after checking it has exactly `N`
+ * items; throws a `BoundsError` otherwise. `fixedSizeArray.try` returns a
+ * `Result` instead of throwing.
+ */
+export const fixedSizeArray = Object.assign(
+  <T, N extends number>(items: Array<T>, length: N): FixedSizeArray<T, N> => {
+    const result = __fixed_size_array_try(items, length);
+    const err = result.err();
+    if (err !== undefined) throw err;
+    return result.unwrap_ok();
+  },
+  { try: __fixed_size_array_try },
+);
 
 declare const __distinct: unique symbol;
 /**
  * A `#[reflectapi(distinct)]` type: on the wire the `T` it wraps, but a type of
  * its own, so one ID can't be passed where another is expected. Make one with
  * the constructor generated beside it, or take it from a response.
+ *
+ * The brand is a key named for the type, holding the plain value's type. A
+ * distinct type over another, or over a `Bounded`, adds its key beside the
+ * inner one's instead of clashing with it, so each stays its own type.
  */
 export type __Distinct<T, Name extends string> = T extends null | undefined
   ? // Branding `null` would make it `never`, so an optional value keeps it.
     T
-  : T & { readonly [__distinct]: { readonly base: T; readonly name: Name } };
-/** `T` with each distinct type replaced by the value it wraps: its plain JSON shape. */
+  : T & { readonly [__distinct]: { readonly [K in Name]: __Wire<T> } };
+/** `T` with each distinct and bounded type replaced by the value it wraps: its plain JSON shape. */
 export type __Wire<T> = IsAny<T> extends true
   ? T
-  : T extends { readonly [__distinct]: { readonly base: infer B } }
-    ? __Wire<B>
+  : T extends { readonly [__distinct]: infer M }
+    ? M[keyof M]
     : T extends object
       ? { [K in keyof T]: __Wire<T[K]> }
       : T;

@@ -4,10 +4,10 @@ Goal: `reflectapi-schema` is the minimal data that describes an API's types and
 endpoints. Knowing what those types mean, which is what diff, the codegens and
 the builder need, lives in `reflectapi` under feature flags.
 
-Status: what the next PR does. It touches #241 (released in 0.26), #263
-(merged, unreleased) and #256 (open). Breaking changes are acceptable for now.
-`reflectapi::Bounded` was taken out of #265 and comes back in its own PR; its
-design is below, in [`Bounded`](#bounded-a-separate-pr), for review.
+Status: #266 does changes 2 to 5, and brings back `reflectapi::Bounded`,
+taken out of #265, with the decisions in [`Bounded`](#bounded) below. #256
+(open) rebases onto it for change 1. It touches #241 (released in 0.26) and
+#263 (merged, unreleased). Breaking changes are acceptable for now.
 
 ## The principle
 
@@ -91,7 +91,7 @@ with them:
 | Layer | Modules | What it says | Used by |
 |---|---|---|---|
 | **serde's layout** | `shape`, `key`, `layout`, `headers` | how serde lays out a type: newtype or struct, which keys a field writes, what `#[serde(flatten)]` adds to its parent, which headers a headers type reads | the builder (via `headers` → `layout` → `key`, `shape`), and codegen |
-| **The client's contract** | `presence`, `nullability`, `format` | what a client may send and must accept: whether a key may be absent, whether `null` is allowed, what a primitive's string is, per format | codegen and diff only |
+| **The client's contract** | `presence`, `nullability`, `format`, `length` | what a client may send and must accept: whether a key may be absent, whether `null` is allowed, what a primitive's string is, per format, and the length a `Bounded` or a `[T; N]` must have | codegen and diff only |
 
 The dependencies run one way: `nullability` and `presence` build on
 `layout`, `shape` and `key`, and nothing in the first layer uses the second.
@@ -121,7 +121,7 @@ flowchart TB
     builder["builder<br/>feature builder"]
     codegen["codegen<br/>feature codegen"]
     diff["diff, from #35;256<br/>feature diff"]
-    contract["contract: presence, nullability, format<br/>built with codegen or diff"]
+    contract["contract: presence, nullability, format, length<br/>built with codegen or diff"]
     wire["wire: shape, key, layout, headers<br/>built with builder, codegen or diff"]
     core["traits, impls, validation<br/>always built"]
   end
@@ -253,12 +253,12 @@ doesn't know `std::array::Array` follows its fallback to `Vec<T>`.
    and 4).
 4. Const arguments documented (change 5). This can happen at any point.
 
-`Bounded` comes after, in its own PR.
+`Bounded` comes back with changes 2 to 5, in #266.
 
-## `Bounded`: a separate PR
+## `Bounded`
 
 `reflectapi::Bounded` was implemented on #265 and taken out for review. It
-comes back in its own PR, after the changes above, with the decisions below.
+comes back in #266, on top of the changes above, with the decisions below.
 Length checks for fixed-size arrays came out with it, since they share its
 code, and come back with it too.
 
@@ -266,7 +266,7 @@ code, and come back with it too.
 
 `Bounded<T, MIN, MAX>` is a string or collection whose length is within
 `MIN..=MAX`, inclusive. `BoundedMax<T, MAX>` sets only the upper bound. Its
-source, as implemented on #265, is in [`bounded.rs`](bounded.rs).
+source is [`reflectapi/src/bounded.rs`](../../reflectapi/src/bounded.rs).
 
 ```rust
 use reflectapi::{Bounded, BoundedMax};
@@ -290,8 +290,7 @@ struct PetsTagRequest {
   max }`. `Deref`, `AsRef` and `into_inner` give the value back.
 - **`BoundsError` is `#[non_exhaustive]`**, as `ValidationError` is since
   #259: users read it and don't build it, so a field can be added without a
-  breaking release. [`bounded.rs`](bounded.rs) predates #259 and doesn't
-  have it yet.
+  breaking release.
 - **No feature flag.** It needs only serde and reflectapi's own traits, and
   the codegens recognise it by name, which they couldn't do if it depended on
   a flag set in the user's crate. `Option`, `Empty` and `Infallible` are
@@ -335,11 +334,11 @@ measure it.
 
 One routine, `length_bounds`, reads the limits of a `Bounded` or a `[T; N]`
 from its arguments, and `length_kind` says what a length counts: characters,
-items or entries. It goes into `contract` as `contract::length` (change 2), shared by
-the codegens and diff.
+items or entries. It lives in `contract` as `contract::length` (change 2),
+for the codegens and, once it rebases, diff.
 
-Diff then judges `Bounded` by its limits. Reading #256's code, here is what
-it reports without them:
+Diff then judges `Bounded` by its limits, which is for #256 to add. Reading
+its code, here is what it reports without them:
 
 | Change on an input | #256 without `contract::length` | Correct |
 |---|---|---|
@@ -453,7 +452,8 @@ another distinct type, such as `struct OrderId(ProductId)`, carries two
   checked against nothing.
 
 Folding `Bounded` in as it is (B) spreads the bug to every distinct type over
-a `Bounded`. C fixes it, and can land on its own, before `Bounded`.
+a `Bounded`. C fixes it, and #266 makes it so, with a runtime test of both
+nestings.
 
 #### Other ways to check, not chosen
 
