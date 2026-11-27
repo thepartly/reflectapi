@@ -262,7 +262,7 @@ jobs:
       - uses: rust-lang/crates-io-auth-action@v1
         id: auth-schema
       - name: Publish reflectapi-schema
-        run: cargo publish --package reflectapi-schema --locked
+        run: .github/scripts/publish-crate.sh reflectapi-schema
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth-schema.outputs.token }}
 
@@ -271,7 +271,7 @@ jobs:
       - uses: rust-lang/crates-io-auth-action@v1
         id: auth-derive
       - name: Publish reflectapi-derive
-        run: cargo publish --package reflectapi-derive --locked
+        run: .github/scripts/publish-crate.sh reflectapi-derive
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth-derive.outputs.token }}
 
@@ -280,7 +280,7 @@ jobs:
       - uses: rust-lang/crates-io-auth-action@v1
         id: auth-reflectapi
       - name: Publish reflectapi
-        run: cargo publish --package reflectapi --locked
+        run: .github/scripts/publish-crate.sh reflectapi
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth-reflectapi.outputs.token }}
 
@@ -289,7 +289,7 @@ jobs:
       - uses: rust-lang/crates-io-auth-action@v1
         id: auth-conventions
       - name: Publish reflectapi-conventions
-        run: cargo publish --package reflectapi-conventions --locked
+        run: .github/scripts/publish-crate.sh reflectapi-conventions
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth-conventions.outputs.token }}
 
@@ -298,7 +298,7 @@ jobs:
       - uses: rust-lang/crates-io-auth-action@v1
         id: auth-cli
       - name: Publish reflectapi-cli
-        run: cargo publish --package reflectapi-cli --locked
+        run: .github/scripts/publish-crate.sh reflectapi-cli
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth-cli.outputs.token }}
 
