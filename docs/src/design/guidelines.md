@@ -3269,6 +3269,18 @@ out for client generation or to serve, as it is or as an OpenAPI document
 
   </details>
 
+- A call's handler function SHOULD be named `<resource>_<action>` after
+  the call, in `snake_case`.
+  `[api-handler-named-after-call]`
+
+  <details open>
+  <summary>Example</summary>
+
+  `jobs.insert` is handled by `jobs_insert`, `products.integrations.list` by
+  `products_integrations_list`, and `users.invite-v2` by `users_invite_v2`
+
+  </details>
+
 - A client that a server's owner provides, such as for TypeScript or Rust,
   MUST be generated from the server's schema, not written by hand.
   `[api-client-generated]`
@@ -3292,8 +3304,9 @@ out for client generation or to serve, as it is or as an OpenAPI document
 
 - The schema is code first by construction: it is reflected from the
   handlers' signatures and their types.
-- A route's name is one string on the builder,
-  [`.name("products.list")`](https://docs.rs/reflectapi/latest/reflectapi/struct.RouteBuilder.html#method.name).
+- A route's name is one string on the builder, beside its handler:
+  `.route(products_list, |b| b.name("products.list"))`, with
+  [`.name`](https://docs.rs/reflectapi/latest/reflectapi/struct.RouteBuilder.html#method.name).
 - `reflectapi codegen` writes the TypeScript, Python and Rust clients from
   the schema: see [Generated Clients](../clients/index.md).
 - [`reflectapi_conventions::lints`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/lints/index.html)
