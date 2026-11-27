@@ -869,8 +869,11 @@ Their requests and responses are in
   body left out as `{}`.
   `[api-body-empty]`
 - A server MUST answer `400` to a request whose body has a field the call's
-  input type doesn't have, as it does to any body that can't be parsed into
-  the call's types (`api-status-server-own`).
+  input type doesn't have, where the input type is the API's own, as it does
+  to any body that can't be parsed into the call's types
+  (`api-status-server-own`). A type the framework gives every API, such as
+  reflectapi's `Empty`, is exempt: it serves outputs too, and an output's
+  type ignores unknown fields (`api-response-unknown-fields-ignored`).
   `[api-request-unknown-fields-rejected]`
 
   <details>
@@ -886,9 +889,10 @@ Their requests and responses are in
   <details>
   <summary>With reflectapi</summary>
 
-  An input type takes `#[serde(deny_unknown_fields)]`. serde doesn't
-  support it together with `#[serde(flatten)]`, so a type with a flattened
-  field accepts unknown fields.
+  An API's own input type takes `#[serde(deny_unknown_fields)]`. serde
+  doesn't support it together with `#[serde(flatten)]`, so a type with a
+  flattened field accepts unknown fields. `reflectapi::Empty` doesn't take
+  it, so a call whose input is `Empty` accepts any fields it is sent.
 
   </details>
 
