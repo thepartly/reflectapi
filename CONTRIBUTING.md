@@ -14,7 +14,15 @@ as it is on `main`, so a change to it takes effect once merged.
 
 ## Building and running
 
-Ensure that you have `prettier`, `rustfmt`, and `ruff` available in your PATH for consistently formatted generated code.
+`flake.nix` holds the toolchain CI uses: Rust from `rust-toolchain.toml` with
+the wasm32 target, the biome and ruff releases codegen's output depends on,
+node, pnpm, uv and mdBook. Enter it with `nix develop`, or let direnv load it
+from `.envrc` (`direnv allow` once). The Python tests run on interpreters uv
+installs, so NixOS needs `programs.nix-ld.enable`.
+
+Without Nix, install biome 1.8.3 and ruff 0.15.8 (the versions in `flake.nix`)
+on your PATH. Other versions format generated code differently, and the
+snapshot tests fail.
 
 To run the demo server:
 

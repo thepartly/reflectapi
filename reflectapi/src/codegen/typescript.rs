@@ -274,7 +274,7 @@ pub fn generate(
 }
 
 fn format_ts(src: String) -> anyhow::Result<String> {
-    // NOTE: When updating the biome version, also update .github/workflows/ci.yaml
+    // NOTE: When updating the biome version, also update flake.nix
     let biome_package = "@biomejs/biome@1.8.3";
     Ok(format_with(
         // In descending order of speed. The output should be the same.

@@ -16,6 +16,7 @@ reflectapi-python-runtime/dist/
 reflectapi-demo/tests/rust/*/target/
 reflectapi-demo/tests/wasm/target/
 
+# nix-direnv cache for the flake devShell
 .direnv/
 
 # Claude Code subagent worktrees
