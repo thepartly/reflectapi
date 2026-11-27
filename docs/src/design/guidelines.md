@@ -868,6 +868,30 @@ Their requests and responses are in
   MUST be the empty object, `{}`, or left out, and a server MUST read a
   body left out as `{}`.
   `[api-body-empty]`
+- A server MUST answer `400` to a request whose body has a field the call's
+  input type doesn't have, as it does to any body that can't be parsed into
+  the call's types (`api-status-server-own`).
+  `[api-request-unknown-fields-rejected]`
+
+  <details>
+  <summary>Reasoning</summary>
+
+  A typo, or a field the server dropped, then fails loudly, instead of being
+  lost with nobody knowing. A client that sends a new optional field needs a
+  server that knows it: the server is deployed first, as it already must be
+  for a new call.
+
+  </details>
+
+  <details>
+  <summary>With reflectapi</summary>
+
+  An input type takes `#[serde(deny_unknown_fields)]`. serde doesn't
+  support it together with `#[serde(flatten)]`, so a type with a flattened
+  field accepts unknown fields.
+
+  </details>
+
 - An entity with one fixed key MUST be identified by a plain field: `id`,
   or `<entity>_id` where the request also names other entities.
   `[api-id-field]`
@@ -1637,7 +1661,8 @@ struct UpdatedAtFilter {
   `[api-header-own-not-sensitive]`
 - A call MUST NOT take input from a header its client sets, other than
   `content-type`, `content-length`, `accept`, `authorization`,
-  `traceparent` and the application-specific ones.
+  `traceparent`, the application-specific ones, and `last-event-id` on a
+  stream call (`api-resume-header-first`).
   `[api-header-no-other-inputs]`
 
   <details>
@@ -1723,7 +1748,8 @@ send it.
   `[api-status-200-for-success]`
 - Each case of a call's error type, the failures the call declares in its
   signature (see [Errors](#errors)), MUST answer with one status, among
-  `401`, `403`, `404`, `409` and `422`, as the table below gives them.
+  `401`, `403`, `404`, `409` and `422`, and `429` for a `rate_limited` case
+  (see [Rate limits](#rate-limits)), as the table below gives them.
   `[api-status-error-cases]`
 - A server MUST answer `400` to a request whose body or headers can't be
   parsed into the call's types, `405` to a method the call doesn't take, and
@@ -1759,6 +1785,7 @@ send it.
 | `413` | The body is larger than the server accepts | a message from the server, or from a proxy |
 | `415` | The content type is neither JSON nor MessagePack | a message from the server |
 | `422` | A well-formed request with bad data, flow or state, such as broken referential integrity, or another handled error the client or its user has to fix | a value of the call's error type |
+| `429` | The request is over the call's rate limit | the call's `rate_limited` case, or a message from a gateway in front of the server |
 | `500` | An internal error, a bug for the server's owner to fix | a message from the server |
 | `503` | The server isn't ready, or a service it depends on is unavailable | a message from the server, or from a load balancer, typically HTML |
 
@@ -1770,12 +1797,77 @@ send it.
   [A route's error](../concepts/errors.md#a-routes-error).
 - The derive refuses, as it compiles, the statuses the server sends itself,
   such as `400`, `405` and `415`, and every `5xx` but `500` on an
-  `InternalError` variant. It doesn't limit a route's error to the five
+  `InternalError` variant. It doesn't limit a route's error to the
   statuses above: that part is left to review.
 - reflectapi sends `400`, `405` and `415` itself: see
   [Statuses reflectapi sends](../concepts/wire.md#statuses-reflectapi-sends).
 
 </details>
+
+### Rate limits
+
+- A server that limits the rate of a call MUST answer a request over the
+  limit with `429` and a `rate_limited` case of the call's error type, whose
+  `retry_after_seconds` says how long to wait, and MUST send the same number
+  in the `retry-after` header.
+  `[api-rate-limit-answered-429]`
+
+  <details open>
+  <summary>Example</summary>
+
+  ```http
+  429 Too Many Requests
+  retry-after: 30
+  content-type: application/json
+
+  {"kind": "rate_limited", "retry_after_seconds": 30}
+  ```
+
+  </details>
+
+  <details>
+  <summary>Reasoning</summary>
+
+  The case is in the schema, so every client has it as a typed value, and
+  an app that says "try again in 30 seconds" reads the number from it. The
+  header is what every `429` has, a gateway's included, and what HTTP
+  tooling reads.
+
+  </details>
+
+  <details>
+  <summary>With reflectapi</summary>
+
+  [`reflectapi_conventions::rate_limited::RateLimited`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/rate_limited/struct.RateLimited.html)
+  is the case's data, and its `ResponseError` answers `429` with a
+  `retry-after` header taken from `retry_after_seconds`, so the two never
+  disagree. An error type holds it as a transparent case, which takes its
+  status and headers:
+
+  ```rust
+  use reflectapi_conventions::rate_limited::RateLimited;
+
+  #[derive(serde::Serialize, reflectapi::Output, reflectapi::ResponseError)]
+  #[serde(tag = "kind", rename_all = "snake_case")]
+  #[reflectapi(open)]
+  pub enum OrdersListError {
+      #[reflectapi(transparent)]
+      RateLimited(RateLimited),
+      #[reflectapi(status = 403)]
+      Forbidden,
+  }
+  ```
+
+  </details>
+
+- A client MAY retry any call after a `429`, idempotent or not, once
+  `retry-after` has passed: the server didn't process the request.
+  `[api-rate-limit-retry-any-call]`
+- A client MUST read how long to wait from the `retry-after` header, not
+  from the body: a `429` from a gateway in front of the server has the
+  header, but not a value of the call's error type, and the client reports
+  it as a failure of the request.
+  `[api-rate-limit-wait-from-header]`
 
 ## Response body
 
@@ -1813,6 +1905,20 @@ send it.
 
   </details>
 
+- A client MUST accept a response with fields its types don't have, and
+  ignore them: a field added to an output is a compatible change
+  (`api-version-compatible-changes`).
+  `[api-response-unknown-fields-ignored]`
+
+  <details>
+  <summary>With reflectapi</summary>
+
+  Generated clients ignore them: Python's models take `extra="ignore"`,
+  TypeScript reads plain JSON, and the Rust client's types don't deny
+  unknown fields.
+
+  </details>
+
 ### Errors
 
 - A call that can fail MUST have one error type, part of its signature like
@@ -1833,6 +1939,20 @@ send it.
   // 409: a case with data
   { "kind": "conflict", "name": "Rex" }
   ```
+
+  </details>
+
+  <details>
+  <summary>Reasoning</summary>
+
+  The error carries no message for a person to read, unlike a generic
+  envelope with a `message` field, or `problem+json`'s `title` and
+  `detail`. The case and its data name the failure exactly, and the schema
+  and the server's code say what it means, which a person, or an LLM asked
+  to explain it, can look up. A client that shows errors to its users
+  renders its own text from the case, in their language. A message from
+  the server would be written for logs, may hold internal details, and
+  would still be unfit to show to users.
 
   </details>
 
@@ -1884,6 +2004,48 @@ send it.
 
   </details>
 
+- A call's error type MUST be open: a client that receives an error case it
+  doesn't know handles it as a failure of the call that it can't tell apart
+  from others, not as a known case, nor as a failure of the request, and
+  keeps the case's tag for its logs.
+  `[api-error-open]`
+
+  <details>
+  <summary>Reasoning</summary>
+
+  The call failed either way, and the client still sees a value of the
+  call's error type in the failure the call declares, with the tag for its
+  logs, instead of a decoding failure that hides which case it was. That
+  is what lets a case be added within the version
+  (`api-error-case-added`).
+
+  </details>
+
+  <details>
+  <summary>With reflectapi</summary>
+
+  The error enum takes `#[reflectapi(open)]`, and each generated client
+  gives an unknown case as a value of the error type: `Unknown { tag, raw }`
+  in Rust, a model with `.tag` and `.raw` in Python, and an `UnknownEnum`
+  narrowed with `isUnknownEnum` in TypeScript. The lint
+  [`lints::output_enums_open`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/lints/fn.output_enums_open.html) checks it.
+
+  </details>
+
+- A case MAY be added to a call's error type within the version of the
+  call: the error type is open (`api-error-open`), so a client generated
+  before the case handles it as a failure of the call.
+  `[api-error-case-added]`
+
+  <details>
+  <summary>Reasoning</summary>
+
+  A call fails either way, whether its client knows the case or not; a
+  client that knows it can handle it, and an older one still reports a
+  typed failure of the call, with the case's tag.
+
+  </details>
+
 - An error MUST NOT carry security-sensitive information.
   `[api-error-not-sensitive]`
 - The body of an error SHOULD NOT carry a trace ID: the `traceparent`
@@ -1901,6 +2063,54 @@ value, kept apart from network and server failures: see
 `#[derive(reflectapi::ResponseError)]`, so that each case is an object.
 
 </details>
+
+### Enums
+
+- An enum reachable from a call's output SHOULD be open, unless its cases
+  are fixed by what they mean, such as `asc | desc`.
+  `[api-enum-output-open]`
+
+  <details>
+  <summary>Reasoning</summary>
+
+  A case added to a closed enum in a response breaks every client
+  generated before it: the whole response fails to decode. An open enum
+  lets a client read a case it doesn't know. A status, a kind or a type of
+  something grows, and so do codes from an outside standard, as ISO 3166
+  gains and loses countries.
+
+  </details>
+
+  <details>
+  <summary>With reflectapi</summary>
+
+  An open enum takes `#[reflectapi(open)]`, which keeps an unknown case's
+  tag and its raw value: `Unknown { tag, raw }` in the Rust client, a model
+  with `.tag` and `.raw` in Python, and an `UnknownEnum` narrowed with
+  `isUnknownEnum` in TypeScript. A `#[serde(other)]` unit case also accepts
+  unknown tags, but loses them, so it suits only an API that itself names
+  an `other` case. The lint
+  [`lints::output_enums_open`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/lints/fn.output_enums_open.html) checks it;
+  an enum fixed by meaning passes it through a wrapper that filters its
+  errors.
+
+  </details>
+
+- An enum in a request MUST be closed: a server answers `400` to a case it
+  doesn't know, as it does to an unknown field.
+  `[api-enum-request-closed]`
+- A case MAY be added within the version to an open enum in an output, and
+  to an enum in a request once every server has it; a case added to a
+  closed enum in an output MUST be made in a new version of the call.
+  `[api-enum-case-added]`
+- A client MUST NOT fail a call that completed because an enum in its
+  output, the `200` response's body, has a case the client doesn't know: it
+  handles the value as one it doesn't know, such as by skipping the item or
+  showing a generic state, and keeps the tag for its logs. An error case the
+  client doesn't know is covered by `api-error-open`.
+  `[api-enum-unknown-not-failure]`
+- A client MUST NOT map a case it doesn't know onto a known one.
+  `[api-enum-unknown-not-guessed]`
 
 ### Lists
 
@@ -2091,6 +2301,565 @@ reflectapi returns the request's `traceparent` with a success and with a
 route's error: see [Response headers](../concepts/wire.md#response-headers).
 
 </details>
+
+## Values
+
+### Dates and times
+
+- An instant MUST be an RFC 3339 `date-time` with an offset, and SHOULD be
+  in UTC, written with `Z`, with fractional seconds where needed. An instant
+  MAY keep the offset it was observed at, where the local time is part of
+  what it records, such as the time printed on a receipt.
+  `[api-instant-rfc3339]`
+
+  <details open>
+  <summary>Example</summary>
+
+  `"2026-11-26T21:53:12Z"`, and on a receipt,
+  `"2026-11-27T10:53:12+13:00"`
+
+  </details>
+
+- A wall time MUST be an RFC 3339 `date-time` without an offset, or a
+  `partial-time`. Its time zone MUST be in a field of its own, or be the
+  zone of an entity that its documentation names, such as a shop's
+  opening time in the shop's zone.
+  `[api-wall-time-with-zone]`
+
+  <details open>
+  <summary>Example</summary>
+
+  `{"starts_at": "2027-03-14T14:30:00", "time_zone": "Pacific/Auckland"}`,
+  `{"opens_at": "09:00:00"}`
+
+  </details>
+
+  <details>
+  <summary>Reasoning</summary>
+
+  Two kinds of time need telling apart: an instant, a point on the
+  timeline that every observer agrees on, such as when an order was
+  placed; and a wall time, what a clock on the wall reads somewhere, such
+  as a shop opening at 9:00, or an appointment at 14:30 next March.
+
+  </details>
+
+- A date without a time MUST be an RFC 3339 `full-date`, `"2026-11-26"`.
+  `[api-date-rfc3339]`
+- A time zone MUST be an IANA name, `"Pacific/Auckland"`, not an offset.
+  `[api-time-zone-iana]`
+
+  <details>
+  <summary>Reasoning</summary>
+
+  An offset is enough to fix an instant, which is why an instant carries
+  one. It isn't a time zone: `+12:00` is Auckland in winter, Fiji, and
+  Kamchatka, and Auckland is `+13:00` in summer. A wall time needs the zone
+  itself, since its offset depends on the date it falls on, and on rules a
+  government may change before then: from `+12:00` alone, software can't
+  tell what 14:30 next March is, nor when midnight is for a daily report.
+  A zone kept as a fixed offset is wrong for half of every year where
+  daylight saving applies.
+
+  </details>
+
+<details>
+<summary>With reflectapi</summary>
+
+- `chrono::DateTime<Utc>` is an instant in UTC, and
+  `chrono::DateTime<FixedOffset>` one that keeps its offset.
+- `chrono::NaiveDateTime` is a wall time with a date, and
+  `chrono::NaiveTime` one without.
+- `chrono::NaiveDate` is a date.
+- `chrono_tz::Tz` (feature `chrono-tz`) is a time zone, its IANA name on
+  the wire, such as a site's `{"time_zone": "Pacific/Auckland"}`.
+
+</details>
+
+### Durations, sizes and other quantities
+
+- A duration MUST be a number in a fixed unit, named by the field's suffix,
+  as in `timeout_ms` or `retry_after_seconds`.
+  `[api-duration-unit-suffix]`
+
+  <details>
+  <summary>Reasoning</summary>
+
+  A unit inside a value, such as `"500ms"`, suits configuration that people
+  write and read; a client reads a number without parsing it.
+
+  </details>
+- A period of the calendar, such as three months, whose length in days
+  depends on when it starts, MUST be a count with a unit, the unit one of
+  `day`, `week`, `month` and `year`, not a number of days.
+  `[api-period-count-with-unit]`
+
+  <details open>
+  <summary>Example</summary>
+
+  `{"count": 3, "unit": "month"}`
+
+  </details>
+
+- A size of data MUST be a whole number of bytes, named `_bytes`, as in
+  `size_bytes`.
+  `[api-size-in-bytes]`
+
+  <details>
+  <summary>Reasoning</summary>
+
+  Not `_kb` or `_mb`: a kilobyte is 1000 or 1024 bytes, depending on who
+  reads it. A count of bytes fits a JSON number up to 9 petabytes.
+
+  </details>
+
+- A unit MUST have one suffix, the same in every API, as the
+  [Units](#units) table gives it: `_ns`, `_microseconds`, `_ms`,
+  `_seconds`, `_minutes`, `_hours`, `_days` and `_bytes` among them.
+  `[api-unit-suffix-one-spelling]`
+
+  <details>
+  <summary>With reflectapi</summary>
+
+  The lint [`lints::unit_suffixes`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/lints/fn.unit_suffixes.html)
+  reports a field whose name ends in a unit spelled another way, such as
+  `_secs`, `_millis` or `_kb`.
+
+  </details>
+
+- A quantity whose unit is fixed MUST carry the unit in the field's name,
+  as a duration does: `length_mm`, `weight_grams`, `max_weight_kg`.
+  `[api-quantity-fixed-unit-suffix]`
+- A quantity whose unit varies with the value, such as a measured attribute
+  of a product that one source gives in inches and another in millimetres,
+  MUST be an object with the value and its unit, keeping the unit it was
+  given in rather than converting it. The unit is an enum of names in
+  `snake_case`, open as any output's enum is (`api-enum-output-open`),
+  since units get added.
+  `[api-quantity-varying-unit-object]`
+
+  <details open>
+  <summary>Example</summary>
+
+  `{"length": {"value": 12.5, "unit": "millimeter"}}`
+
+  </details>
+
+- A unit MUST be spelled as the table below gives it, wherever it appears:
+  as a suffix of the field's name when the unit is fixed, `weight_grams`,
+  or as the value of `unit` when it varies,
+  `"weight": {"value": 12.5, "unit": "gram"}`, with no suffix on `weight`.
+  A unit the table lacks is added to it, not spelled by each API.
+  `[api-unit-spelled-as-table]`
+
+  <details>
+  <summary>Reasoning</summary>
+
+  How the table spells a unit, and how to spell one added to it:
+
+  - The name is singular, in `snake_case`, in SI's US spelling: `meter`,
+    `liter`.
+  - The suffix is the symbol in lower case, `_mm`, `_kg`, unless lower case
+    makes it read as something else, and then the name in the plural:
+    `_ms` is the millisecond, so the millisiemens is `_millisiemens`; `_m`
+    reads as minutes, so the meter is `_meters`.
+  - A compound unit joins its symbols with `_per_`: `_m_per_s`.
+  - `gallon` is the US gallon; another takes a name of its own, such as
+    `imperial_gallon`.
+
+  </details>
+
+- A server MAY accept a unit's symbol in a request as an alias of its name,
+  `"mm"` for `millimeter`, but MUST send the name.
+  `[api-unit-symbol-alias]`
+
+#### Units
+
+| Kind | Name: suffix |
+|---|---|
+| Count | `quantity`: `_count`; `percent`: `_percent`; `part_per_million`: `_ppm` |
+| Length | `micrometer`: `_micrometers`; `millimeter`: `_mm`; `centimeter`: `_cm`; `meter`: `_meters`; `kilometer`: `_km`; `inch`: `_inches`; `foot`: `_ft`; `yard`: `_yd`; `mile`: `_miles` |
+| Area | `square_meter`: `_m2`; `square_foot`: `_ft2`; `square_inch`: `_in2`; `square_yard`: `_yd2`; `square_mile`: `_mi2` |
+| Volume | `milliliter`: `_ml`; `liter`: `_liters`; `fluid_ounce`: `_fluid_ounces`; `gallon` (US): `_gallons`; `cubic_meter`: `_m3`; `cubic_foot`: `_ft3`; `cubic_inch`: `_in3`; `cubic_yard`: `_yd3` |
+| Mass | `milligram`: `_mg`; `gram`: `_grams`; `kilogram`: `_kg`; `ounce` (mass): `_oz`; `pound` (mass): `_lb` |
+| Density | `kilogram_per_cubic_meter`: `_kg_per_m3`; `gram_per_cubic_centimeter`: `_g_per_cm3`; `pound_per_cubic_foot`: `_lb_per_ft3`; `ounce_per_cubic_inch`: `_oz_per_in3` |
+| Time | `nanosecond`: `_ns`; `microsecond`: `_microseconds`; `millisecond`: `_ms`; `second`: `_seconds`; `minute`: `_minutes`; `hour`: `_hours`; `day`: `_days`; `week`, `month`, `year`: a calendar period (`api-period-count-with-unit`) |
+| Angle | `degree`: `_degrees`; `radian`: `_radians` |
+| Temperature | `celsius`: `_celsius`; `fahrenheit`: `_fahrenheit`; `kelvin`: `_kelvin` |
+| Pressure | `pascal`: `_pa`; `kilopascal`: `_kpa`; `millibar`: `_mbar`; `bar`: `_bar`; `atmosphere`: `_atm`; `pound_per_square_inch`: `_psi` |
+| Speed | `meter_per_second`: `_m_per_s`; `kilometer_per_hour`: `_km_per_h`; `mile_per_hour`: `_mph`; `knot`: `_knots` |
+| Rotation | `radian_per_second`: `_rad_per_s`; `degree_per_second`: `_degrees_per_s`; `revolution_per_minute`: `_rpm`; `degree_per_revolution`: `_degrees_per_rev` |
+| Acceleration | `meter_per_second_squared`: `_m_per_s2`; `kilometer_per_hour_squared`: `_km_per_h2`; `mile_per_hour_squared`: `_mph2`; `standard_gravity`: `_standard_gravities` |
+| Data | `byte`: `_bytes`; `kilobyte`, `megabyte`, `gigabyte`, `terabyte`, `petabyte` (powers of 1000) and `kibibyte`, `mebibyte`, `gibibyte`, `tebibyte` (powers of 1024): unit enum values only, since a field counts bytes (`api-size-in-bytes`) |
+| Energy | `joule`: `_joules`; `kilojoule`: `_kj`; `megajoule`: `_megajoules`; `gigajoule`: `_gigajoules`; `calorie`: `_calories`; `kilocalorie`: `_kcal`; `watt_hour`: `_wh`; `kilowatt_hour`: `_kwh` |
+| Force | `newton`: `_newtons`; `kilonewton`: `_kilonewtons`; `meganewton`: `_meganewtons` |
+| Torque | `newton_meter`: `_newton_meters`; `kilonewton_meter`: `_kilonewton_meters`; `pound_foot`: `_pound_feet`; `kilogram_meter`: `_kilogram_meters` |
+| Power | `watt`: `_watts`; `kilowatt`: `_kw`; `megawatt`: `_megawatts`; `gigawatt`: `_gigawatts`; `watt_per_square_meter`: `_watts_per_m2` |
+| Current | `microampere`: `_microamperes`; `milliampere`: `_milliamperes`; `ampere`: `_amperes`; `kiloampere`: `_kiloamperes` |
+| Charge | `coulomb`: `_coulombs`; `milliampere_hour`: `_mah`; `ampere_hour`: `_ah` |
+| Voltage | `microvolt`: `_microvolts`; `millivolt`: `_millivolts`; `volt`: `_volts`; `kilovolt`: `_kilovolts` |
+| Resistance | `milliohm`: `_milliohms`; `ohm`: `_ohms`; `kiloohm`: `_kiloohms`; `megaohm`: `_megaohms` |
+| Capacitance | `microfarad`: `_microfarads`; `millifarad`: `_millifarads`; `farad`: `_farads` |
+| Inductance | `microhenry`: `_microhenries`; `millihenry`: `_millihenries`; `henry`: `_henries` |
+| Conductance | `microsiemens`: `_microsiemens`; `millisiemens`: `_millisiemens`; `siemens`: `_siemens` |
+| Frequency | `hertz`: `_hz`; `kilohertz`: `_khz`; `megahertz`: `_megahertz`; `gigahertz`: `_gigahertz` |
+| Magnetism | `weber`: `_webers`; `tesla`: `_teslas`; `millitesla`: `_milliteslas` |
+| Light | `lux`: `_lux`; `lumen`: `_lumens`; `candela`: `_candelas`; `candela_per_square_meter`: `_cd_per_m2` |
+| Radiation | `becquerel`: `_becquerels`; `gray`: `_grays`; `sievert`: `_sieverts`; `millisievert`: `_millisieverts`; `microsievert`: `_microsieverts` |
+| Sound | `decibel`: `_decibels` |
+| Flow | `liter_per_second`: `_liters_per_s`; `liter_per_hour`: `_liters_per_h`; `gallon_per_minute`: `_gallons_per_minute`; `gallon_per_hour`: `_gallons_per_hour`; `cubic_centimeter_per_minute`: `_cm3_per_min` |
+| Consumption | `liter_per_100_kilometers`: `_liters_per_100km`; `mile_per_gallon`: `_miles_per_gallon` |
+| Wire gauge | `american_wire_gauge`: `_awg` |
+
+<details>
+<summary>With reflectapi</summary>
+
+[`reflectapi_conventions::units`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/units/index.html)
+has the table as types, so every API has the same units, spelled the same
+way: `Unit`, an open enum of the table's units, written as its name and
+read as its name or its symbol; `Unit::name()`, `Unit::symbol()` and
+`Unit::suffix()`, for showing a quantity to a person and for field names;
+and `Quantity`, the value with its unit. Generated clients get `Unit` as
+any reflected enum: see [Units](./conventions.md#units).
+
+</details>
+
+### Money
+
+- An amount of money MUST be a decimal string (`api-decimal-string`).
+  `[api-money-decimal]`
+
+  <details>
+  <summary>Reasoning</summary>
+
+  A currency's minor unit differs from another's, none for the yen and
+  three digits for the Kuwaiti dinar, so an integer of cents doesn't hold
+  across currencies.
+
+  </details>
+
+- An amount's currency MUST be known from the response itself: a currency
+  field beside the amount, or one currency field for a group of amounts
+  that share it, such as a statement's. The currency SHOULD be its ISO 4217
+  code.
+  `[api-money-currency-known]`
+
+  <details open>
+  <summary>Example</summary>
+
+  `{"amount": "12.50", "currency": "NZD"}`
+
+  </details>
+
+- A server MUST reject an amount with more decimal digits than its currency
+  has, such as `"10.999"` in a currency of cents, rather than round it.
+  `[api-money-scale-checked]`
+
+### Decimals
+
+- A decimal, a number whose digits must be kept exactly, such as an amount
+  of money, MUST be a string, in plain notation with `.` and no exponent:
+  `"12.50"`.
+  `[api-decimal-string]`
+
+  <details>
+  <summary>Reasoning</summary>
+
+  A JSON number has any precision in the specification, but not in the
+  parsers that read it: JavaScript's `JSON.parse` reads every number as a
+  64-bit float, and Python's `json` reads a decimal as a `float`. A sender
+  can't know the parser.
+
+  </details>
+
+- A server MAY also accept a number where it expects a decimal, but MUST
+  send a string.
+  `[api-decimal-number-accepted]`
+
+<details>
+<summary>With reflectapi</summary>
+
+`rust_decimal::Decimal` (feature `rust_decimal`) is a string on the wire,
+in JSON and in MessagePack, and reads a string or a number.
+
+</details>
+
+## Retries
+
+- A client MAY retry any call whose request was never sent, and any call
+  after a `429` (`api-rate-limit-retry-any-call`).
+  `[api-retry-unsent-any-call]`
+
+  <details open>
+  <summary>Example</summary>
+
+  | Case | Examples | Retry |
+  |---|---|---|
+  | Never sent: the server never saw the request | DNS failure, connection refused, connect timeout, TLS handshake failure; `429` | Any call |
+  | Sent, no answer: the server may have processed it | Read timeout, connection reset after the request was written, `502` or `504` from a proxy, `503` | A read-only call, or one whose request carries an `idempotency_key` |
+
+  </details>
+
+- A client MUST NOT retry a call after a failure where the server may have
+  processed the request, unless the call is read-only or its request
+  carries an `idempotency_key`.
+  `[api-retry-sent-idempotent-only]`
+
+  <details>
+  <summary>Reasoning</summary>
+
+  These are the calls a client can tell are safe to process twice, from
+  the schema and from the request it sent: a read-only call changes
+  nothing, and a key makes a write take effect once. A write offering an
+  idempotent action set (`api-write-idempotent`) is safe too, but nothing
+  says so to a client. A `503` can come from a server that started the
+  call and then lost a service it depends on (`api-status-500-and-503`),
+  so it counts as sent.
+
+  </details>
+
+- A client that can't tell whether a request was sent MUST treat the
+  failure as sent.
+  `[api-retry-unknown-as-sent]`
+
+  <details>
+  <summary>Reasoning</summary>
+
+  Not every client can tell. Rust's `reqwest` has `Error::is_connect()`,
+  and Python's `httpx` has `ConnectError` and `ConnectTimeout` apart from
+  `ReadError` and `ReadTimeout`, but a browser's `fetch` throws one
+  `TypeError` for both.
+
+  </details>
+
+- A call MAY take an `idempotency_key` field in its input: a string the
+  client chooses once for an operation, before its first attempt, and
+  sends again with every retry of it.
+  `[api-idempotency-key-field]`
+
+  <details>
+  <summary>Reasoning</summary>
+
+  A write that isn't idempotent by itself, such as an `insert`, becomes
+  idempotent with a key. The key goes in the body, not in a header, as
+  `api-header-no-other-inputs` gives for any input: it is then typed and in
+  the schema, where the generated clients and anyone reading the schema
+  see it, and no proxy drops it. The app chooses the key, not the client
+  library: a key the library chose would cover only its own retries, while
+  a retry by the app, after a reload for instance, needs the key the app
+  kept, and only the app knows which attempts are the same operation.
+
+  </details>
+
+- A call that takes `idempotency_key` MUST have the effect of one call
+  however many times it is sent with the same key; how it does that, and
+  for how long the server remembers a key, is the server's to decide and
+  to document.
+  `[api-idempotency-key-idempotent]`
+
+<details>
+<summary>With reflectapi</summary>
+
+The schema records a read-only route, and an `idempotency_key` is a field of
+the call's input, so both are in every generated client's types. The
+generated clients don't retry by themselves: an app or a custom transport
+retries as the table above gives.
+
+</details>
+
+## Streams
+
+- A stream call MUST answer `200` with `text/event-stream`, each event's
+  data one value of the call's output type, and SHOULD keep a quiet stream
+  open with comment lines.
+  `[api-stream-sse]`
+- An event of a stream that can be resumed MUST carry its id twice, with
+  the same value: in the event's `id:` field, for the transport, and in an
+  `event_id` field of its data, which is the source of truth, and the only
+  one the app sees.
+  `[api-event-id-in-data]`
+
+  <details>
+  <summary>Reasoning</summary>
+
+  SSE carries an event's id in the event's `id:` field, and a client that
+  reconnects sends it back in the `last-event-id` header, but only the
+  transport sees either: a browser's `EventSource` sends the header by
+  itself, and a generated client gives the app the event's data alone. So
+  the id is in the data too, where the app reads it, and goes back in the
+  body, where the app writes it (`api-resume-id-in-body`).
+
+  </details>
+
+- A client MUST treat an event id as opaque: it compares it with nothing,
+  and only sends it back. An id MUST be a string with no line break, or an
+  integer.
+  `[api-event-id-opaque]`
+- A client that resubscribes MUST send the `event_id` of the last event it
+  handled in a `last_event_id` field of the request body.
+  `[api-resume-id-in-body]`
+- A server MUST read the `last-event-id` header first, and the body's
+  `last_event_id` only when the header is absent.
+  `[api-resume-header-first]`
+
+  <details>
+  <summary>Reasoning</summary>
+
+  The header is sent by a transport that reconnects by itself, with the
+  request it sent first, and so with the body's older `last_event_id`; the
+  header has the last event that connection received.
+
+  </details>
+
+- A server MUST send the events after that id, and none before it. When it
+  no longer has that id, it MUST answer with a case of the call's error
+  type, such as `{"kind": "event_id_expired"}` with `422`, not start from
+  now as if nothing was missed.
+  `[api-resume-expired-is-error]`
+
+  <details>
+  <summary>Reasoning</summary>
+
+  The client then starts over, from a fresh read of what the stream
+  follows, instead of missing the events it didn't get.
+
+  </details>
+
+- A stream that ends SHOULD end with a final event that says so, such as
+  `{"kind": "completed", …}`.
+  `[api-stream-final-event]`
+
+  <details>
+  <summary>Reasoning</summary>
+
+  A connection that closes looks the same whether the stream ended or the
+  network failed.
+
+  </details>
+
+<details>
+<summary>Example</summary>
+
+A client that resubscribes with
+`{"id": "…", "last_event_id": "eyJzZXEiOjF9"}` gets the events after it:
+
+```text
+id: eyJzZXEiOjJ9
+data: {"event_id":"eyJzZXEiOjJ9","kind":"progress","done":70,"total":100}
+
+id: eyJzZXEiOjN9
+data: {"event_id":"eyJzZXEiOjN9","kind":"completed","download_url":"https://example.com/e.csv"}
+```
+
+</details>
+
+<details>
+<summary>With reflectapi</summary>
+
+- The id is a [`reflectapi::Encoded<T>`](https://docs.rs/reflectapi/latest/reflectapi/struct.Encoded.html):
+  the server works with its own position, typed, and clients see an opaque
+  string, base64url, which never has a line break.
+
+  ```rust,ignore
+  #[derive(serde::Serialize, reflectapi::Output)]
+  pub struct ExportEvent {
+      /// Also sent in the event's SSE `id:` field.
+      pub event_id: Encoded<Position>,
+      #[serde(flatten)]
+      pub change: ExportChange,
+  }
+  ```
+
+- A handler yields `reflectapi::Event::new(id, item)`, which sends `id` in
+  the `id:` field, the same id as the item's `event_id`.
+
+  ```rust,ignore
+  Ok(events.map(|event| {
+      let id = EventId::new(event.event_id.encode().expect("a position encodes"))
+          .expect("base64url has no line break");
+      Event::new(id, event)
+  }))
+  ```
+
+- The route reads `last-event-id` from its headers type first, and
+  `last_event_id` from its input type only without it.
+
+  ```rust,ignore
+  let after = match headers.last_event_id {
+      Some(id) => Some(id.parse().map_err(|_| ExportsWatchError::EventIdExpired)?),
+      None => request.last_event_id,
+  };
+  ```
+
+- Generated clients read `event_id` from the item as any field, and the
+  app sends it back in `last_event_id`; TypeScript's generated
+  `ExportEvent` is `{ event_id: string } & ExportChange`. A generated
+  client doesn't send `last-event-id` itself when it reconnects.
+
+</details>
+
+### Long-running operations
+
+- An operation that outlives a request SHOULD be followed by a stream that
+  sends its progress, then one final event with its result or its error,
+  and then ends: a stream call of its own, which takes the operation's id,
+  or the call that starts the operation, answering with the stream.
+  `[api-operation-followed-by-stream]`
+
+  <details open>
+  <summary>Example</summary>
+
+  An export's events, cases of one open enum (`api-enum-output-open`):
+  `{"kind": "progress", "done": 70, "total": 100}`, then
+  `{"kind": "completed", "download_url": "…"}` or
+  `{"kind": "failed", "reason": "…"}`.
+
+  </details>
+
+  <details>
+  <summary>Reasoning</summary>
+
+  A stream call of its own lets anyone with the operation's id follow it:
+  another tab or device, a page reloaded, a service checking later, or a
+  client of an operation that a queue or a schedule started. The call that
+  starts the operation can stream it itself when only the client that
+  started it watches it.
+
+  </details>
+
+- A call that starts an operation and doesn't stream it SHOULD answer at
+  once with the operation's id.
+  `[api-operation-start-returns-id]`
+- A call that starts an operation SHOULD take an `idempotency_key`
+  (`api-idempotency-key-field`), and a call that streams the operation it
+  starts MUST then answer a request with the key of an operation already
+  started by resuming that operation's stream, after the request's
+  `last_event_id`, not by starting another.
+  `[api-operation-start-idempotent]`
+
+  <details>
+  <summary>Reasoning</summary>
+
+  A retried start then doesn't start the operation twice, and a client of a
+  call that streams what it starts resumes that stream by sending its
+  request again.
+
+  </details>
+
+- A stream that follows an operation SHOULD send the final event at once to
+  a client that subscribes or resumes after the operation finished, for as
+  long as the server keeps it, a period the server documents.
+  `[api-operation-final-event-kept]`
+
+  <details>
+  <summary>Reasoning</summary>
+
+  The operation outlives a connection: a client that drops, reloads, or
+  connects later still needs the result. No separate call to poll the
+  operation's status is then needed: the stream answers both the client
+  that watched it run and the one that arrives after it ended.
+
+  </details>
 
 ## Referred resources
 

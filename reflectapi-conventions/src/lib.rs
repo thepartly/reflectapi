@@ -1,6 +1,7 @@
 //! Types for one style of API, opinionated where reflectapi itself is not:
-//! cursor pagination, identity envelopes, and an `if` clause that says what
-//! to do when a write conflicts with what exists; and [`lints`] that check a
+//! cursor pagination, identity envelopes, an `if` clause that says what to do
+//! when a write conflicts with what exists, the answer to a request over a
+//! rate limit, and units of measurement; and [`lints`] that check a
 //! schema against [Partly's HTTP API Guidelines](https://reflectapi.rs/design/guidelines.html).
 //!
 //! Their Rust paths start with `reflectapi_conventions::`. Rename them to
@@ -19,6 +20,8 @@ pub mod conflict;
 pub mod identity;
 pub mod lints;
 pub mod pagination;
+pub mod rate_limited;
+pub mod units;
 
 pub use identity::{Identity, IdentityData};
 pub use pagination::{ForwardPaginatedList, ForwardPagination, NonPaginatedList, PageRequest};

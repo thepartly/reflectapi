@@ -2,7 +2,8 @@
 
 [`reflectapi-conventions`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/index.html)
 holds the types behind [Partly's HTTP API Guidelines](./guidelines.md): cursor
-pagination, identity envelopes and the `if` clause on writes. Services that
+pagination, identity envelopes, the `if` clause on writes, the answer to a
+request over a rate limit, and units of measurement. Services that
 use them share the same types in every generated client.
 
 Add the crate beside `reflectapi`:
@@ -301,6 +302,107 @@ assert!(serde_json::from_str::<PetsImport>(r#"{"name": "Rex"}"#).is_err());
 The full catalogue of sets, with their defaults, is in the
 [`actions` documentation](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/conflict/actions/index.html).
 
+## Rate limiting
+
+A call that limits its rate answers a request over the limit with `429`, a
+`retry-after` header, and a `rate_limited` case of its error type that says
+how long to wait, in seconds
+([`api-rate-limit-answered-429`](./guidelines.md#api-rate-limit-answered-429)).
+`rate_limited::RateLimited` is that case: a case of the call's error enum
+marked `#[reflectapi(transparent)]` takes its status and header, made from
+its field, so the two never disagree.
+
+```rust
+use reflectapi::ResponseError;
+use reflectapi_conventions::rate_limited::RateLimited;
+
+#[derive(serde::Serialize, reflectapi::Output, reflectapi::ResponseError)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+#[reflectapi(open)]
+enum OrdersListError {
+    /// Takes the status and the headers of `RateLimited`.
+    #[reflectapi(transparent)]
+    RateLimited(RateLimited),
+    #[reflectapi(status = 403)]
+    Forbidden,
+}
+
+let error = OrdersListError::RateLimited(RateLimited { retry_after_seconds: 30 });
+assert_eq!(error.status(), 429);
+assert_eq!(error.headers()["retry-after"], "30");
+assert_eq!(
+    serde_json::to_string(&error).unwrap(),
+    r#"{"kind":"rate_limited","retry_after_seconds":30}"#
+);
+```
+
+On the wire:
+
+```http
+429 Too Many Requests
+retry-after: 30
+content-type: application/json
+
+{"kind": "rate_limited", "retry_after_seconds": 30}
+```
+
+Every generated client has the case as a typed value, for an app that shows
+"try again in 30 seconds". A client's retry reads the header, which a `429`
+from a gateway in front of the server has too.
+
+## Units
+
+`units::Unit` is the guidelines' [table of units](./guidelines.md#units) as
+an enum, so every API spells a unit the same way
+([`api-unit-spelled-as-table`](./guidelines.md#api-unit-spelled-as-table)). Each unit has three
+spellings:
+
+| | `Unit::Millimeter` | `Unit::Celsius` | `Unit::Kilobyte` |
+|---|---|---|---|
+| `name()`, its value on the wire | `millimeter` | `celsius` | `kilobyte` |
+| `symbol()`, for showing it to a person | `mm` | `°C` | `kB` |
+| `suffix()`, for a field's name | `Some("_mm")` | `Some("_celsius")` | `None`: a size is `_bytes` |
+
+A quantity whose unit is fixed is a number named with the unit's suffix,
+`width_mm` ([`api-quantity-fixed-unit-suffix`](./guidelines.md#api-quantity-fixed-unit-suffix)).
+One whose unit varies with the value, such as a measurement one source gives
+in inches and another in millimetres, is a `units::Quantity`, which keeps the
+unit it was given in
+([`api-quantity-varying-unit-object`](./guidelines.md#api-quantity-varying-unit-object)):
+
+```rust
+use reflectapi_conventions::units::{Quantity, Unit};
+
+#[derive(serde::Serialize, serde::Deserialize, reflectapi::Input, reflectapi::Output)]
+struct Part {
+    weight_grams: u32,
+    width: Quantity,
+}
+
+let part = Part {
+    weight_grams: 120,
+    width: Quantity { value: 12.5, unit: Unit::Millimeter },
+};
+assert_eq!(
+    serde_json::to_string(&part).unwrap(),
+    r#"{"weight_grams":120,"width":{"value":12.5,"unit":"millimeter"}}"#
+);
+
+// The server reads a symbol as well as a name, and sends the name.
+let width: Quantity = serde_json::from_str(r#"{"value": 0.5, "unit": "in"}"#).unwrap();
+assert_eq!(width.unit, Unit::Inch);
+// It refuses a unit it doesn't know.
+assert!(serde_json::from_str::<Unit>(r#""furlong""#).is_err());
+```
+
+`Unit` is open in a response
+([`api-enum-output-open`](./guidelines.md#api-enum-output-open)): a client
+generated before a unit was added keeps it as an unknown value. In a request
+it is closed, as every enum is
+([`api-enum-request-closed`](./guidelines.md#api-enum-request-closed)), so a
+server refuses a unit it doesn't know.
+Clients get the names alone; the symbols and suffixes stay in the Rust crate.
+
 ## Lints
 
 [`conventions::lints`](https://docs.rs/reflectapi-conventions/latest/reflectapi_conventions/lints/index.html)
@@ -339,6 +441,8 @@ let (schema, routers) = builder.build()?;
 | `type_modules_not_implementation`: no `models`, `types`, `errors` and the like | [`api-type-modules-not-implementation`](./guidelines.md#api-type-modules-not-implementation) |
 | `error_cases_no_error_suffix` | [`api-error-case-no-error-suffix`](./guidelines.md#api-error-case-no-error-suffix) |
 | `conventions_types_renamed`: this crate's types renamed from `reflectapi_conventions::` to `reflectapi::` | [`api-type-shared-same-name`](./guidelines.md#api-type-shared-same-name) |
+| `unit_suffixes`: `_secs`, `_s`, `_millis`, `_kb`, `_mb` and other spellings of a unit the table of units spells another way, and `_cents` | [`api-unit-suffix-one-spelling`](./guidelines.md#api-unit-suffix-one-spelling) |
+| `output_enums_open`: an enum reachable from a call's output, or its stream's items, and one reachable from its error type, is `#[reflectapi(open)]` | [`api-enum-output-open`](./guidelines.md#api-enum-output-open), [`api-error-open`](./guidelines.md#api-error-open) |
 
 A lint reports what the guidelines rule out, and leaves what it can't judge:
 
@@ -351,6 +455,12 @@ A lint reports what the guidelines rule out, and leaves what it can't judge:
   `ProductsSearchRequest`, or `SearchRequest` in a module of its own, for
   `products.search`; a version may be left out. A type the call takes as it
   is, such as a `Product`, isn't checked.
+- `output_enums_open` can't tell an enum whose cases are fixed by what they
+  mean, such as `asc | desc`, from one that grows: such an enum in an output
+  passes through a wrapper that filters its error, below. An error type has
+  no such exception. An enum `open` doesn't apply to, untagged or written as
+  numbers, isn't checked, nor is an output's enum with a `#[serde(other)]`
+  case, which reads unknown cases too.
 
 To relax a lint, wrap it in a function of your own that drops the errors you
 accept, such as those of calls not yet migrated:

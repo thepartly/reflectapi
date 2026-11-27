@@ -4,7 +4,7 @@ version = "0.27.0-alpha.0"
 edition = "2021"
 
 license = "MIT OR Apache-2.0"
-description = "Opinionated API types and lints for reflectapi: cursor pagination, identity envelopes, conflict clauses, and checks against Partly's HTTP API Guidelines."
+description = "Opinionated API types and lints for reflectapi: cursor pagination, identity envelopes, conflict clauses, rate limiting, units, and checks against Partly's HTTP API Guidelines."
 homepage = "https://reflectapi.rs/design/conventions.html"
 documentation = "https://docs.rs/reflectapi-conventions"
 repository = "https://github.com/thepartly/reflectapi"
@@ -17,7 +17,8 @@ categories = ["web-programming", "development-tools"]
 workspace = true
 
 [dependencies]
-reflectapi = { path = "../reflectapi", version = "0.27.0-alpha.0", default-features = false }
+reflectapi = { path = "../reflectapi", version = "0.27.0-alpha.0", default-features = false, features = ["builder"] }
+http = "1.1.0"
 serde = { version = "1.0.197", features = ["derive"] }
 
 [dev-dependencies]

@@ -1698,6 +1698,7 @@ dependencies = [
 name = "reflectapi-conventions"
 version = "0.27.0-alpha.0"
 dependencies = [
+ "http 1.4.0",
  "reflectapi",
  "serde",
  "serde_json",
