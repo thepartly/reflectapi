@@ -73,25 +73,7 @@ pub struct Response<E> {
     pub body: BoxStream<Result<bytes::Bytes, E>>,
 }
 
-/// `Send`, except on wasm32.
-///
-/// A wasm32 program runs on one thread, and the values a transport gets from
-/// JavaScript, such as a `fetch` response's body, aren't `Send`. So on wasm32
-/// the client runtime asks nothing of them; everywhere else it needs `Send`.
-#[cfg(not(target_arch = "wasm32"))]
-pub trait MaybeSend: Send {}
-#[cfg(not(target_arch = "wasm32"))]
-impl<T: Send + ?Sized> MaybeSend for T {}
-
-/// `Send`, except on wasm32.
-///
-/// A wasm32 program runs on one thread, and the values a transport gets from
-/// JavaScript, such as a `fetch` response's body, aren't `Send`. So on wasm32
-/// the client runtime asks nothing of them; everywhere else it needs `Send`.
-#[cfg(target_arch = "wasm32")]
-pub trait MaybeSend {}
-#[cfg(target_arch = "wasm32")]
-impl<T: ?Sized> MaybeSend for T {}
+pub use crate::MaybeSend;
 
 /// Why a call through a generated client failed.
 ///

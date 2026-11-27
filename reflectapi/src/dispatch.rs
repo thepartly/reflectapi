@@ -47,8 +47,14 @@ pub enum Reply {
     Stream(ReplyStream),
 }
 
-/// The items of a [`Reply::Stream`].
+/// The items of a [`Reply::Stream`]: `Send`, except on wasm32, as a stream
+/// route's stream is (see [`crate::MaybeSend`]).
+#[cfg(not(target_arch = "wasm32"))]
 pub type ReplyStream = Pin<Box<dyn Stream<Item = Result<Event<String>, String>> + Send + 'static>>;
+/// The items of a [`Reply::Stream`]: `Send`, except on wasm32, as a stream
+/// route's stream is (see [`crate::MaybeSend`]).
+#[cfg(target_arch = "wasm32")]
+pub type ReplyStream = Pin<Box<dyn Stream<Item = Result<Event<String>, String>> + 'static>>;
 
 impl fmt::Debug for Reply {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -98,7 +104,9 @@ pub fn sse_event(Event { id, data }: &Event<String>) -> String {
 
 /// Frames each item of a [`Reply::Stream`] with [`sse_event`]: the body of a
 /// `text/event-stream` response, before any [`keep_alive`].
-pub fn sse_frames(events: ReplyStream) -> impl Stream<Item = Result<String, String>> + Send {
+pub fn sse_frames(
+    events: ReplyStream,
+) -> impl Stream<Item = Result<String, String>> + crate::MaybeSend {
     events.map(|item| item.map(|event| sse_event(&event)))
 }
 

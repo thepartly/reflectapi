@@ -346,7 +346,7 @@ dev = [
 
 [[package]]
 name = "reflectapi-runtime"
-version = "0.26.0"
+version = "0.27.0a0"
 source = { editable = "../../../reflectapi-python-runtime" }
 dependencies = [
     { name = "anyio" },

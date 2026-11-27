@@ -36,11 +36,13 @@ jobs:
       - name: Replay serde conformance samples through the generated Rust client
         run: cargo test --manifest-path reflectapi-demo/tests/rust/conformance/Cargo.toml
       # Serving, codegen and generated clients must build for wasm32. The demo
-      # client uses reqwest, whose wasm body stream isn't `Send`.
+      # client uses reqwest, whose wasm body stream isn't `Send`, and a route
+      # there may await such a client (reflectapi/tests/wasm32_routes_not_send.rs).
       - name: Build for wasm32
         run: |
           rustup target add wasm32-unknown-unknown
           cargo build -p reflectapi --target wasm32-unknown-unknown --no-default-features --features builder,json
+          cargo build -p reflectapi --target wasm32-unknown-unknown --no-default-features --features builder,json --tests
           cargo build -p reflectapi --target wasm32-unknown-unknown --no-default-features --features codegen
           cargo build -p reflectapi --target wasm32-unknown-unknown --no-default-features --features rt,rt-sse,reqwest-middleware
           cargo build -p reflectapi-demo-client-generated --target wasm32-unknown-unknown
