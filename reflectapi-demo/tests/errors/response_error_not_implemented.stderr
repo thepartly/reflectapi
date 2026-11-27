@@ -4,20 +4,25 @@ error[E0277]: `NotAnError` is not a route's error: it doesn't implement `reflect
 13 |     let _ = reflectapi::Builder::<()>::new().route(handler, |b| b.name("check"));
    |                                              ^^^^^ unsatisfied trait bound
    |
-help: the trait `reflectapi::StatusCode` is not implemented for `NotAnError`
+help: the trait `StatusCode` is not implemented for `NotAnError`
   --> tests/errors/response_error_not_implemented.rs:2:1
    |
  2 | struct NotAnError {}
    | ^^^^^^^^^^^^^^^^^
    = note: derive it on an error enum: `#[derive(serde::Serialize, reflectapi::Output, reflectapi::ResponseError)]`
    = note: see https://reflectapi.rs/getting-started/attributes.html#a-routes-error
-   = help: the trait `reflectapi::StatusCode` is implemented for `Box<T>`
+help: the trait `StatusCode` is implemented for `Box<T>`
+  --> $WORKSPACE/reflectapi/src/builder/result.rs
+   |
+   | impl<T: StatusCode> StatusCode for Box<T> {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    = note: required for `NotAnError` to implement `ResponseError`
 note: required by a bound in `reflectapi::Builder::<S, M>::route`
   --> $WORKSPACE/reflectapi/src/builder/mod.rs
    |
+   | impl<S, M> Builder<S, M>
+...
    |     pub fn route<F, Fut, R, I, O, E, H>(
-   |            ----- required by a bound in this associated function
 ...
    |         E: ResponseError + Send + 'static,
    |            ^^^^^^^^^^^^^ required by this bound in `Builder::<S, M>::route`

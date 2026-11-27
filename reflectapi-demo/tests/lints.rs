@@ -39,6 +39,7 @@ pub enum ProductStatus {
 
 #[derive(serde::Serialize, reflectapi::Output, reflectapi::ResponseError)]
 #[serde(tag = "kind", rename_all = "snake_case")]
+#[reflectapi(open)]
 pub enum ProductsSearchError {
     #[reflectapi(status = 422)]
     InvalidCursor,
@@ -777,4 +778,244 @@ fn conventions_types_are_renamed_into_reflectapi() {
         search(b).rename_types("reflectapi_conventions::", "reflectapi::")
     });
     assert!(renamed.is_empty(), "{renamed:?}");
+}
+
+// Units.
+
+#[derive(serde::Deserialize, reflectapi::Input)]
+pub struct UploadsInsertRequest {
+    pub timeout_secs: u32,
+    pub delay_s: u32,
+    pub poll_millis: u32,
+    pub size_kb: u64,
+    pub fee_cents: u64,
+    pub change: UploadChange,
+    // The table's spellings.
+    pub timeout_ms: u32,
+    pub retry_after_seconds: u32,
+    pub size_bytes: u64,
+    pub width_mm: u32,
+    pub status: String,
+}
+
+#[derive(serde::Deserialize, reflectapi::Input)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum UploadChange {
+    Expire { after_mins: u32 },
+}
+
+async fn uploads_insert(_: (), _: UploadsInsertRequest, _: reflectapi::Empty) -> reflectapi::Empty {
+    unimplemented!()
+}
+
+#[test]
+fn units_are_spelled_as_the_table_gives_them() {
+    let rule = "api-unit-suffix-one-spelling";
+    let reported = report(lints::unit_suffixes, |b| {
+        b.route(uploads_insert, |b| b.name("uploads.insert"))
+    });
+    assert_eq!(
+        reported,
+        pairs(&[
+            ("lints::UploadsInsertRequest.timeout_secs", rule),
+            ("lints::UploadsInsertRequest.delay_s", rule),
+            ("lints::UploadsInsertRequest.poll_millis", rule),
+            ("lints::UploadsInsertRequest.size_kb", rule),
+            ("lints::UploadsInsertRequest.fee_cents", rule),
+            ("lints::UploadChange.expire.after_mins", rule),
+        ])
+    );
+
+    let (schema, _) = reflectapi::Builder::<()>::new()
+        .route(uploads_insert, |b| b.name("uploads.insert"))
+        .build()
+        .unwrap();
+    let messages: Vec<String> = lints::unit_suffixes(&schema)
+        .into_iter()
+        .map(|e| e.message)
+        .collect();
+    for expected in [
+        "`timeout_secs` ends in `_secs`: spell the unit `_seconds`",
+        "`poll_millis` ends in `_millis`: spell the unit `_ms`",
+        "`size_kb` ends in `_kb`: spell the unit `_bytes`",
+        "`fee_cents` counts cents: an amount of money is a decimal string",
+    ] {
+        assert!(
+            messages.iter().any(|m| m.contains(expected)),
+            "{expected}: {messages:#?}"
+        );
+    }
+}
+
+// Open enums.
+
+#[derive(serde::Serialize, reflectapi::Output)]
+#[serde(rename_all = "snake_case")]
+pub enum ShipmentStatus {
+    Packed,
+    Sent,
+}
+
+#[derive(serde::Serialize, reflectapi::Output)]
+#[serde(rename_all = "snake_case")]
+#[reflectapi(open)]
+pub enum ShipmentCarrier {
+    Post,
+    Courier,
+}
+
+/// Takes unknown cases as `other`.
+#[derive(serde::Serialize, reflectapi::Output)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum ShipmentLabel {
+    Printed,
+    #[serde(other)]
+    Other,
+}
+
+/// Untagged: `open` doesn't apply.
+#[derive(serde::Serialize, reflectapi::Output)]
+#[serde(untagged)]
+pub enum ShipmentWeight {
+    Grams(u32),
+    Unknown(String),
+}
+
+/// Reached from both an output and an error.
+#[derive(serde::Serialize, reflectapi::Output)]
+#[serde(rename_all = "snake_case")]
+pub enum ShipmentHold {
+    Customs,
+    Address,
+}
+
+#[derive(serde::Serialize, reflectapi::Output)]
+pub struct Shipment {
+    pub status: ShipmentStatus,
+    pub carrier: ShipmentCarrier,
+    pub label: ShipmentLabel,
+    pub weight: ShipmentWeight,
+    pub holds: Vec<ShipmentHold>,
+}
+
+/// An error's own enum, and one inside a case.
+#[derive(serde::Serialize, reflectapi::Output, reflectapi::ResponseError)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum ShipmentsListError {
+    #[reflectapi(status = 409)]
+    Held { hold: ShipmentHold },
+}
+
+/// Only in a request: not checked.
+#[derive(serde::Deserialize, reflectapi::Input)]
+#[serde(rename_all = "snake_case")]
+pub enum ShipmentsListOrder {
+    Newest,
+    Oldest,
+}
+
+#[derive(serde::Deserialize, reflectapi::Input)]
+pub struct ShipmentsListRequest {
+    pub order: ShipmentsListOrder,
+}
+
+async fn shipments_list(
+    _: (),
+    _: ShipmentsListRequest,
+    _: reflectapi::Empty,
+) -> Result<ForwardPaginatedList<Shipment>, ShipmentsListError> {
+    unimplemented!()
+}
+
+#[derive(serde::Serialize, reflectapi::Output)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum ShipmentEvent {
+    Moved { at: String },
+}
+
+async fn shipments_watch(
+    _: (),
+    _: reflectapi::Empty,
+    _: reflectapi::Empty,
+) -> Result<impl futures_util::Stream<Item = ShipmentEvent>, reflectapi::Infallible> {
+    Ok(futures_util::stream::empty())
+}
+
+#[test]
+fn enums_in_outputs_and_errors_are_open() {
+    let reported = report(lints::output_enums_open, |b| {
+        b.route(shipments_list, |b| b.name("shipments.list"))
+            .stream_route(shipments_watch, |b| b.name("shipments.watch"))
+    });
+    assert_eq!(
+        reported,
+        pairs(&[
+            ("lints::ShipmentStatus", "api-enum-output-open"),
+            ("lints::ShipmentEvent", "api-enum-output-open"),
+            ("lints::ShipmentsListError", "api-error-open"),
+            ("lints::ShipmentHold", "api-error-open"),
+        ])
+    );
+}
+
+/// `#[serde(other)]` is no exception in an error.
+#[derive(serde::Serialize, reflectapi::Output, reflectapi::ResponseError)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum ShipmentsGetError {
+    #[reflectapi(status = 404)]
+    NotFound,
+    #[serde(other)]
+    #[reflectapi(status = 422)]
+    Other,
+}
+
+async fn shipments_get(
+    _: (),
+    _: reflectapi::Empty,
+    _: reflectapi::Empty,
+) -> Result<reflectapi::Empty, ShipmentsGetError> {
+    unimplemented!()
+}
+
+#[test]
+fn an_error_type_has_no_exception() {
+    let reported = report(lints::output_enums_open, |b| {
+        b.route(shipments_get, |b| b.name("shipments.get"))
+    });
+    assert_eq!(
+        reported,
+        pairs(&[("lints::ShipmentsGetError", "api-error-open")])
+    );
+}
+
+#[derive(serde::Serialize, reflectapi::Output)]
+pub struct PartsGetResponse {
+    pub width: reflectapi_conventions::units::Quantity,
+}
+
+#[derive(serde::Serialize, reflectapi::Output, reflectapi::ResponseError)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+#[reflectapi(open)]
+pub enum PartsGetError {
+    #[reflectapi(transparent)]
+    RateLimited(reflectapi_conventions::rate_limited::RateLimited),
+}
+
+async fn parts_get(
+    _: (),
+    _: reflectapi::Empty,
+    _: reflectapi::Empty,
+) -> Result<PartsGetResponse, PartsGetError> {
+    unimplemented!()
+}
+
+#[test]
+fn units_and_rate_limits_pass_every_lint() {
+    let (schema, _) = reflectapi::Builder::<()>::new()
+        .route(parts_get, |b| b.name("parts.get"))
+        .rename_types("reflectapi_conventions::", "reflectapi::")
+        .build()
+        .unwrap();
+    let errors: Vec<String> = lints::all(&schema).iter().map(|e| e.to_string()).collect();
+    assert!(errors.is_empty(), "{errors:#?}");
 }

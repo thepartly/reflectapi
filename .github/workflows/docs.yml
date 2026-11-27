@@ -15,18 +15,18 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      # Rust, mdBook and python3 come from the flake's devShell.
+      - uses: cachix/install-nix-action@382a9ed9481c7c1f94f68b72ef105b3417c73877 # v32.1.0
+      - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
       - name: Cache dependencies
         uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            ~/.cargo/bin
             target
             docs/doctests/target
-          key: ${{ runner.os }}-cargo-docs-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-docs-${{ hashFiles('**/Cargo.lock', 'flake.lock') }}
 
       - name: Test documentation examples
         run: |
@@ -38,12 +38,6 @@ jobs:
 
       - name: Test the book's Rust examples
         run: cargo test --manifest-path docs/doctests/Cargo.toml --doc
-
-      - name: Install mdBook
-        run: |
-          if ! command -v mdbook &> /dev/null; then
-            cargo install mdbook --version "~0.5" --locked
-          fi
 
       - name: Build mdBook documentation
         run: |

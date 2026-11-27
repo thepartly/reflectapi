@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **More in `reflectapi-conventions`:**
+  - **`rate_limited`:** `RateLimited { retry_after_seconds }`, the `rate_limited` case of a call's error. Its `ResponseError` answers `429` with a `retry-after` header of the same number, so a case of an error enum marked `#[reflectapi(transparent)]` gives the response both: `{"kind": "rate_limited", "retry_after_seconds": 30}`. See [Rate limiting](https://reflectapi.rs/design/conventions.html#rate-limiting).
+  - **`units`:** `Unit`, the guidelines' table of units as an enum, open in responses, written as each unit's name (`millimeter`) and read from its name or its symbol (`mm`). `Unit::name()`, `symbol()` and `suffix()` give its three spellings (`"millimeter"`, `"mm"`, `Some("_mm")`); clients get the names alone. `Quantity { value, unit }` is a value with its unit, for a quantity whose unit varies with the value. See [Units](https://reflectapi.rs/design/conventions.html#units).
+  - **More lints:** `unit_suffixes` reports a field whose name spells a unit another way than the table, such as `_secs`, `_millis` or `_kb`, or counts `_cents`; `output_enums_open` reports an enum reachable from a call's output, its stream's items or its error type that isn't `#[reflectapi(open)]`.
+
 ## 0.27.0-alpha.0
 
 ### Added

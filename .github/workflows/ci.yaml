@@ -14,18 +14,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      # NOTE: When updating the biome version, also update reflectapi/src/codegen/typescript.rs
-      - uses: biomejs/setup-biome@v2
-        with:
-          version: "1.8.3"
-      - uses: astral-sh/ruff-action@v3
-        with:
-          version: "0.15.8"
-          args: "--version"
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-      - uses: Swatinem/rust-cache@v2
+      # Every job takes its tools from the flake's devShell: the pinned Rust
+      # toolchain with the wasm32 target, biome, ruff, node, pnpm and uv.
+      # nix-develop exports the shell's environment to every later step.
+      - uses: cachix/install-nix-action@382a9ed9481c7c1f94f68b72ef105b3417c73877 # v32.1.0
+      - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
       - run: cargo fmt -- --check
       - run: cargo clippy --all-targets --all-features -- -D warnings
       - run: cargo test --workspace
@@ -40,7 +34,6 @@ jobs:
       # there may await such a client (reflectapi/tests/wasm32_routes_not_send.rs).
       - name: Build for wasm32
         run: |
-          rustup target add wasm32-unknown-unknown
           cargo build -p reflectapi --target wasm32-unknown-unknown --no-default-features --features builder,json
           cargo build -p reflectapi --target wasm32-unknown-unknown --no-default-features --features builder,json --tests
           cargo build -p reflectapi --target wasm32-unknown-unknown --no-default-features --features codegen
@@ -84,11 +77,10 @@ jobs:
         working-directory: reflectapi-demo/clients/typescript
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-      - run: npx --yes pnpm@10 install --frozen-lockfile
-      - run: npx --yes pnpm@10 test
+      - uses: cachix/install-nix-action@382a9ed9481c7c1f94f68b72ef105b3417c73877 # v32.1.0
+      - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
       - uses: actions/download-artifact@v8
         with:
           name: enum-compatibility-typescript
@@ -121,7 +113,8 @@ jobs:
       UV_PYTHON: ${{ matrix.python-version }}
     steps:
       - uses: actions/checkout@v6
-      - uses: astral-sh/setup-uv@v3
+      - uses: cachix/install-nix-action@382a9ed9481c7c1f94f68b72ef105b3417c73877 # v32.1.0
+      - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
       - name: Run tests
         working-directory: reflectapi-python-runtime
         run: uv run --extra dev pytest -q --no-cov
@@ -163,20 +156,13 @@ jobs:
       UV_RUN_ARGS: ${{ matrix.uv-run-args }}
     steps:
       - uses: actions/checkout@v6
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      - uses: astral-sh/setup-uv@v3
       # The Python codegen shells out to `ruff format`; different ruff
       # versions wrap long lines differently, so the snapshot-drift
       # check below is meaningless unless CI and local devs use the
-      # same ruff version. Pin it explicitly.
-      - uses: astral-sh/ruff-action@v3
-        with:
-          version: "0.15.8"
-          # `args` short-circuits the action's default `ruff check` —
-          # we only want ruff on PATH so the codegen can shell out to
-          # `ruff format`, not for the action itself to lint the repo.
-          args: "--version"
+      # same ruff version. flake.nix pins it for both.
+      - uses: cachix/install-nix-action@382a9ed9481c7c1f94f68b72ef105b3417c73877 # v32.1.0
+      - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
       - name: Report dependency versions
         working-directory: reflectapi-demo/clients/python
         run: |

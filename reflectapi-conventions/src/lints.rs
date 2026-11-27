@@ -59,6 +59,8 @@ pub const ALL: &[Lint] = &[
     type_modules_not_implementation,
     error_cases_no_error_suffix,
     conventions_types_renamed,
+    unit_suffixes,
+    output_enums_open,
 ];
 
 /// Runs every lint of this module.
@@ -1095,6 +1097,224 @@ pub fn error_cases_no_error_suffix(schema: &Schema) -> Vec<ValidationError> {
                     ),
                 ));
             }
+        }
+    }
+    errors
+}
+
+// Units
+
+/// Suffixes of field names that spell a unit another way than the units
+/// table, with the table's spelling.
+const UNIT_SUFFIXES: &[(&str, &str)] = &[
+    ("_nanos", "_ns"),
+    ("_nanoseconds", "_ns"),
+    ("_micros", "_microseconds"),
+    ("_millis", "_ms"),
+    ("_msec", "_ms"),
+    ("_msecs", "_ms"),
+    ("_milliseconds", "_ms"),
+    ("_s", "_seconds"),
+    ("_sec", "_seconds"),
+    ("_secs", "_seconds"),
+    ("_mins", "_minutes"),
+    ("_hrs", "_hours"),
+    ("_kb", "_bytes"),
+    ("_mb", "_bytes"),
+    ("_gb", "_bytes"),
+    ("_tb", "_bytes"),
+    ("_kib", "_bytes"),
+    ("_mib", "_bytes"),
+    ("_gib", "_bytes"),
+    ("_kilobytes", "_bytes"),
+    ("_megabytes", "_bytes"),
+    ("_gigabytes", "_bytes"),
+    ("_millimeters", "_mm"),
+    ("_millimetres", "_mm"),
+    ("_centimeters", "_cm"),
+    ("_centimetres", "_cm"),
+    ("_metres", "_meters"),
+    ("_kilometers", "_km"),
+    ("_kilometres", "_km"),
+    ("_feet", "_ft"),
+    ("_milliliters", "_ml"),
+    ("_millilitres", "_ml"),
+    ("_litres", "_liters"),
+    ("_milligrams", "_mg"),
+    ("_kilograms", "_kg"),
+    ("_kgs", "_kg"),
+    ("_lbs", "_lb"),
+    ("_pct", "_percent"),
+    ("_kph", "_km_per_h"),
+    ("_kmh", "_km_per_h"),
+];
+
+/// A field's name ends in a unit spelled as the units table gives it, not
+/// another way: `_seconds`, not `_secs` or `_s`; `_ms`, not `_millis`;
+/// `_bytes`, not `_kb` or `_mb`: `[api-unit-suffix-one-spelling]`. A field
+/// ending in `_cents` is reported too, since an amount of money is a decimal
+/// string with its currency, not a count of cents.
+pub fn unit_suffixes(schema: &Schema) -> Vec<ValidationError> {
+    const RULE: &str = "api-unit-suffix-one-spelling";
+    let headers = header_types(schema);
+    let check = |pointer: ValidationPointer, name: &str| -> Option<ValidationError> {
+        if name.len() > "_cents".len() && name.ends_with("_cents") {
+            return Some(error(
+                pointer,
+                RULE,
+                format!(
+                    "`{name}` counts cents: an amount of money is a decimal string, \
+                     such as \"12.50\", with its currency beside it"
+                ),
+            ));
+        }
+        let (suffix, instead) = UNIT_SUFFIXES
+            .iter()
+            .find(|(suffix, _)| name.len() > suffix.len() && name.ends_with(suffix))?;
+        Some(error(
+            pointer,
+            RULE,
+            format!("`{name}` ends in `{suffix}`: spell the unit `{instead}`"),
+        ))
+    };
+    let mut errors = vec![];
+    for ty in types_once(schema) {
+        let name = ty.name();
+        if is_library_type(name) || headers.contains(name) {
+            continue;
+        }
+        match ty {
+            Type::Struct(s) => {
+                if let Fields::Named(fields) = &s.fields {
+                    for f in fields.iter().filter(|f| !f.flattened) {
+                        let pointer = ValidationPointer::Field {
+                            type_name: name.into(),
+                            name: f.serde_name().into(),
+                        };
+                        errors.extend(check(pointer, f.serde_name()));
+                    }
+                }
+            }
+            Type::Enum(e) => {
+                for v in &e.variants {
+                    let Fields::Named(fields) = &v.fields else {
+                        continue;
+                    };
+                    for f in fields.iter().filter(|f| !f.flattened) {
+                        let pointer = ValidationPointer::VariantField {
+                            type_name: name.into(),
+                            variant_name: v.name().into(),
+                            name: f.serde_name().into(),
+                        };
+                        errors.extend(check(pointer, f.serde_name()));
+                    }
+                }
+            }
+            Type::Primitive(_) => {}
+        }
+    }
+    errors
+}
+
+// Open enums
+
+/// Whether `#[reflectapi(open)]` applies to an enum: it is tagged, has no
+/// untagged case, isn't written as numbers, and has a case.
+fn may_be_open(e: &reflectapi::Enum) -> bool {
+    !matches!(e.representation, Representation::None)
+        && !e.variants.is_empty()
+        && e.variants
+            .iter()
+            .all(|v| !v.untagged && v.discriminant.is_none())
+}
+
+/// The names of the types of a typespace that `root` reaches, `root`
+/// included, through fields, type arguments and fallbacks.
+fn reachable<'a>(typespace: &'a Typespace, root: &'a TypeReference) -> Vec<&'a str> {
+    let mut found = vec![];
+    let mut stack = vec![root];
+    while let Some(type_ref) = stack.pop() {
+        stack.extend(&type_ref.arguments);
+        // A type parameter isn't in the typespace: its argument is pushed
+        // where it is given.
+        let Some(ty) = typespace.get_type(&type_ref.name) else {
+            continue;
+        };
+        if found.contains(&ty.name()) {
+            continue;
+        }
+        found.push(ty.name());
+        match ty {
+            Type::Struct(s) => stack.extend(s.fields().map(|f| &f.type_ref)),
+            Type::Enum(e) => stack.extend(
+                e.variants
+                    .iter()
+                    .flat_map(|v| v.fields())
+                    .map(|f| &f.type_ref),
+            ),
+            Type::Primitive(p) => stack.extend(&p.fallback),
+        }
+    }
+    found
+}
+
+/// An enum reachable from a call's output, or from the items of its stream,
+/// is open, `#[reflectapi(open)]` (`[api-enum-output-open]`), and so is one
+/// reachable from its error type (`[api-error-open]`): a client generated
+/// before a new case then keeps it as an unknown value instead of failing to
+/// read the response.
+///
+/// An enum `open` doesn't apply to, untagged or written as numbers, isn't
+/// checked, and neither is an output's enum with a `#[serde(other)]` case,
+/// which reads unknown cases too. An output's enum whose cases are fixed by
+/// what they mean, such as `asc | desc`, passes through a wrapper that
+/// filters its error; an error type has no such exception.
+pub fn output_enums_open(schema: &Schema) -> Vec<ValidationError> {
+    let typespace = schema.output_types();
+    // Each type once, with the first call that reaches it from an error, and
+    // the first that reaches it from an output.
+    let mut from_errors: Vec<(&str, &str)> = vec![];
+    let mut from_outputs: Vec<(&str, &str)> = vec![];
+    for f in schema.functions() {
+        let roles = [
+            (f.output_type.type_refs(), &mut from_outputs),
+            (f.error_type.iter().collect(), &mut from_errors),
+        ];
+        for (roots, found) in roles {
+            for name in roots
+                .into_iter()
+                .flat_map(|root| reachable(typespace, root))
+            {
+                if !found.iter().any(|(seen, _)| *seen == name) {
+                    found.push((name, f.name()));
+                }
+            }
+        }
+    }
+    let mut errors = vec![];
+    let mut reported = HashSet::new();
+    let found = [
+        (from_errors, "api-error-open", "the error of"),
+        (from_outputs, "api-enum-output-open", "the output of"),
+    ];
+    for (names, rule, role) in found {
+        for (name, call) in names {
+            let Some(Type::Enum(e)) = typespace.get_type(name) else {
+                continue;
+            };
+            let other = rule == "api-enum-output-open" && e.variants.iter().any(|v| v.other);
+            if e.open || other || !may_be_open(e) || !reported.insert(name) {
+                continue;
+            }
+            errors.push(error(
+                ValidationPointer::Type(name.into()),
+                rule,
+                format!(
+                    "`{name}` is in {role} `{call}` and isn't open: add \
+                     `#[reflectapi(open)]`, so that clients generated before a new \
+                     case keep it as an unknown value"
+                ),
+            ));
         }
     }
     errors

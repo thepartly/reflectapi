@@ -12,9 +12,28 @@ metadata` check fails a pull request whose commits break this, and a push to
 written when merging. See `.github/scripts/check-commit-metadata.py`. It runs
 as it is on `main`, so a change to it takes effect once merged.
 
-## Building and running
+## Development environment
 
-Ensure that you have `prettier`, `rustfmt`, and `ruff` available in your PATH for consistently formatted generated code.
+`flake.nix` holds the toolchain CI uses: Rust from `rust-toolchain.toml` with
+the wasm32 target, the biome and ruff releases codegen's output depends on,
+node, pnpm, uv and mdBook. You need:
+
+- Nix with flakes (`experimental-features = nix-command flakes`), on any
+  Linux or macOS.
+- direnv with nix-direnv, to load the shell on `cd` (`direnv allow` once).
+  On NixOS: `programs.direnv = { enable = true; nix-direnv.enable = true; };`
+  Without direnv, run `nix develop`.
+- On NixOS, `programs.nix-ld.enable = true`: the Python tests run on
+  interpreters uv downloads, and editors' bundled language servers are
+  prebuilt binaries too.
+- In VS Code, the direnv extension (recommended in `.vscode/extensions.json`),
+  so rust-analyzer finds the toolchain.
+
+Without Nix, install biome 1.8.3 and ruff 0.15.8 (the versions in `flake.nix`)
+on your PATH. Other versions format generated code differently, and the
+snapshot tests fail.
+
+## Building and running
 
 To run the demo server:
 
