@@ -15,3 +15,8 @@ reflectapi-python-runtime/dist/
 # Built by `cargo test --manifest-path` and `cargo build` in the harness crates
 reflectapi-demo/tests/rust/*/target/
 reflectapi-demo/tests/wasm/target/
+
+.direnv/
+
+# Claude Code subagent worktrees
+.claude/worktrees/
