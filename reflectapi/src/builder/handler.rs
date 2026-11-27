@@ -366,6 +366,7 @@ where
         }
     }
 
+    #[allow(clippy::result_large_err)]
     async fn stream_handler_wrap<F, Fut, St, I, H, O, E1>(
         state: S,
         input: HandlerInput,

@@ -1,4 +1,4 @@
-error[E0412]: cannot find type `invalid` in this scope
+error[E0425]: cannot find type `invalid` in this scope
  --> tests/errors/invalid_reflect_attribute_path3.rs:3:32
   |
 3 |     #[reflectapi(output_type = "invalid")]

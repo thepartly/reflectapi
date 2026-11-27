@@ -5,6 +5,7 @@ error[E0277]: the trait bound `dyn MyTrait: Input` is not satisfied
   |            ^^^^^^^^^^^ the trait `Input` is not implemented for `dyn MyTrait`
   |
   = help: the following other types implement trait `Input`:
+            !
             ()
             (A, B)
             (A, B, C)
@@ -12,5 +13,4 @@ error[E0277]: the trait bound `dyn MyTrait: Input` is not satisfied
             (A, B, C, D, E)
             (A, B, C, D, E, F)
             (A, B, C, D, E, F, G)
-            (A, B, C, D, E, F, G, H)
           and $N others

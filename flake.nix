@@ -88,10 +88,7 @@
           # users and this shell build with the same compiler.
           toolchain = (builtins.fromTOML (builtins.readFile ./rust-toolchain.toml)).toolchain;
           rust = pkgs.rust-bin.stable.${toolchain.channel}.default.override {
-            extensions = toolchain.components ++ [
-              "rust-src"
-              "rust-analyzer"
-            ];
+            extensions = toolchain.components ++ [ "rust-src" ];
             targets = [ "wasm32-unknown-unknown" ];
           };
 
