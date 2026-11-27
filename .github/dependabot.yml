@@ -1,0 +1,13 @@
+# Third-party actions are pinned to commit SHAs, with the release in a
+# comment. Dependabot bumps the SHA and the comment together, in one weekly
+# pull request. dtolnay/rust-toolchain is pinned to its `stable` branch, which
+# has no releases, so it is left for manual bumps.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ["*"]

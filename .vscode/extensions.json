@@ -1,0 +1,5 @@
+{
+  // direnv loads the flake's devShell (see .envrc) so rust-analyzer and the
+  // other extensions find the pinned toolchain.
+  "recommendations": ["rust-lang.rust-analyzer", "mkhl.direnv"]
+}
