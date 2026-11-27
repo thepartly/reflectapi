@@ -79,6 +79,7 @@ mod empty;
 mod encoded;
 mod impls;
 mod infallible;
+mod maybe_send;
 mod option;
 #[cfg(feature = "json")]
 mod raw;
@@ -86,6 +87,8 @@ mod traits;
 #[cfg(feature = "json")]
 mod transcode;
 mod validation;
+
+pub use maybe_send::MaybeSend;
 
 #[cfg(feature = "rt")]
 pub mod rt;

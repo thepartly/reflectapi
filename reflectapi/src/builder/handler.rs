@@ -72,15 +72,23 @@ impl From<ContentType> for http::HeaderValue {
     }
 }
 
+// A route's future and stream are `Send` except on wasm32, as its handler's
+// are (see [`crate::MaybeSend`]).
+#[cfg(not(target_arch = "wasm32"))]
 pub(crate) type HandlerFuture = Pin<Box<dyn Future<Output = HandlerOutput> + Send + 'static>>;
+#[cfg(target_arch = "wasm32")]
+pub(crate) type HandlerFuture = Pin<Box<dyn Future<Output = HandlerOutput> + 'static>>;
 
-pub(crate) type HandlerStream =
-    Pin<Box<dyn Stream<Item = Result<Event<String>, String>> + Send + 'static>>;
+pub(crate) type HandlerStream = crate::dispatch::ReplyStream;
 
 /// A stream route's answer, once its handler has returned: its stream, or the
 /// response it answers in its place.
+#[cfg(not(target_arch = "wasm32"))]
 pub(crate) type HandlerStreamFuture =
     Pin<Box<dyn Future<Output = Result<HandlerStream, HandlerOutput>> + Send + 'static>>;
+#[cfg(target_arch = "wasm32")]
+pub(crate) type HandlerStreamFuture =
+    Pin<Box<dyn Future<Output = Result<HandlerStream, HandlerOutput>> + 'static>>;
 
 pub(crate) enum HandlerCallback<S> {
     Future(Arc<dyn Fn(S, HandlerInput) -> HandlerFuture + Send + Sync>),
@@ -137,7 +145,7 @@ where
     ) -> Handler<S>
     where
         F: Fn(S, I, H) -> Fut + Send + Sync + Copy + 'static,
-        Fut: Future<Output = R> + Send + 'static,
+        Fut: Future<Output = R> + crate::MaybeSend + 'static,
         R: crate::IntoResult<O, E> + 'static,
         I: Input + serde::de::DeserializeOwned + Send + 'static,
         H: Input + serde::de::DeserializeOwned + Send + 'static,
@@ -167,8 +175,8 @@ where
     ) -> Handler<S>
     where
         F: Fn(S, I, H) -> Fut + Send + Sync + Copy + 'static,
-        Fut: Future<Output = Result<St, E1>> + Send + 'static,
-        St: Stream<Item = O> + Send + 'static,
+        Fut: Future<Output = Result<St, E1>> + crate::MaybeSend + 'static,
+        St: Stream<Item = O> + crate::MaybeSend + 'static,
         I: Input + serde::de::DeserializeOwned + Send + 'static,
         H: Input + serde::de::DeserializeOwned + Send + 'static,
         O: StreamItem + Send + 'static,
@@ -297,7 +305,7 @@ where
         O: Output + serde::ser::Serialize,
         E: crate::ResponseError,
         F: Fn(S, I, H) -> Fut,
-        Fut: Future<Output = R> + Send + 'static,
+        Fut: Future<Output = R> + crate::MaybeSend + 'static,
         R: crate::IntoResult<O, E>,
     {
         let (input, input_headers, content_type, mut response_headers) =
@@ -370,7 +378,7 @@ where
         E1: crate::ResponseError,
         F: Fn(S, I, H) -> Fut,
         Fut: Future<Output = Result<St, E1>>,
-        St: Stream<Item = O> + Send + 'static,
+        St: Stream<Item = O> + crate::MaybeSend + 'static,
     {
         let (input, input_headers, content_type, mut response_headers) =
             Self::parse_input::<I, H>(input)?;

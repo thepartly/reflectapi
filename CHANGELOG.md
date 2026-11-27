@@ -42,6 +42,7 @@
 
 ### Fixed
 
+- **A route on wasm32 can await a call through a generated client.** In 0.26.0 the client runtime stopped requiring `Send` on wasm32, but the builder still required a route's handler and a stream route's stream to be `Send`, so a wasm32 server whose route called another API didn't build. Both are now bound by `MaybeSend`, which moves from `rt` to the crate root, `reflectapi::MaybeSend`, and stays at `reflectapi::rt::MaybeSend` too. On wasm32, `dispatch::ReplyStream` isn't `Send` either. Native bounds are unchanged.
 - **A schema with a `NonZeroU8` to `NonZeroU128` and no plain integer of its width no longer crashes OpenAPI generation.** The non-zero types name the plain integer as their fallback, and now add it to the schema.
 - **Two different types under one name are a build error, where clients silently kept one.** If `rename_types` or `glob_rename_types` mapped two different types onto one name, `build()` succeeded, and every generated client kept only one of them. Which one depended on route order, so routes using the other got the wrong shape. The same happened when `nest` or `extend` merged builders with different types of the same name. `build()` now merges copies of one definition and fails on different types, naming the type and whether it's a request or response type. `Typespace` gains `dedup_types` and `conflicting_types`. ([#181](https://github.com/thepartly/reflectapi/issues/181))
 - **`build()` refuses schemas whose clients would lose data or fail to compile**, always:

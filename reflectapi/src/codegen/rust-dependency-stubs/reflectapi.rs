@@ -26,4 +26,7 @@ pub struct Empty {}
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Infallible {}
 
+mod maybe_send;
+pub use maybe_send::MaybeSend;
+
 pub mod rt;

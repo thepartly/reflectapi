@@ -307,6 +307,10 @@ fn typecheck(src: &str) -> anyhow::Result<()> {
             include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/rt.rs")),
         ),
         (
+            "maybe_send.rs",
+            include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/maybe_send.rs")),
+        ),
+        (
             "indexmap.rs",
             include_str!("rust-dependency-stubs/indexmap.rs"),
         ),

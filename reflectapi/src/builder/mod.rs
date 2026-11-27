@@ -202,7 +202,7 @@ where
     ) -> Self
     where
         F: Fn(S, I, H) -> Fut + Send + Sync + Copy + 'static,
-        Fut: std::future::Future<Output = R> + Send + 'static,
+        Fut: std::future::Future<Output = R> + crate::MaybeSend + 'static,
         R: IntoResult<O, E> + 'static,
         I: Input + DeserializeOwned + Send + 'static,
         H: Input + DeserializeOwned + Send + 'static,
@@ -244,8 +244,8 @@ where
     ) -> Self
     where
         F: Fn(S, I, H) -> Fut + Send + Sync + Copy + 'static,
-        Fut: std::future::Future<Output = Result<St, E1>> + Send + 'static,
-        St: Stream<Item = O> + Send + 'static,
+        Fut: std::future::Future<Output = Result<St, E1>> + crate::MaybeSend + 'static,
+        St: Stream<Item = O> + crate::MaybeSend + 'static,
         I: Input + DeserializeOwned + Send + 'static,
         H: Input + DeserializeOwned + Send + 'static,
         O: StreamItem + Send + 'static,
